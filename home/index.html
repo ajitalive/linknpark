@@ -4,6 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LinkNPark — Park Smart. Stay Reachable.</title>
+  <script>
+    // QR codes point to linknpark.in?code=STK-... → redirect to scanner
+    var code = new URLSearchParams(window.location.search).get('code');
+    if (code) window.location.replace('https://scan.linknpark.in?code=' + encodeURIComponent(code));
+  </script>
   <meta name="description" content="QR stickers that let anyone contact your vehicle instantly. No app needed to report. Made for India."/>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
