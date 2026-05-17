@@ -1,0 +1,14 @@
+# Web/static assets (separate Cloudflare Pages deployments)
+home/
+scanner-landing/
+sticker-generator/
+api-server/
+
+# Expo build artifacts
+dist/
+.expo/
+web-build/
+
+# Logs, caches
+*.log
+.DS_Store

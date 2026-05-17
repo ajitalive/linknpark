@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const { Resend } = require('resend');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -9,6 +12,115 @@ app.use(express.json());
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+
+// ============ AUTH (Email OTP via Resend) ============
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const JWT_SECRET = process.env.JWT_SECRET || 'linknpark-dev-secret-change-me';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'LinkNPark <onboarding@resend.dev>';
+const OTP_TTL_MS = 5 * 60 * 1000;
+
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const otpStore = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of otpStore) if (v.expiresAt < now) otpStore.delete(k);
+}, 60_000);
+
+function generateOTP() {
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function otpEmail(code) {
+  return `
+    <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#06090F;color:#fff;border-radius:16px">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="display:inline-block;background:#2CFF05;color:#000;font-weight:900;padding:10px 20px;border-radius:10px;font-size:18px">LinkNPark</div>
+      </div>
+      <h1 style="font-size:22px;margin:0 0 12px">Your verification code</h1>
+      <p style="color:#8899AA;font-size:15px;line-height:22px;margin:0 0 24px">
+        Enter this code in the LinkNPark app to sign in. Code expires in 5 minutes.
+      </p>
+      <div style="background:#0F1419;border:1px solid #1E2A35;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;font-weight:900;letter-spacing:8px;color:#2CFF05;font-family:'SF Mono',monospace">${code}</div>
+      </div>
+      <p style="color:#4A5568;font-size:12px;line-height:18px;margin:0">
+        If you didn't request this, you can safely ignore this email. Someone may have typed your address by mistake.
+      </p>
+    </div>
+  `;
+}
+
+app.post('/api/auth/send-otp', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Valid email required' });
+  }
+  const normalizedEmail = email.toLowerCase().trim();
+  const code = generateOTP();
+  otpStore.set(normalizedEmail, { code, expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
+
+  console.log(`[OTP] Sent to ${normalizedEmail}: ${code}`);
+
+  if (!resend) {
+    return res.json({ ok: true, devCode: code, note: 'Resend not configured — using dev code' });
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: normalizedEmail,
+      subject: `${code} is your LinkNPark code`,
+      html: otpEmail(code),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[OTP] Resend error:', err.message);
+    res.status(500).json({ error: 'Failed to send email', detail: err.message });
+  }
+});
+
+app.post('/api/auth/verify-otp', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) return res.status(400).json({ error: 'email and code required' });
+  const normalizedEmail = email.toLowerCase().trim();
+  const entry = otpStore.get(normalizedEmail);
+
+  if (!entry) return res.status(400).json({ error: 'No OTP requested — please send a new code' });
+  if (entry.expiresAt < Date.now()) {
+    otpStore.delete(normalizedEmail);
+    return res.status(400).json({ error: 'Code expired — please request a new one' });
+  }
+  if (entry.attempts >= 5) {
+    otpStore.delete(normalizedEmail);
+    return res.status(429).json({ error: 'Too many attempts — please request a new code' });
+  }
+  if (entry.code !== String(code).trim()) {
+    entry.attempts++;
+    return res.status(400).json({ error: 'Incorrect code', attemptsLeft: 5 - entry.attempts });
+  }
+
+  otpStore.delete(normalizedEmail);
+  const token = jwt.sign({ email: normalizedEmail }, JWT_SECRET, { expiresIn: '90d' });
+  console.log(`[AUTH] ${normalizedEmail} verified`);
+  res.json({ ok: true, token, user: { email: normalizedEmail } });
+});
+
+function requireAuth(req, res, next) {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
 
 // stickerCode → Set of connected WebSocket clients
 const stickerClients = {};

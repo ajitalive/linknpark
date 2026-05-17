@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,18 +9,31 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui';
+import { sendOTP } from '../../hooks/useAuth';
 
-export default function PhoneScreen() {
+export default function EmailScreen() {
   const insets = useSafeAreaInsets();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function sendOTP() {
-    if (phone.length < 10) return;
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  async function handleSendOTP() {
+    if (!isValid) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
+    const result = await sendOTP(email);
     setLoading(false);
-    router.push({ pathname: '/(auth)/otp', params: { phone } });
+
+    if (!result.ok) {
+      Alert.alert('Could not send code', result.error || 'Please try again');
+      return;
+    }
+
+    if (result.devCode) {
+      Alert.alert('Dev mode', `OTP not sent via email (Resend not configured).\n\nUse code: ${result.devCode}`);
+    }
+
+    router.push({ pathname: '/(auth)/otp', params: { email } });
   }
 
   return (
@@ -33,7 +46,6 @@ export default function PhoneScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <LinearGradient
           colors={[Colors.primary, Colors.primaryLight]}
           style={[styles.header, { paddingTop: insets.top + 16 }]}
@@ -48,34 +60,31 @@ export default function PhoneScreen() {
           <Text style={styles.headerSub}>Smart Vehicle Identity</Text>
         </LinearGradient>
 
-        {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.formTitle}>Enter your mobile number</Text>
-          <Text style={styles.formSub}>We'll send you a 6-digit OTP to verify</Text>
+          <Text style={styles.formTitle}>Enter your email</Text>
+          <Text style={styles.formSub}>We'll send a 6-digit code to verify it's you</Text>
 
-          <View style={styles.phoneRow}>
-            <View style={styles.countryCode}>
-              <Text style={styles.countryFlag}>🇮🇳</Text>
-              <Text style={styles.countryText}>+91</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.textSecondary} />
-            </View>
+          <View style={styles.emailRow}>
+            <Ionicons name="mail" size={20} color={Colors.textSecondary} style={{ marginRight: 10 }} />
             <TextInput
-              style={styles.phoneInput}
-              placeholder="98765 43210"
+              style={styles.emailInput}
+              placeholder="you@example.com"
               placeholderTextColor={Colors.textMuted}
-              keyboardType="number-pad"
-              maxLength={10}
-              value={phone}
-              onChangeText={setPhone}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              value={email}
+              onChangeText={setEmail}
               autoFocus
             />
           </View>
 
           <Button
-            label="Send OTP"
-            onPress={sendOTP}
+            label="Send Code"
+            onPress={handleSendOTP}
             loading={loading}
-            disabled={phone.length < 10}
+            disabled={!isValid}
             size="lg"
             style={{ marginTop: 28 }}
           />
@@ -87,18 +96,10 @@ export default function PhoneScreen() {
             <Text style={styles.link}>Privacy Policy</Text>
           </Text>
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+          <View style={styles.hint}>
+            <Ionicons name="lock-closed" size={14} color={Colors.textMuted} />
+            <Text style={styles.hintText}>Your email is kept private and never shared</Text>
           </View>
-
-          {/* Google Sign In */}
-          <TouchableOpacity style={styles.googleBtn} activeOpacity={0.8}>
-            <Ionicons name="logo-google" size={20} color="#EA4335" />
-            <Text style={styles.googleText}>Continue with Google</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -106,10 +107,7 @@ export default function PhoneScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 24, paddingBottom: 40,
-    alignItems: 'center',
-  },
+  header: { paddingHorizontal: 24, paddingBottom: 40, alignItems: 'center' },
   backBtn: { alignSelf: 'flex-start', marginBottom: 24 },
   logoWrap: {
     width: 72, height: 72, borderRadius: 36,
@@ -122,35 +120,21 @@ const styles = StyleSheet.create({
   form: { flex: 1, padding: 28 },
   formTitle: { fontSize: 24, fontWeight: '700', color: Colors.text, marginBottom: 8 },
   formSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 28 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  countryCode: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+  emailRow: {
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: Colors.surface, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 14,
     borderWidth: 1, borderColor: Colors.divider,
+    paddingHorizontal: 16, height: 56,
   },
-  countryFlag: { fontSize: 20 },
-  countryText: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  phoneInput: {
-    flex: 1, height: 52, backgroundColor: Colors.surface,
-    borderRadius: 12, paddingHorizontal: 16,
-    fontSize: 18, fontWeight: '500', color: Colors.text,
-    borderWidth: 1, borderColor: Colors.divider,
-    letterSpacing: 1,
+  emailInput: {
+    flex: 1, height: '100%',
+    fontSize: 16, fontWeight: '500', color: Colors.text,
   },
   terms: {
     fontSize: 12, color: Colors.textMuted,
     textAlign: 'center', marginTop: 16, lineHeight: 18,
   },
   link: { color: Colors.primary, fontWeight: '600' },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.divider },
-  dividerText: { marginHorizontal: 16, color: Colors.textMuted, fontSize: 13 },
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 52, borderRadius: 12, gap: 12,
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.divider,
-  },
-  googleText: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24 },
+  hintText: { fontSize: 12, color: Colors.textMuted },
 });

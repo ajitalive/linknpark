@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
 import { MOCK_USER } from '../../constants/MockData';
+import { useAuth } from '../../hooks/useAuth';
+import { Alert } from 'react-native';
 
 const MENU_SECTIONS = [
   {
@@ -43,6 +45,26 @@ const MENU_SECTIONS = [
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
+  const { user, signOut } = useAuth();
+  const displayName = user?.email?.split('@')[0] ?? MOCK_USER.name;
+  const displayHandle = user?.email ?? MOCK_USER.phone;
+  const initials = (displayName[0] || 'L').toUpperCase() + (displayName[1] || '').toUpperCase();
+
+  function handleMenuPress(item: any) {
+    if (item.label === 'Log Out') {
+      Alert.alert('Sign out?', 'You will need to verify your email again to sign back in.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out', style: 'destructive', onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/onboarding');
+          },
+        },
+      ]);
+      return;
+    }
+    if (item.route) router.push(item.route as any);
+  }
 
   return (
     <ScrollView
@@ -56,11 +78,11 @@ export default function MoreScreen() {
         style={[styles.profileHeader, { paddingTop: insets.top + 16 }]}
       >
         <View style={styles.avatarWrap}>
-          <Text style={styles.avatarText}>RS</Text>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>{MOCK_USER.name}</Text>
-          <Text style={styles.profilePhone}>{MOCK_USER.phone}</Text>
+          <Text style={styles.profileName}>{displayName}</Text>
+          <Text style={styles.profilePhone}>{displayHandle}</Text>
         </View>
         <View style={styles.planBadge}>
           <Ionicons name="star" size={12} color={Colors.amber} />
@@ -87,7 +109,7 @@ export default function MoreScreen() {
                   styles.menuItem,
                   i < section.items.length - 1 && styles.menuItemBorder,
                 ]}
-                onPress={() => item.route && router.push(item.route as any)}
+                onPress={() => handleMenuPress(item)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.menuIcon, { backgroundColor: `${item.color}18` }]}>

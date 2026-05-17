@@ -8,12 +8,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui';
+import { verifyOTP, sendOTP } from '../../hooks/useAuth';
+import { Alert } from 'react-native';
 
 const OTP_LENGTH = 6;
 
 export default function OTPScreen() {
   const insets = useSafeAreaInsets();
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
@@ -43,9 +45,24 @@ export default function OTPScreen() {
 
   async function verify() {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1500));
+    const code = otp.join('');
+    const result = await verifyOTP(email, code);
     setLoading(false);
-    router.replace('/(auth)/sticker-code');
+
+    if (!result.ok) {
+      Alert.alert('Verification failed', result.error || 'Please try again');
+      setOtp(Array(OTP_LENGTH).fill(''));
+      inputs.current[0]?.focus();
+      return;
+    }
+    router.replace('/(tabs)');
+  }
+
+  async function handleResend() {
+    setResendTimer(30);
+    const result = await sendOTP(email);
+    if (!result.ok) Alert.alert('Could not resend', result.error || 'Please try again');
+    else if (result.devCode) Alert.alert('Dev mode', `Use code: ${result.devCode}`);
   }
 
   const filled = otp.filter(Boolean).length === OTP_LENGTH;
@@ -71,8 +88,8 @@ export default function OTPScreen() {
 
         <Text style={styles.title}>Verify your number</Text>
         <Text style={styles.sub}>
-          We sent a 6-digit OTP to{'\n'}
-          <Text style={styles.phone}>+91 {phone}</Text>
+          We sent a 6-digit code to{'\n'}
+          <Text style={styles.phone}>{email}</Text>
         </Text>
 
         {/* OTP Input */}
@@ -93,28 +110,14 @@ export default function OTPScreen() {
           ))}
         </View>
 
-        {/* Test mode hint */}
-        <TouchableOpacity
-          style={styles.testHint}
-          onPress={() => {
-            const test = ['1','2','3','4','5','6'];
-            setOtp(test);
-            inputs.current[5]?.blur();
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="flask" size={13} color={Colors.amber} />
-          <Text style={styles.testHintText}>Prototype mode — tap to fill test OTP: 123456</Text>
-        </TouchableOpacity>
-
         {/* Resend */}
         <View style={styles.resendRow}>
           <Text style={styles.resendText}>Didn't receive it? </Text>
           {resendTimer > 0 ? (
             <Text style={styles.resendTimer}>Resend in {resendTimer}s</Text>
           ) : (
-            <TouchableOpacity onPress={() => setResendTimer(30)}>
-              <Text style={styles.resendLink}>Resend OTP</Text>
+            <TouchableOpacity onPress={handleResend}>
+              <Text style={styles.resendLink}>Resend code</Text>
             </TouchableOpacity>
           )}
         </View>
