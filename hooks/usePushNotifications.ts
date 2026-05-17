@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-export const API_BASE = 'https://athletic-generosity-production-a534.up.railway.app';
+export const API_BASE = 'https://linknpark.onrender.com';
 const WS_URL = 'wss://athletic-generosity-production-a534.up.railway.app';
 const PROTOTYPE_STICKER_CODE = 'STK-2025-AB1234';
 
