@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 export const API_BASE = 'https://linknpark.onrender.com';
-const WS_URL = 'wss://athletic-generosity-production-a534.up.railway.app';
+const WS_URL = 'wss://linknpark.onrender.com';
 const PROTOTYPE_STICKER_CODE = 'STK-2025-AB1234';
 
 export type ReportPayload = {
@@ -13,24 +13,25 @@ export type ReportPayload = {
 };
 
 type OnReportCallback = (report: ReportPayload) => void;
+type OnConnectCallback = (connected: boolean) => void;
 
-export function useReportSocket(onReport: OnReportCallback) {
+export function useReportSocket(onReport: OnReportCallback, onConnect?: OnConnectCallback) {
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onReportRef = useRef(onReport);
+  const onConnectRef = useRef(onConnect);
   onReportRef.current = onReport;
+  onConnectRef.current = onConnect;
 
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
-    console.log('[WS] Connecting to', WS_URL);
     const socket = new WebSocket(WS_URL);
     ws.current = socket;
 
     socket.onopen = () => {
-      console.log('[WS] ✅ Connected');
+      onConnectRef.current?.(true);
       socket.send(JSON.stringify({ type: 'subscribe', stickerCode: PROTOTYPE_STICKER_CODE }));
-      // Also register vehicle info
       fetch(`${API_BASE}/api/register-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,18 +49,17 @@ export function useReportSocket(onReport: OnReportCallback) {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'new_report') {
-          console.log('[WS] 🔔 New report:', msg.reportId);
           onReportRef.current(msg);
         }
       } catch {}
     };
 
-    socket.onerror = (e) => {
-      console.log('[WS] Connection error — check API server and WiFi');
+    socket.onerror = () => {
+      onConnectRef.current?.(false);
     };
 
     socket.onclose = () => {
-      console.log('[WS] Disconnected — retrying in 5s');
+      onConnectRef.current?.(false);
       reconnectTimer.current = setTimeout(connect, 5000);
     };
   }, []);
