@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkNPark — Smart Vehicle Stickers for India</title>
+  <meta name="description" content="QR-based vehicle stickers that let anyone contact your vehicle owner instantly. No app required to report." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .gradient-text {
+      background: linear-gradient(135deg, #3B2FF5, #6B5FFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sticker-preview {
+      width: 170px; height: 108px;
+      background: #2CFF05;
+      border: 2px solid #111;
+      border-radius: 6px;
+      display: flex; flex-direction: row;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(44,255,5,0.3), 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .sticker-left { flex: 1; padding: 6px 5px 6px 7px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sticker-right { width: 64px; background: #fff; border-left: 2px solid #111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 4px; }
+    .qr-placeholder { width: 52px; height: 52px; background: #111; border-radius: 3px; display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; padding: 4px; }
+    .qr-cell { background: #fff; border-radius: 1px; }
+    .qr-cell.dark { background: #111; }
+  </style>
+</head>
+<body class="bg-white">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
+    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#3B2FF5">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="1" width="5" height="5" rx="1" fill="white"/>
+            <rect x="8" y="1" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+            <rect x="1" y="8" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+            <rect x="9" y="9" width="4" height="4" rx="1" fill="white"/>
+          </svg>
+        </div>
+        <span class="font-bold text-gray-900 text-sm">LinkNPark</span>
+      </div>
+      <div class="hidden md:flex items-center gap-6 text-sm text-gray-500">
+        <a href="#how-it-works" class="hover:text-gray-900">How it works</a>
+        <a href="#features" class="hover:text-gray-900">Features</a>
+        <a href="#get-sticker" class="px-4 py-1.5 rounded-lg text-white text-sm font-semibold" style="background:#3B2FF5">Get Sticker</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="pt-32 pb-20 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="flex flex-col lg:flex-row items-center gap-16">
+        <div class="flex-1">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 mb-6">
+            <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+            <span class="text-xs font-semibold text-indigo-700">Made for India</span>
+          </div>
+          <h1 class="text-5xl font-black text-gray-900 leading-tight mb-6">
+            Let anyone reach<br />your vehicle<br /><span class="gradient-text">in seconds.</span>
+          </h1>
+          <p class="text-lg text-gray-500 leading-relaxed mb-8 max-w-md">
+            Stick a LinkNPark QR sticker on your car. Anyone can scan it to report wrong parking, accidents, or emergencies — no app needed.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <a href="#get-sticker"
+              class="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-lg"
+              style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+              Get Your Sticker
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="https://scan.linknpark.in?code=DEMO"
+              class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm border border-gray-200 text-gray-700 hover:border-gray-300">
+              See demo scan
+            </a>
+          </div>
+        </div>
+
+        <!-- Sticker visual -->
+        <div class="flex-1 flex flex-col items-center gap-6">
+          <div class="relative">
+            <div class="absolute -inset-4 rounded-2xl" style="background:radial-gradient(circle, rgba(44,255,5,0.15) 0%, transparent 70%)"></div>
+            <div class="sticker-preview relative">
+              <div class="sticker-left">
+                <div>
+                  <div style="font-size:10px;font-weight:900;color:#000;letter-spacing:-0.5px;font-family:Arial Black,sans-serif">LinkNPark</div>
+                  <div style="font-size:5px;font-weight:600;color:#222;margin-top:1px">linknpark.in</div>
+                </div>
+                <div style="font-size:8px;font-weight:900;color:#000;text-transform:uppercase;line-height:1.2;font-family:Arial Black,sans-serif">Scan to<br/><u>contact the</u><br/><u>vehicle owner</u></div>
+                <div style="font-size:4.5px;font-weight:800;color:#111;font-family:monospace;white-space:nowrap">STK-2025-AA0001</div>
+              </div>
+              <div class="sticker-right">
+                <div class="qr-placeholder">
+                  <div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell"></div><div class="qr-cell dark"></div>
+                  <div class="qr-cell dark"></div><div class="qr-cell"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell dark"></div><div class="qr-cell"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div>
+                  <div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell dark"></div><div class="qr-cell"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div><div class="qr-cell dark"></div>
+                </div>
+                <div style="font-size:4px;font-weight:700;color:#333;text-align:center;text-transform:uppercase;letter-spacing:0.3px">Scan using<br/>phone camera</div>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 text-center">
+            <div><div class="text-2xl font-black text-gray-900">0s</div><div class="text-xs text-gray-400">App install needed</div></div>
+            <div class="w-px h-8 bg-gray-200"></div>
+            <div><div class="text-2xl font-black text-gray-900">1 scan</div><div class="text-xs text-gray-400">To reach the owner</div></div>
+            <div class="w-px h-8 bg-gray-200"></div>
+            <div><div class="text-2xl font-black" style="color:#3B2FF5">∞</div><div class="text-xs text-gray-400">Reports handled</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="py-20 px-6 bg-gray-50">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-black text-gray-900 mb-3">How it works</h2>
+        <p class="text-gray-500">Three steps. No friction.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-lg" style="background:#ECFDF5">🚗</div>
+          <div class="text-xs font-bold text-indigo-600 mb-2">STEP 1</div>
+          <h3 class="font-bold text-gray-900 mb-2">Stick it on your car</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Peel and stick the LinkNPark QR sticker on your windshield or bumper. Register the code in the app.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-lg" style="background:#EEF2FF">📱</div>
+          <div class="text-xs font-bold text-indigo-600 mb-2">STEP 2</div>
+          <h3 class="font-bold text-gray-900 mb-2">Someone scans it</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">A person nearby scans the QR with any phone camera. No app install required on their end.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-lg" style="background:#FFF7ED">🔔</div>
+          <div class="text-xs font-bold text-indigo-600 mb-2">STEP 3</div>
+          <h3 class="font-bold text-gray-900 mb-2">You get notified instantly</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">The report reaches you in real time through the LinkNPark app. Move your car, respond, or escalate.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-black text-gray-900 mb-3">Built for real situations</h2>
+        <p class="text-gray-500">Every scenario covered.</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="flex items-start gap-4 p-5 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-colors">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style="background:#FEF2F2">🚫</div>
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm mb-1">Wrong Parking</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">Blocked driveway, no-parking zone — reporter scans and you move immediately.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-5 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-colors">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style="background:#FFFBEB">⚠️</div>
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm mb-1">Accident / Scratch</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">Someone bumped your car in a parking lot — they can report it honestly instead of driving away.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-5 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-colors">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style="background:#F0FDF4">💡</div>
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm mb-1">Lights Left On</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">A neighbour can let you know before your battery dies.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4 p-5 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-colors">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base" style="background:#FFF7ED">🆘</div>
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm mb-1">Emergency</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">Medical emergency, fire, or theft — the right person gets notified fast.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="get-sticker" class="py-20 px-6">
+    <div class="max-w-xl mx-auto text-center">
+      <div class="rounded-3xl p-10 border border-indigo-100" style="background:linear-gradient(135deg,#EEF2FF,#F5F3FF)">
+        <h2 class="text-3xl font-black text-gray-900 mb-3">Get your LinkNPark sticker</h2>
+        <p class="text-gray-500 mb-8 text-sm leading-relaxed">Order a set of QR stickers for your vehicle. Each sticker is unique and links to your account.</p>
+        <a href="mailto:hello@linknpark.in"
+          class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-semibold text-sm shadow-lg"
+          style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+          Request Early Access
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <p class="text-xs text-gray-400 mt-4">Currently available in select cities · Free for early adopters</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-100 py-8 px-6">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background:#3B2FF5">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="1" width="5" height="5" rx="1" fill="white"/>
+            <rect x="8" y="1" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+            <rect x="1" y="8" width="5" height="5" rx="1" fill="white" opacity="0.6"/>
+            <rect x="9" y="9" width="4" height="4" rx="1" fill="white"/>
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-gray-900">LinkNPark</span>
+      </div>
+      <p class="text-xs text-gray-400">© 2025 LinkNPark. Made in India.</p>
+      <div class="flex gap-4 text-xs text-gray-400">
+        <a href="mailto:hello@linknpark.in" class="hover:text-gray-600">Contact</a>
+        <a href="/privacy" class="hover:text-gray-600">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
