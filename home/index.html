@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkNPark — Park Smart. Stay Reachable.</title>
+  <script>
+    // QR codes point to linknpark.in?code=STK-... → redirect to scanner
+    var code = new URLSearchParams(window.location.search).get('code');
+    if (code) window.location.replace('https://scan.linknpark.in?code=' + encodeURIComponent(code));
+  </script>
+  <meta name="description" content="QR stickers that let anyone contact your vehicle instantly. No app needed to report. Made for India."/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --green: #2CFF05;
+      --green-dim: rgba(44,255,5,0.12);
+      --green-glow: rgba(44,255,5,0.35);
+      --indigo: #3B2FF5;
+      --bg: #06090F;
+      --surface: #0C1322;
+      --card: #0F1929;
+      --border: rgba(255,255,255,0.07);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid texture ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+
+    /* ── Glow blobs ── */
+    .blob {
+      position: absolute; border-radius: 50%;
+      pointer-events: none; filter: blur(80px);
+    }
+
+    /* ── Animations ── */
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+    @keyframes glow-pulse {
+      0%,100% { box-shadow: 0 0 24px var(--green-glow); }
+      50%      { box-shadow: 0 0 48px var(--green-glow), 0 0 80px rgba(44,255,5,0.15); }
+    }
+    @keyframes scan-line {
+      0%   { top: 6%; opacity: 1; }
+      90%  { top: 88%; opacity: 1; }
+      100% { top: 88%; opacity: 0; }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slide-right {
+      from { opacity: 0; transform: translateX(32px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes notif-in {
+      0%   { opacity: 0; transform: translateY(-16px) scale(0.94); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes ping {
+      0%        { transform: scale(1); opacity: 0.8; }
+      75%,100%  { transform: scale(2.2); opacity: 0; }
+    }
+    @keyframes progress {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes shimmer {
+      0%,100% { background-position: 0% 50%; }
+      50%     { background-position: 100% 50%; }
+    }
+    @keyframes count-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Utility ── */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--green) 0%, #00E5FF 60%, var(--green) 100%);
+      background-size: 200% 200%;
+      animation: shimmer 4s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .glass {
+      background: rgba(15, 25, 41, 0.75);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+    }
+    .glass-green {
+      background: rgba(44,255,5,0.05);
+      border: 1px solid rgba(44,255,5,0.2);
+      backdrop-filter: blur(14px);
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background: #45ff22;
+      box-shadow: 0 0 24px rgba(44,255,5,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      transition: all 0.2s ease;
+    }
+    .btn-outline:hover {
+      border-color: rgba(44,255,5,0.4);
+      color: var(--green);
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: rgba(6,9,15,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* ── Scan line ── */
+    .scan-wrap { position: relative; overflow: hidden; }
+    .scan-beam {
+      position: absolute; left: 4%; width: 92%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      box-shadow: 0 0 10px var(--green), 0 0 24px rgba(44,255,5,0.3);
+      animation: scan-line 2s ease-in-out infinite;
+      z-index: 5;
+    }
+
+    /* ── Sticker CSS ── */
+    .sticker-css {
+      background: var(--green);
+      border: 2px solid #111;
+      border-radius: 6px;
+      animation: float 3.5s ease-in-out infinite, glow-pulse 3s ease-in-out infinite;
+    }
+
+    /* ── Phone ── */
+    .phone-shell {
+      background: #080C14;
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(44,255,5,0.08), 0 32px 80px rgba(0,0,0,0.6);
+    }
+    .phone-shell::after {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 72px; height: 24px;
+      background: #080C14;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      z-index: 20;
+    }
+
+    /* ── Step cards ── */
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .step-card:hover { transform: translateY(-4px); }
+
+    /* ── Reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    /* ── Feature tag ── */
+    .feat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Ticker ── */
+    .ticker-track { white-space: nowrap; display: inline-block; animation: ticker 22s linear infinite; }
+
+    /* ── Progress bar ── */
+    .prog { height: 2px; border-radius: 1px; background: rgba(255,255,255,0.07); overflow: hidden; }
+    .prog-fill { height: 100%; background: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ── Background blobs ── -->
+<div class="blob" style="width:700px;height:700px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(44,255,5,0.09),transparent 70%);"></div>
+<div class="blob" style="width:600px;height:600px;top:400px;left:-300px;background:radial-gradient(circle,rgba(59,47,245,0.12),transparent 70%);"></div>
+<div class="blob" style="width:500px;height:500px;bottom:0;right:0;background:radial-gradient(circle,rgba(44,255,5,0.06),transparent 70%);"></div>
+
+<!-- ── Nav ── -->
+<nav class="fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:var(--green)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="1" width="6" height="6" rx="1.5" fill="#000"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.5" fill="#000" opacity="0.55"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5" fill="#000" opacity="0.55"/>
+          <rect x="10" y="10" width="5" height="5" rx="1" fill="#000"/>
+        </svg>
+      </div>
+      <span class="font-black text-white tracking-tight text-base">LinkNPark</span>
+      <span class="text-xs px-2 py-0.5 rounded-full font-bold hidden sm:inline" style="background:rgba(44,255,5,0.12);color:var(--green);border:1px solid rgba(44,255,5,0.2)">BETA</span>
+    </div>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium">
+      <a href="#how-it-works" class="text-gray-400 hover:text-white transition-colors">How it works</a>
+      <a href="#features" class="text-gray-400 hover:text-white transition-colors">Features</a>
+      <a href="#get-sticker" class="btn-primary px-5 py-2 rounded-xl text-sm">Get Sticker →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     HERO
+══════════════════════════════════════ -->
+<section class="relative min-h-screen flex items-center pt-16 px-5 overflow-hidden">
+  <div class="max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-14 items-center py-24">
+
+    <!-- Left: copy -->
+    <div style="animation:fade-up 0.75s ease both">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-6"
+           style="background:rgba(44,255,5,0.1);border:1px solid rgba(44,255,5,0.22);color:var(--green)">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:ping 1.8s ease infinite;display:inline-block;"></span>
+        Made for India · Launching 2025
+      </div>
+
+      <h1 class="text-5xl lg:text-6xl font-black leading-none tracking-tight mb-5">
+        Park anywhere.<br/>
+        <span class="gradient-text">Stay reachable.</span>
+      </h1>
+
+      <p class="text-lg text-gray-400 leading-relaxed mb-3 max-w-lg">
+        A <strong class="text-white">LinkNPark sticker</strong> on your car lets anyone reach you instantly — without knowing your number.
+      </p>
+      <p class="text-sm text-gray-500 mb-8 max-w-md leading-relaxed">
+        No more parking fights in your society. No more coming down to move your car after someone's been trying to reach you for an hour.
+      </p>
+
+      <div class="flex flex-wrap gap-3 mb-10">
+        <a href="#get-sticker" class="btn-primary flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm">
+          Get Your Sticker
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#how-it-works" class="btn-outline flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm">
+          See how it works
+        </a>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="flex flex-wrap gap-5">
+        <div class="flex items-center gap-1.5 text-sm text-gray-500">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          No app to download for reporter
+        </div>
+        <div class="flex items-center gap-1.5 text-sm text-gray-500">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          Your number stays private
+        </div>
+        <div class="flex items-center gap-1.5 text-sm text-gray-500">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          Works on any Android or iPhone
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: animated demo -->
+    <div class="flex justify-center relative" style="animation:slide-right 0.75s ease 0.25s both">
+      <!-- Glow ring -->
+      <div class="absolute inset-0 rounded-full" style="background:radial-gradient(ellipse,rgba(44,255,5,0.12) 0%,transparent 65%);filter:blur(10px);"></div>
+
+      <div class="relative w-72 h-[480px]">
+
+        <!-- Sticker (top-left, floating) -->
+        <div class="sticker-css absolute -top-4 -left-8 p-2.5 rounded-xl" style="width:96px;">
+          <div style="font-size:7px;font-weight:900;color:#000;font-family:Arial Black,Arial,sans-serif;letter-spacing:-0.3px">LinkNPark</div>
+          <div style="font-size:4.5px;color:#222;margin-bottom:3px">linknpark.in</div>
+          <!-- Mini QR -->
+          <div style="width:32px;height:32px;background:#000;border-radius:3px;margin:0 auto 3px;padding:3px;display:grid;grid-template-columns:repeat(5,1fr);gap:1.5px;">
+            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
+            <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b>
+            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
+            <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
+            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b>
+          </div>
+          <div style="font-size:3.5px;font-weight:800;color:#111;font-family:monospace;text-align:center">STK-2025-AA0001</div>
+        </div>
+
+        <!-- Phone shell -->
+        <div class="phone-shell absolute left-1/2 -translate-x-1/2 top-8 w-52 h-96" style="animation:glow-pulse 4s ease-in-out infinite">
+          <div class="w-full h-full rounded-3xl pt-8 flex flex-col overflow-hidden" id="heroScreen">
+            <!-- State content injected by JS -->
+          </div>
+        </div>
+
+        <!-- Notification card (right side, appears after scan) -->
+        <div id="heroNotif" class="glass-green rounded-2xl p-3.5 absolute -right-6 bottom-16 w-52"
+             style="opacity:0;transition:all 0.4s ease;">
+          <div class="flex items-start gap-2.5">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(44,255,5,0.18)">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 7l3.5 3.5L12 3" stroke="#2CFF05" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white leading-tight">New Report!</div>
+              <div class="text-xs text-gray-400 mt-0.5">Wrong Parking</div>
+              <div class="text-xs font-semibold mt-1" style="color:var(--green)">STK-2025-AA0001</div>
+            </div>
+          </div>
+          <div class="mt-2.5 pt-2.5 text-xs text-gray-400 leading-relaxed" style="border-top:1px solid rgba(255,255,255,0.06)">
+            "Blocking society gate, please move your car"
+          </div>
+        </div>
+
+        <!-- Ping dot on sticker -->
+        <div class="absolute -top-2 -left-7">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--green);animation:ping 2s ease 1s infinite;opacity:0.7;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+    <span class="text-xs text-gray-400 tracking-wider uppercase">Scroll</span>
+    <div style="width:1px;height:36px;background:linear-gradient(to bottom,var(--green),transparent);animation:float 2s ease-in-out infinite;"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     TICKER
+══════════════════════════════════════ -->
+<div class="overflow-hidden py-4 border-y relative z-10" style="border-color:rgba(255,255,255,0.05)">
+  <div class="ticker-track text-sm font-semibold" style="color:rgba(44,255,5,0.7)">
+    <span>Society gate blocked &nbsp;·&nbsp; </span><span>Parking spot stolen &nbsp;·&nbsp; </span><span>Car lights left on &nbsp;·&nbsp; </span><span>Accidental scratch &nbsp;·&nbsp; </span><span>Suspicious activity &nbsp;·&nbsp; </span><span>Office parking dispute &nbsp;·&nbsp; </span><span>Mall parking complaint &nbsp;·&nbsp; </span><span>Apartment double parking &nbsp;·&nbsp; </span>
+    <span>Society gate blocked &nbsp;·&nbsp; </span><span>Parking spot stolen &nbsp;·&nbsp; </span><span>Car lights left on &nbsp;·&nbsp; </span><span>Accidental scratch &nbsp;·&nbsp; </span><span>Suspicious activity &nbsp;·&nbsp; </span><span>Office parking dispute &nbsp;·&nbsp; </span><span>Mall parking complaint &nbsp;·&nbsp; </span><span>Apartment double parking &nbsp;·&nbsp; </span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════ -->
+<section id="how-it-works" class="py-28 px-5 relative">
+  <div class="max-w-5xl mx-auto">
+
+    <div class="text-center mb-16 reveal">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
+           style="background:rgba(59,47,245,0.14);border:1px solid rgba(59,47,245,0.28);color:#818CF8">
+        Simple · Fast · Effective
+      </div>
+      <h2 class="text-4xl font-black text-white mb-4">From sticker to solved<br/>in under 60 seconds</h2>
+      <p class="text-gray-400 max-w-sm mx-auto text-sm leading-relaxed">Three steps. Works on any phone. No friction for anyone involved.</p>
+    </div>
+
+    <!-- Animated steps -->
+    <div class="grid md:grid-cols-3 gap-5">
+
+      <!-- Step 1 -->
+      <div class="step-card p-6 reveal" style="border-color:rgba(44,255,5,0.18);transition-delay:0.05s">
+        <div class="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 font-black text-black text-sm" style="background:var(--green)">01</div>
+        <h3 class="text-base font-bold text-white mb-2">Stick it on your vehicle</h3>
+        <p class="text-xs text-gray-400 leading-relaxed mb-5">Peel and apply the LinkNPark QR sticker. Open the app, enter the code — it's linked to you forever.</p>
+        <!-- Sticker visual -->
+        <div class="flex justify-center">
+          <div class="sticker-css p-3 rounded-xl" style="width:100px;">
+            <div style="font-size:8px;font-weight:900;color:#000;font-family:Arial Black,Arial,sans-serif">LinkNPark</div>
+            <div style="font-size:5px;color:#222;margin-bottom:4px">linknpark.in</div>
+            <div style="width:38px;height:38px;background:#000;border-radius:3px;margin:0 auto 4px;padding:3px;display:grid;grid-template-columns:repeat(5,1fr);gap:1.5px;">
+              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
+              <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b>
+              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b>
+              <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
+              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
+            </div>
+            <div style="font-size:4px;font-weight:800;color:#111;font-family:monospace;text-align:center">STK-2025-AA0001</div>
+          </div>
+        </div>
+        <div class="prog mt-5"><div class="prog-fill" style="animation:progress 4s linear 0.5s both;"></div></div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card p-6 reveal" style="border-color:rgba(59,47,245,0.25);transition-delay:0.15s">
+        <div class="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style="background:linear-gradient(90deg,var(--indigo),transparent)"></div>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 font-black text-white text-sm" style="background:var(--indigo)">02</div>
+        <h3 class="text-base font-bold text-white mb-2">Anyone scans — no app needed</h3>
+        <p class="text-xs text-gray-400 leading-relaxed mb-5">Your neighbour, security guard, or anyone nearby scans the QR with their phone camera. A form opens instantly in the browser.</p>
+        <!-- Scanner visual -->
+        <div class="flex justify-center">
+          <div class="scan-wrap rounded-xl overflow-hidden" style="width:90px;height:90px;background:#111;border:1.5px solid rgba(59,47,245,0.35);">
+            <div class="scan-beam" style="animation-duration:1.6s;"></div>
+            <!-- Corner guides -->
+            <div style="position:absolute;top:7px;left:7px;width:16px;height:16px;border-top:2px solid var(--green);border-left:2px solid var(--green);border-radius:2px 0 0 0;z-index:6"></div>
+            <div style="position:absolute;top:7px;right:7px;width:16px;height:16px;border-top:2px solid var(--green);border-right:2px solid var(--green);border-radius:0 2px 0 0;z-index:6"></div>
+            <div style="position:absolute;bottom:7px;left:7px;width:16px;height:16px;border-bottom:2px solid var(--green);border-left:2px solid var(--green);border-radius:0 0 0 2px;z-index:6"></div>
+            <div style="position:absolute;bottom:7px;right:7px;width:16px;height:16px;border-bottom:2px solid var(--green);border-right:2px solid var(--green);border-radius:0 0 2px 0;z-index:6"></div>
+            <!-- QR -->
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;background:#fff;border-radius:3px;padding:4px;display:grid;grid-template-columns:repeat(5,1fr);gap:1px;">
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b>
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b>
+              <b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b>
+            </div>
+          </div>
+        </div>
+        <div class="prog mt-5"><div class="prog-fill" style="animation:progress 4s linear 1s both;background:var(--indigo);"></div></div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card p-6 reveal" style="border-color:rgba(44,255,5,0.12);transition-delay:0.25s">
+        <div class="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style="background:linear-gradient(90deg,rgba(44,255,5,0.6),transparent)"></div>
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 font-black text-white text-sm" style="background:#065f46">03</div>
+        <h3 class="text-base font-bold text-white mb-2">You're notified instantly</h3>
+        <p class="text-xs text-gray-400 leading-relaxed mb-5">The report hits your LinkNPark app in real time. See the reason, respond, resolve. No missed alerts.</p>
+        <!-- Notification visual -->
+        <div class="glass-green rounded-xl p-3" style="animation:notif-in 0.5s ease 1.5s both;">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(44,255,5,0.2)">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 6l3 3 6-6" stroke="#2CFF05" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-white">New Report</div>
+              <div class="text-xs text-gray-500">Just now · Wrong Parking</div>
+            </div>
+          </div>
+          <div class="text-xs font-semibold mb-1" style="color:var(--green)">STK-2025-AA0001</div>
+          <div class="text-xs text-gray-400">"Please move, blocking the gate"</div>
+        </div>
+        <div class="prog mt-5"><div class="prog-fill" style="animation:progress 4s linear 1.5s both;"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     STATS
+══════════════════════════════════════ -->
+<section class="py-6 px-5">
+  <div class="max-w-4xl mx-auto">
+    <div class="glass rounded-2xl p-8 reveal" style="border-color:rgba(44,255,5,0.1);">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div style="animation:count-up 0.6s ease 0.1s both">
+          <div class="text-3xl font-black mb-1" style="color:var(--green)">&lt; 60s</div>
+          <div class="text-xs text-gray-500 leading-tight">Average time to resolve<br/>a parking issue</div>
+        </div>
+        <div style="animation:count-up 0.6s ease 0.2s both">
+          <div class="text-3xl font-black mb-1 text-white">0</div>
+          <div class="text-xs text-gray-500 leading-tight">Apps the reporter<br/>needs to install</div>
+        </div>
+        <div style="animation:count-up 0.6s ease 0.3s both">
+          <div class="text-3xl font-black mb-1 text-white">100%</div>
+          <div class="text-xs text-gray-500 leading-tight">Phone number<br/>privacy</div>
+        </div>
+        <div style="animation:count-up 0.6s ease 0.4s both">
+          <div class="text-3xl font-black mb-1" style="color:var(--green)">6.7M+</div>
+          <div class="text-xs text-gray-500 leading-tight">Unique sticker codes<br/>available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FEATURES
+══════════════════════════════════════ -->
+<section id="features" class="py-28 px-5">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16 reveal">
+      <h2 class="text-4xl font-black text-white mb-4">Built for real India</h2>
+      <p class="text-gray-400 max-w-sm mx-auto text-sm leading-relaxed">Every feature designed around how vehicles are actually used in Indian cities — apartments, societies, offices, malls.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.05s">
+        <div class="feat-icon mb-4" style="background:rgba(44,255,5,0.1)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 00-6-6zm0 8a2 2 0 110-4 2 2 0 010 4z" fill="#2CFF05"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">Your number stays private</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">Reporters never see your phone number. All communication is anonymous and secure through the app.</p>
+      </div>
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.1s">
+        <div class="feat-icon mb-4" style="background:rgba(59,47,245,0.12)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" stroke="#818CF8" stroke-width="1.5"/><path d="M7 6h6M7 9h6M7 12h4" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">No app to install for reporter</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">The reporting form opens directly in the browser. Any phone, any camera app, zero friction.</p>
+      </div>
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.15s">
+        <div class="feat-icon mb-4" style="background:rgba(245,158,11,0.1)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2v2M10 16v2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M2 10h2M16 10h2M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="10" r="3" fill="#F59E0B"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">Real-time notifications</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">Reports arrive the second someone submits. Not 5 minutes later — instantly on your screen.</p>
+      </div>
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.2s">
+        <div class="feat-icon mb-4" style="background:rgba(239,68,68,0.1)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.5 7.5H18L13.5 11L15 16.5L10 13.5L5 16.5L6.5 11L2 7.5H7.5z" stroke="#EF4444" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">Society & RWA ready</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">Security guards can report without a phone call. Watchmen, residents, visitors — it works for all.</p>
+      </div>
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.25s">
+        <div class="feat-icon mb-4" style="background:rgba(16,185,129,0.1)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M9 12l2 2 4-4M5 10l2-2m3-4v2M10 16v2M4 4l1.5 1.5M16 4l-1.5 1.5" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">Multiple report types</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">Wrong parking, accident, lights on, suspicious activity, theft — every situation has a dedicated flow.</p>
+      </div>
+
+      <div class="step-card p-5 reveal" style="transition-delay:0.3s">
+        <div class="feat-icon mb-4" style="background:rgba(139,92,246,0.12)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#8B5CF6" stroke-width="1.5"/><path d="M6.5 10.5l2 2 5-5" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 class="font-bold text-white text-sm mb-1.5">Made for Indian cities</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">Mumbai, Delhi, Bengaluru, Pune, Hyderabad — designed for how parking actually works here.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CTA
+══════════════════════════════════════ -->
+<section id="get-sticker" class="py-24 px-5">
+  <div class="max-w-2xl mx-auto">
+    <div class="relative rounded-3xl p-10 overflow-hidden text-center reveal"
+         style="background:linear-gradient(135deg,rgba(44,255,5,0.07),rgba(59,47,245,0.1));border:1px solid rgba(44,255,5,0.18);">
+      <!-- Glow -->
+      <div class="blob" style="width:300px;height:300px;top:-80px;right:-80px;background:radial-gradient(circle,rgba(44,255,5,0.12),transparent);filter:blur(40px);"></div>
+      <div class="relative">
+        <div class="text-5xl mb-5">🚗</div>
+        <h2 class="text-3xl font-black text-white mb-3 leading-tight">Get LinkNPark<br/>for your vehicle</h2>
+        <p class="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto mb-8">
+          Join the waitlist. Be among the first vehicle owners in your city to park smarter and stay reachable without sharing your number.
+        </p>
+        <a href="mailto:hello@linknpark.in?subject=I want a LinkNPark sticker"
+           class="btn-primary inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-sm">
+          Request Early Access
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <p class="text-xs text-gray-600 mt-4">Free for early adopters · Ships to Mumbai, Delhi, Bengaluru, Pune + more</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════ -->
+<footer class="py-10 px-5" style="border-top:1px solid rgba(255,255,255,0.05)">
+  <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:var(--green)">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="1" width="6" height="6" rx="1.5" fill="#000"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.5" fill="#000" opacity="0.5"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5" fill="#000" opacity="0.5"/>
+          <rect x="10" y="10" width="5" height="5" rx="1" fill="#000"/>
+        </svg>
+      </div>
+      <span class="font-black text-white">LinkNPark</span>
+      <span class="text-xs text-gray-600">· Park Smart. Stay Reachable.</span>
+    </div>
+    <p class="text-xs text-gray-700">© 2025 LinkNPark. Made in India 🇮🇳</p>
+    <div class="flex gap-5 text-xs text-gray-600">
+      <a href="mailto:hello@linknpark.in" class="hover:text-white transition-colors">Contact</a>
+      <a href="/privacy" class="hover:text-white transition-colors">Privacy</a>
+      <a href="https://scan.linknpark.in?code=DEMO" class="hover:text-white transition-colors">Try Demo</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Scroll reveal ──
+  const revealEls = document.querySelectorAll('.reveal');
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.1 }).observe || revealEls.forEach(el => {
+    new IntersectionObserver(([e]) => { if (e.isIntersecting) el.classList.add('in'); }, { threshold: 0.1 }).observe(el);
+  });
+  // polyfill-safe loop
+  revealEls.forEach(el => {
+    new IntersectionObserver(([e]) => { if (e.isIntersecting) el.classList.add('in'); }, { threshold: 0.1 }).observe(el);
+  });
+
+  // ── Hero phone animation ──
+  const screen = document.getElementById('heroScreen');
+  const notif  = document.getElementById('heroNotif');
+
+  const states = [
+    // State 0: scanning
+    `<div style="padding:12px 10px;display:flex;flex-direction:column;height:100%;gap:8px">
+      <div style="text-align:center">
+        <div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:2px">Scanning…</div>
+        <div style="font-size:9px;color:#666">Point at QR sticker</div>
+      </div>
+      <div class="scan-wrap" style="flex:1;background:#0a0a0a;border-radius:12px;border:1px solid rgba(255,255,255,0.08);min-height:120px">
+        <div class="scan-beam"></div>
+        <div style="position:absolute;top:8px;left:8px;width:18px;height:18px;border-top:2px solid #2CFF05;border-left:2px solid #2CFF05;border-radius:2px 0 0 0;z-index:6"></div>
+        <div style="position:absolute;top:8px;right:8px;width:18px;height:18px;border-top:2px solid #2CFF05;border-right:2px solid #2CFF05;border-radius:0 2px 0 0;z-index:6"></div>
+        <div style="position:absolute;bottom:8px;left:8px;width:18px;height:18px;border-bottom:2px solid #2CFF05;border-left:2px solid #2CFF05;border-radius:0 0 0 2px;z-index:6"></div>
+        <div style="position:absolute;bottom:8px;right:8px;width:18px;height:18px;border-bottom:2px solid #2CFF05;border-right:2px solid #2CFF05;border-radius:0 0 2px 0;z-index:6"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;background:#fff;border-radius:4px;padding:4px;display:grid;grid-template-columns:repeat(5,1fr);gap:1px">
+          <b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+          <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b>
+          <b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b>
+          <b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+          <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b>
+        </div>
+      </div>
+    </div>`,
+
+    // State 1: vehicle found
+    `<div style="padding:14px 12px;display:flex;flex-direction:column;height:100%;gap:10px">
+      <div style="text-align:center;padding-top:8px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(44,255,5,0.15);margin:0 auto 8px;display:flex;align-items:center;justify-content:center">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="#2CFF05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#2CFF05;margin-bottom:2px">Vehicle Found!</div>
+        <div style="font-size:9px;color:#555">Registered with LinkNPark</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px">
+        <div style="font-size:9px;color:#888;margin-bottom:4px">STICKER CODE</div>
+        <div style="font-size:10px;font-weight:800;color:#2CFF05;font-family:monospace">STK-2025-AA0001</div>
+      </div>
+      <div style="font-size:9px;color:#666;text-align:center">Why are you reporting?</div>
+      <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px;display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="#EF4444" stroke-width="1.2"/><path d="M6 4v3M6 8.5v.5" stroke="#EF4444" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:9px;font-weight:700;color:#EF4444">Wrong Parking</span>
+      </div>
+    </div>`,
+
+    // State 2: report sent
+    `<div style="padding:14px 12px;display:flex;flex-direction:column;height:100%;gap:8px;align-items:center;justify-content:center;text-align:center">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(44,255,5,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:4px;animation:glow-pulse 2s ease-in-out infinite">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2CFF05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#2CFF05">Report Sent!</div>
+      <div style="font-size:9px;color:#666;line-height:1.5;max-width:140px">The owner will be notified instantly on their phone</div>
+      <div style="font-size:8px;color:#444;margin-top:4px">Powered by LinkNPark</div>
+    </div>`
+  ];
+
+  let heroState = 0;
+  function cycleHeroState() {
+    screen.innerHTML = states[heroState];
+    if (heroState === 2) {
+      notif.style.opacity = '1';
+      notif.style.transform = 'translateY(0)';
+    } else {
+      notif.style.opacity = '0';
+    }
+    heroState = (heroState + 1) % states.length;
+  }
+
+  cycleHeroState();
+  setInterval(cycleHeroState, 3500);
+</script>
+</body>
+</html>
