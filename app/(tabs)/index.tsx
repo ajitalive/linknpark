@@ -40,10 +40,14 @@ export default function HomeScreen() {
   const { stickers, refresh: refreshStickers } = useStickers();
   const { incidents, refresh: refreshIncidents } = useIncidents();
 
+  // Only refresh when the tab regains focus AND data is actually stale.
+  // The cache in useApi already handles this — calling refresh() is a no-op
+  // if data was fetched within the last 30 seconds.
   useFocusEffect(React.useCallback(() => {
     refreshStickers();
     refreshIncidents();
-  }, [refreshStickers, refreshIncidents]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []));
 
   const openIncidents = incidents.filter(i => i.status === 'open');
   const openIncident = openIncidents[0];

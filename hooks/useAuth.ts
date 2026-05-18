@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE } from './usePushNotifications';
+import { clearApiCache } from './apiCache';
 
 const TOKEN_KEY = 'linknpark_auth_token';
 const USER_KEY = 'linknpark_auth_user';
@@ -71,6 +72,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     await clearAuth();
+    clearApiCache();
     setUser(null);
   }, []);
 

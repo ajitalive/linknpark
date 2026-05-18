@@ -1,6 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE } from './usePushNotifications';
 import { getToken } from './useAuth';
+import { cache, clearApiCache } from './apiCache';
+
+export { clearApiCache };
+
+const STALE_MS = 30_000; // re-fetch only if data is older than 30 seconds
+
+const stickerListeners = new Set<() => void>();
+const incidentListeners = new Set<() => void>();
+
+function notifyStickers() { stickerListeners.forEach(fn => fn()); }
+function notifyIncidents() { incidentListeners.forEach(fn => fn()); }
+
+// Warm up the Render server before auth requests fire
+let _pinged = false;
+export function warmupServer() {
+  if (_pinged) return;
+  _pinged = true;
+  fetch(`${API_BASE}/health`).catch(() => {});
+}
 
 export type Sticker = {
   id: string;
@@ -37,17 +56,20 @@ export type Incident = {
 };
 
 async function authFetch(path: string, init?: RequestInit) {
-  const token = await getToken();
+  if (!cache.token) cache.token = await getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(cache.token ? { Authorization: `Bearer ${cache.token}` } : {}),
       ...init?.headers,
     },
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    if (res.status === 401) cache.token = null;
+    throw new Error(data.error || `Request failed (${res.status})`);
+  }
   return data;
 }
 
@@ -91,45 +113,84 @@ export async function resolveIncident(id: string, status: 'resolved' | 'dismisse
 
 // ===== Hooks =====
 export function useStickers() {
-  const [stickers, setStickers] = useState<Sticker[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stickers, setStickers] = useState<Sticker[]>((cache.stickers as Sticker[]) ?? []);
+  const [loading, setLoading] = useState(cache.stickers === null);
   const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
 
-  const refresh = useCallback(async () => {
+  useEffect(() => {
+    mounted.current = true;
+    // Subscribe to updates from other hook instances
+    const notify = () => { if (mounted.current && _stickers) setStickers([..._stickers]); };
+    stickerListeners.add(notify);
+    return () => { mounted.current = false; stickerListeners.delete(notify); };
+  }, []);
+
+  const refresh = useCallback(async (force = false) => {
+    const isStale = Date.now() - cache.stickersFetchedAt > STALE_MS;
+    if (!force && !isStale && cache.stickers !== null) return;
+    if (!mounted.current) return;
     setLoading(true);
     setError(null);
     try {
-      setStickers(await listStickers());
+      const data = await listStickers();
+      cache.stickers = data;
+      cache.stickersFetchedAt = Date.now();
+      if (mounted.current) setStickers(data);
+      notifyStickers();
     } catch (e: any) {
-      setError(e?.message || 'Failed to load');
+      if (mounted.current) setError(e?.message || 'Failed to load');
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  return { stickers, loading, error, refresh };
+  return { stickers, loading, error, refresh: () => refresh(true) };
 }
 
 export function useIncidents() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [incidents, setIncidents] = useState<Incident[]>((cache.incidents as Incident[]) ?? []);
+  const [loading, setLoading] = useState(cache.incidents === null);
   const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
 
-  const refresh = useCallback(async () => {
+  useEffect(() => {
+    mounted.current = true;
+    const notify = () => { if (mounted.current && _incidents) setIncidents([..._incidents]); };
+    incidentListeners.add(notify);
+    return () => { mounted.current = false; incidentListeners.delete(notify); };
+  }, []);
+
+  const refresh = useCallback(async (force = false) => {
+    const isStale = Date.now() - cache.incidentsFetchedAt > STALE_MS;
+    if (!force && !isStale && cache.incidents !== null) return;
+    if (!mounted.current) return;
     setLoading(true);
     setError(null);
     try {
-      setIncidents(await listIncidents());
+      const data = await listIncidents();
+      cache.incidents = data;
+      cache.incidentsFetchedAt = Date.now();
+      if (mounted.current) setIncidents(data);
+      notifyIncidents();
     } catch (e: any) {
-      setError(e?.message || 'Failed to load');
+      if (mounted.current) setError(e?.message || 'Failed to load');
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  return { incidents, loading, error, refresh, setIncidents };
+  const setIncidentsLocal = useCallback((updater: (prev: Incident[]) => Incident[]) => {
+    const next = updater((cache.incidents as Incident[]) ?? []);
+    cache.incidents = next;
+    cache.incidentsFetchedAt = Date.now();
+    setIncidents(next);
+    notifyIncidents();
+  }, []);
+
+  return { incidents, loading, error, refresh: () => refresh(true), setIncidents: setIncidentsLocal };
 }

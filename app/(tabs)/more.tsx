@@ -13,25 +13,22 @@ const MENU_SECTIONS = [
   {
     title: 'Safety',
     items: [
-      { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: '2 contacts', route: null },
-      { icon: 'shield', label: 'Guardian Network', color: Colors.primary, badge: null, route: null },
-      { icon: 'medical', label: 'SOS Settings', color: Colors.critical, badge: null, route: null },
+      { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: '2 contacts', route: '/emergency-contacts' },
+      { icon: 'shield', label: 'Guardian Network', color: Colors.primary, badge: null, route: '/guardian-network' },
+      { icon: 'medical', label: 'SOS Settings', color: Colors.critical, badge: null, route: '/sos-settings' },
     ],
   },
   {
     title: 'Operations',
     items: [
       { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: null, route: '/guard' },
-      { icon: 'location', label: 'Parked Location', color: Colors.success, badge: null, route: null },
-      { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: null },
+      { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: '/parking-timer' },
     ],
   },
   {
     title: 'Account',
     items: [
-      { icon: 'card', label: 'Plan & Subscription', color: Colors.primary, badge: 'Premium', route: null },
-      { icon: 'notifications', label: 'Notification Preferences', color: Colors.amber, badge: null, route: null },
-      { icon: 'lock-closed', label: 'Privacy Settings', color: Colors.primary, badge: null, route: null },
+      { icon: 'notifications', label: 'Notification Preferences', color: Colors.amber, badge: null, route: '/notification-preferences' },
       { icon: 'help-circle', label: 'Help & Support', color: Colors.textSecondary, badge: null, route: null },
     ],
   },

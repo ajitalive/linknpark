@@ -3,9 +3,12 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { View, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReportSocket, ReportPayload } from '../../hooks/usePushNotifications';
 import { ReportBanner } from '../../components/ReportBanner';
 import { useStickers } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
+import { usePushToken } from '../../hooks/usePushToken';
 
 function TabIcon({ name, color, focused }: { name: any; color: string; focused: boolean }) {
   return (
@@ -16,15 +19,22 @@ function TabIcon({ name, color, focused }: { name: any; color: string; focused: 
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   const [activeReport, setActiveReport] = useState<ReportPayload | null>(null);
   const { stickers } = useStickers();
+  const { user } = useAuth();
   const codes = stickers.map(s => s.code);
+
+  usePushToken(user?.email ?? null);
 
   useReportSocket(
     (report) => setActiveReport(report),
     undefined,
     codes,
   );
+
+  const tabBarBottomPad = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : Math.max(insets.bottom, 8);
+  const tabBarHeight = Platform.OS === 'ios' ? tabBarBottomPad + 56 : tabBarBottomPad + 52;
 
   return (
     <View style={{ flex: 1 }}>
@@ -35,8 +45,8 @@ export default function TabsLayout() {
             backgroundColor: Colors.surface,
             borderTopColor: Colors.divider,
             borderTopWidth: 1,
-            height: Platform.OS === 'ios' ? 84 : 64,
-            paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+            height: tabBarHeight,
+            paddingBottom: tabBarBottomPad,
             paddingTop: 8,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -4 },
