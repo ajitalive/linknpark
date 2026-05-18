@@ -11,7 +11,19 @@ import { Colors, IncidentColors } from '../../constants/Colors';
 import { Card, SectionHeader, Badge, StatusDot } from '../../components/ui';
 import { VehicleIcon } from '../../components/VehicleIcon';
 import { IncidentIcon } from '../../components/IncidentIcon';
-import { MOCK_USER, MOCK_STICKERS, MOCK_INCIDENTS, MOCK_SCAN_HISTORY } from '../../constants/MockData';
+import { MOCK_SCAN_HISTORY } from '../../constants/MockData';
+import { useStickers, useIncidents } from '../../hooks/useApi';
+import { useAuth } from '../../hooks/useAuth';
+import { useFocusEffect } from 'expo-router';
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return 'Never';
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 const { width } = Dimensions.get('window');
 
@@ -24,8 +36,20 @@ const QUICK_ACTIONS = [
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const openIncident = MOCK_INCIDENTS.find(i => i.status === 'open');
-  const expiringDocs = 2;
+  const { user } = useAuth();
+  const { stickers, refresh: refreshStickers } = useStickers();
+  const { incidents, refresh: refreshIncidents } = useIncidents();
+
+  useFocusEffect(React.useCallback(() => {
+    refreshStickers();
+    refreshIncidents();
+  }, [refreshStickers, refreshIncidents]));
+
+  const openIncidents = incidents.filter(i => i.status === 'open');
+  const openIncident = openIncidents[0];
+  const totalScans = stickers.reduce((sum, s) => sum + (s.scan_count || 0), 0);
+  const firstName = user?.email?.split('@')[0] || 'there';
+  const initials = (firstName[0] || 'L').toUpperCase() + (firstName[1] || '').toUpperCase();
 
   return (
     <ScrollView
@@ -40,12 +64,12 @@ export default function HomeScreen() {
       >
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>Good morning,</Text>
-            <Text style={styles.userName}>{MOCK_USER.name.split(' ')[0]} 👋</Text>
+            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.userName}>{firstName} 👋</Text>
           </View>
-          <TouchableOpacity style={styles.avatarBtn}>
+          <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/(tabs)/more')}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>RS</Text>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -61,10 +85,10 @@ export default function HomeScreen() {
               <View style={styles.alertDot} />
               <Ionicons name="warning" size={16} color={Colors.high} />
               <Text style={styles.alertText}>
-                {IncidentColors[openIncident.type]?.label} · {openIncident.registration}
+                {openIncident.reason_label} · {openIncident.stickers?.registration || openIncident.sticker_code}
               </Text>
             </View>
-            <Text style={styles.alertTime}>{openIncident.reportedAgo}</Text>
+            <Text style={styles.alertTime}>{timeAgo(openIncident.reported_at)}</Text>
           </TouchableOpacity>
         )}
       </LinearGradient>
@@ -72,10 +96,9 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* KPI Cards */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kpiScroll} contentContainerStyle={{ paddingRight: 16 }}>
-          <KPICard value="3" label="Active Stickers" icon="pricetag" color={Colors.primary} bg={Colors.primaryBg} />
-          <KPICard value="1" label="Open Incident" icon="alert-circle" color={Colors.high} bg={Colors.highBg} />
-          <KPICard value="2" label="Docs Expiring" icon="document-text" color={Colors.amber} bg={Colors.amberBg} />
-          <KPICard value="14" label="Total Scans" icon="scan" color={Colors.success} bg={Colors.successBg} />
+          <KPICard value={String(stickers.length)} label="Active Stickers" icon="pricetag" color={Colors.primary} bg={Colors.primaryBg} />
+          <KPICard value={String(openIncidents.length)} label={openIncidents.length === 1 ? "Open Incident" : "Open Incidents"} icon="alert-circle" color={Colors.high} bg={Colors.highBg} />
+          <KPICard value={String(totalScans)} label="Total Scans" icon="scan" color={Colors.success} bg={Colors.successBg} />
         </ScrollView>
 
         {/* Quick Actions */}
@@ -106,19 +129,23 @@ export default function HomeScreen() {
             />
             <Card onPress={() => router.push(`/incident/${openIncident.id}` as any)}>
               <View style={styles.incidentRow}>
-                <IncidentIcon type={openIncident.type} size={22} />
+                <IncidentIcon type={openIncident.reason as any} size={22} />
                 <View style={styles.incidentInfo}>
                   <View style={styles.incidentHeader}>
-                    <Text style={styles.incidentType}>{IncidentColors[openIncident.type]?.label}</Text>
+                    <Text style={styles.incidentType}>{openIncident.reason_label}</Text>
                     <Badge
                       label={openIncident.severity.toUpperCase()}
-                      color={Colors[openIncident.severity as keyof typeof Colors] as string}
-                      bg={Colors[`${openIncident.severity}Bg` as keyof typeof Colors] as string}
+                      color={(Colors as any)[openIncident.severity] || Colors.high}
+                      bg={(Colors as any)[`${openIncident.severity}Bg`] || Colors.highBg}
                       size="sm"
                     />
                   </View>
-                  <Text style={styles.incidentVehicle}>{openIncident.registration} · {openIncident.reportedBy}</Text>
-                  <Text style={styles.incidentMsg} numberOfLines={2}>{openIncident.message}</Text>
+                  <Text style={styles.incidentVehicle}>
+                    {openIncident.stickers?.registration || openIncident.sticker_code} · {openIncident.reporter_phone || 'Anonymous'}
+                  </Text>
+                  {openIncident.message ? (
+                    <Text style={styles.incidentMsg} numberOfLines={2}>{openIncident.message}</Text>
+                  ) : null}
                 </View>
               </View>
               <View style={styles.incidentActions}>
@@ -140,44 +167,47 @@ export default function HomeScreen() {
         )}
 
         {/* My Stickers */}
-        <SectionHeader
-          title="My Stickers"
-          action="Manage"
-          onAction={() => router.push('/(tabs)/stickers')}
-        />
-        {MOCK_STICKERS.slice(0, 2).map(s => (
-          <Card key={s.id} onPress={() => router.push(`/sticker/${s.id}` as any)}>
-            <View style={styles.stickerRow}>
-              <VehicleIcon type={s.type} size={22} />
-              <View style={styles.stickerInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={styles.stickerName}>{s.vehicleName}</Text>
-                  <StatusDot status={s.status} />
+        {stickers.length > 0 && (
+          <>
+            <SectionHeader
+              title="My Stickers"
+              action="Manage"
+              onAction={() => router.push('/(tabs)/stickers')}
+            />
+            {stickers.slice(0, 2).map(s => (
+              <Card key={s.id} onPress={() => router.push(`/sticker/${s.id}` as any)}>
+                <View style={styles.stickerRow}>
+                  <VehicleIcon type={s.vehicle_type} size={22} />
+                  <View style={styles.stickerInfo}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.stickerName}>{s.vehicle_name || s.registration}</Text>
+                      <StatusDot status={s.status} />
+                    </View>
+                    <Text style={styles.stickerReg}>{s.registration}</Text>
+                  </View>
+                  <View style={styles.stickerMeta}>
+                    <Text style={styles.stickerScan}>Last scan</Text>
+                    <Text style={styles.stickerScanTime}>{timeAgo(s.last_scanned_at)}</Text>
+                  </View>
                 </View>
-                <Text style={styles.stickerReg}>{s.registration}</Text>
-              </View>
-              <View style={styles.stickerMeta}>
-                <Text style={styles.stickerScan}>Last scan</Text>
-                <Text style={styles.stickerScanTime}>{s.lastScanned}</Text>
-              </View>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {stickers.length === 0 && (
+          <Card onPress={() => router.push('/activate' as any)}>
+            <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+              <Ionicons name="add-circle" size={40} color={Colors.primary} />
+              <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text, marginTop: 8 }}>
+                Activate your first sticker
+              </Text>
+              <Text style={{ fontSize: 13, color: Colors.textSecondary, textAlign: 'center', marginTop: 4 }}>
+                Tap to scan or enter your sticker code
+              </Text>
             </View>
           </Card>
-        ))}
-
-        {/* Recent Scans */}
-        <SectionHeader title="Recent Activity" />
-        {MOCK_SCAN_HISTORY.slice(0, 3).map(s => (
-          <View key={s.id} style={styles.activityRow}>
-            <IncidentIcon type={s.type} size={16} />
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityText}>
-                <Text style={{ fontWeight: '600' }}>{s.sticker}</Text> scanned · {IncidentColors[s.type]?.label}
-              </Text>
-              <Text style={styles.activityTime}>{s.time} · {s.scanner}</Text>
-            </View>
-            {s.hasLocation && <Ionicons name="location" size={14} color={Colors.primary} />}
-          </View>
-        ))}
+        )}
       </View>
     </ScrollView>
   );

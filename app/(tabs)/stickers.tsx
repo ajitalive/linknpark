@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
-import { Card, Chip, StatusDot, Badge, Button } from '../../components/ui';
+import { Card, Chip, StatusDot, Button } from '../../components/ui';
 import { VehicleIcon } from '../../components/VehicleIcon';
-import { MOCK_STICKERS } from '../../constants/MockData';
+import { useStickers, type Sticker } from '../../hooks/useApi';
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return 'Never';
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 const FILTERS = ['All', 'Active', 'Paused', 'Flagged'];
 
@@ -16,12 +26,16 @@ export default function StickersScreen() {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const { stickers, loading, error, refresh } = useStickers();
 
-  const filtered = MOCK_STICKERS.filter(s => {
+  useFocusEffect(React.useCallback(() => { refresh(); }, [refresh]));
+
+  const filtered = stickers.filter(s => {
     const matchFilter = filter === 'All' || s.status === filter.toLowerCase();
-    const matchSearch = s.vehicleName.toLowerCase().includes(search.toLowerCase()) ||
-      s.registration.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
+    const name = (s.vehicle_name || '').toLowerCase();
+    const reg = (s.registration || '').toLowerCase();
+    const q = search.toLowerCase();
+    return matchFilter && (name.includes(q) || reg.includes(q));
   });
 
   return (
@@ -67,12 +81,30 @@ export default function StickersScreen() {
         style={styles.list}
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={Colors.primary} />}
       >
-        {filtered.length === 0 ? (
+        {loading && stickers.length === 0 ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={56} color={Colors.textMuted} />
+            <Text style={styles.emptyTitle}>Couldn't load stickers</Text>
+            <Text style={styles.emptySub}>{error}</Text>
+            <Button label="Retry" onPress={refresh} style={{ marginTop: 16 }} />
+          </View>
+        ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="pricetag-outline" size={56} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>No stickers found</Text>
-            <Text style={styles.emptySub}>Try a different filter or activate a new sticker</Text>
+            <Text style={styles.emptyTitle}>
+              {stickers.length === 0 ? 'No stickers yet' : 'No matches'}
+            </Text>
+            <Text style={styles.emptySub}>
+              {stickers.length === 0
+                ? 'Activate your first sticker to get started'
+                : 'Try a different filter or search'}
+            </Text>
             <Button label="Activate Sticker" onPress={() => router.push('/activate' as any)} style={{ marginTop: 16 }} />
           </View>
         ) : (
@@ -83,47 +115,34 @@ export default function StickersScreen() {
   );
 }
 
-function StickerCard({ sticker }: { sticker: typeof MOCK_STICKERS[0] }) {
+function StickerCard({ sticker }: { sticker: Sticker }) {
   const isPaused = sticker.status === 'paused';
+  const displayName = sticker.vehicle_name || sticker.registration;
 
   return (
     <Card onPress={() => router.push(`/sticker/${sticker.id}` as any)} style={isPaused ? { opacity: 0.75 } : {}}>
-      {/* Top row */}
       <View style={styles.cardTop}>
-        <VehicleIcon type={sticker.type} size={22} />
+        <VehicleIcon type={sticker.vehicle_type} size={22} />
         <View style={styles.cardInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.cardName}>{sticker.vehicleName}</Text>
+            <Text style={styles.cardName}>{displayName}</Text>
             <StatusDot status={sticker.status} />
             <Text style={[styles.statusLabel, { color: sticker.status === 'active' ? Colors.success : Colors.paused }]}>
               {sticker.status.charAt(0).toUpperCase() + sticker.status.slice(1)}
             </Text>
           </View>
-          <Text style={styles.cardReg}>{sticker.registration} · {sticker.color} {sticker.type}</Text>
+          <Text style={styles.cardReg}>
+            {sticker.registration}{sticker.color ? ` · ${sticker.color}` : ''} {sticker.vehicle_type}
+          </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
       </View>
 
-      {/* Stats */}
       <View style={styles.statsRow}>
-        <StatItem icon="scan" label="Scans" value={String(sticker.scanCount)} />
-        <StatItem
-          icon="alert-circle"
-          label="Incidents"
-          value={String(sticker.openIncidents)}
-          highlight={sticker.openIncidents > 0}
-        />
-        <StatItem icon="document-text" label="Docs" value={String(sticker.docCount)} />
-        <StatItem icon="time" label="Last scan" value={sticker.lastScanned} small />
+        <StatItem icon="scan" label="Scans" value={String(sticker.scan_count ?? 0)} />
+        <StatItem icon="qr-code" label="Code" value={sticker.code.split('-').pop() || ''} small />
+        <StatItem icon="time" label="Last scan" value={timeAgo(sticker.last_scanned_at)} small />
       </View>
-
-      {/* Open incident banner */}
-      {sticker.openIncidents > 0 && (
-        <View style={styles.incidentBanner}>
-          <Ionicons name="warning" size={14} color={Colors.high} />
-          <Text style={styles.incidentBannerText}>{sticker.openIncidents} open incident — tap to view</Text>
-        </View>
-      )}
     </Card>
   );
 }

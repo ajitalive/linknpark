@@ -1,24 +1,46 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, IncidentColors } from '../../constants/Colors';
-import { Chip, Badge } from '../../components/ui';
+import { Chip, Badge, Button } from '../../components/ui';
 import { IncidentIcon } from '../../components/IncidentIcon';
-import { MOCK_INCIDENTS } from '../../constants/MockData';
+import { useIncidents, resolveIncident, type Incident } from '../../hooks/useApi';
+
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 const FILTERS = ['All', 'Open', 'Resolved', 'Escalated'];
 
 export default function IncidentsScreen() {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState('All');
+  const { incidents, loading, error, refresh, setIncidents } = useIncidents();
 
-  const filtered = MOCK_INCIDENTS.filter(i =>
+  useFocusEffect(React.useCallback(() => { refresh(); }, [refresh]));
+
+  const filtered = incidents.filter(i =>
     filter === 'All' || i.status === filter.toLowerCase()
   );
+  const openCount = incidents.filter(i => i.status === 'open').length;
+
+  async function handleResolve(id: string) {
+    try {
+      await resolveIncident(id, 'resolved');
+      setIncidents(prev => prev.map(i => i.id === id ? { ...i, status: 'resolved', resolved_at: new Date().toISOString() } : i));
+    } catch (e: any) {
+      Alert.alert('Could not resolve', e?.message || 'Try again');
+    }
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: Colors.bg }]}>
@@ -26,9 +48,11 @@ export default function IncidentsScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Incidents</Text>
-          <View style={[styles.badge, { backgroundColor: Colors.criticalBg }]}>
-            <Text style={[styles.badgeText, { color: Colors.critical }]}>1 Open</Text>
-          </View>
+          {openCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: Colors.criticalBg }]}>
+              <Text style={[styles.badgeText, { color: Colors.critical }]}>{openCount} Open</Text>
+            </View>
+          )}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
           {FILTERS.map(f => (
@@ -40,16 +64,30 @@ export default function IncidentsScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={Colors.primary} />}
       >
-        {filtered.length === 0 ? (
+        {loading && incidents.length === 0 ? (
+          <View style={styles.empty}><ActivityIndicator size="large" color={Colors.primary} /></View>
+        ) : error ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={56} color={Colors.textMuted} />
+            <Text style={styles.emptyTitle}>Couldn't load</Text>
+            <Text style={styles.emptySub}>{error}</Text>
+            <Button label="Retry" onPress={refresh} style={{ marginTop: 16 }} />
+          </View>
+        ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="shield-checkmark-outline" size={56} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>All clear!</Text>
-            <Text style={styles.emptySub}>No incidents in this category.</Text>
+            <Text style={styles.emptySub}>
+              {incidents.length === 0
+                ? 'No reports received yet'
+                : 'No incidents in this category'}
+            </Text>
           </View>
         ) : (
           filtered.map(inc => (
-            <IncidentCard key={inc.id} incident={inc} />
+            <IncidentCard key={inc.id} incident={inc} onResolve={() => handleResolve(inc.id)} />
           ))
         )}
       </ScrollView>
@@ -57,50 +95,53 @@ export default function IncidentsScreen() {
   );
 }
 
-function IncidentCard({ incident }: { incident: typeof MOCK_INCIDENTS[0] }) {
-  const meta = IncidentColors[incident.type];
+function IncidentCard({ incident, onResolve }: { incident: Incident; onResolve: () => void }) {
+  const meta = IncidentColors[incident.reason as keyof typeof IncidentColors];
+  const label = meta?.label || incident.reason_label || incident.reason;
+  const color = meta?.color || Colors.high;
   const isOpen = incident.status === 'open';
+  const sticker = incident.stickers;
 
   return (
     <TouchableOpacity
-      style={[styles.card, isOpen && { borderLeftWidth: 4, borderLeftColor: meta?.color }]}
+      style={[styles.card, isOpen && { borderLeftWidth: 4, borderLeftColor: color }]}
       onPress={() => router.push(`/incident/${incident.id}` as any)}
       activeOpacity={0.75}
     >
       <View style={styles.cardTop}>
-        <IncidentIcon type={incident.type} size={20} />
+        <IncidentIcon type={incident.reason as any} size={20} />
         <View style={{ flex: 1 }}>
           <View style={styles.cardHeader}>
-            <Text style={styles.incType}>{meta?.label}</Text>
+            <Text style={styles.incType}>{label}</Text>
             <Badge
               label={incident.severity.toUpperCase()}
-              color={Colors[incident.severity as keyof typeof Colors] as string}
-              bg={Colors[`${incident.severity}Bg` as keyof typeof Colors] as string}
+              color={(Colors as any)[incident.severity] || Colors.high}
+              bg={(Colors as any)[`${incident.severity}Bg`] || Colors.highBg}
               size="sm"
             />
           </View>
-          <Text style={styles.incVehicle}>{incident.registration} · {incident.stickerName}</Text>
-          <Text style={styles.incMsg} numberOfLines={2}>{incident.message}</Text>
+          <Text style={styles.incVehicle}>
+            {sticker?.registration || incident.sticker_code}
+            {sticker?.vehicle_name ? ` · ${sticker.vehicle_name}` : ''}
+          </Text>
+          {incident.message ? (
+            <Text style={styles.incMsg} numberOfLines={2}>{incident.message}</Text>
+          ) : null}
         </View>
       </View>
 
-      {/* Timeline row */}
       <View style={styles.timelineRow}>
         <View style={styles.timelineItem}>
           <Ionicons name="person" size={12} color={Colors.textMuted} />
-          <Text style={styles.timelineText}>{incident.reportedBy}</Text>
+          <Text style={styles.timelineText}>
+            {incident.reporter_phone || 'Anonymous'}
+          </Text>
         </View>
         <View style={styles.timelineItem}>
           <Ionicons name="time" size={12} color={Colors.textMuted} />
-          <Text style={styles.timelineText}>{incident.reportedAgo}</Text>
+          <Text style={styles.timelineText}>{timeAgo(incident.reported_at)}</Text>
         </View>
-        {incident.escalationLevel > 0 && (
-          <View style={[styles.timelineItem, { backgroundColor: Colors.highBg, borderRadius: 8, paddingHorizontal: 6 }]}>
-            <Ionicons name="arrow-up-circle" size={12} color={Colors.high} />
-            <Text style={[styles.timelineText, { color: Colors.high }]}>Escalated</Text>
-          </View>
-        )}
-        {incident.hasPhoto && (
+        {incident.has_photo && (
           <View style={styles.timelineItem}>
             <Ionicons name="image" size={12} color={Colors.textMuted} />
             <Text style={styles.timelineText}>Photo</Text>
@@ -108,18 +149,18 @@ function IncidentCard({ incident }: { incident: typeof MOCK_INCIDENTS[0] }) {
         )}
       </View>
 
-      {/* Status + Actions */}
       {isOpen ? (
         <View style={styles.actions}>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.primaryBg }]}>
-            <Ionicons name="call" size={14} color={Colors.primary} />
-            <Text style={[styles.actionText, { color: Colors.primary }]}>Call</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.primaryBg }]}>
-            <Ionicons name="chatbubble" size={14} color={Colors.primary} />
-            <Text style={[styles.actionText, { color: Colors.primary }]}>Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.successBg, flex: 1.5 }]}>
+          {incident.reporter_phone && (
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.primaryBg }]}>
+              <Ionicons name="call" size={14} color={Colors.primary} />
+              <Text style={[styles.actionText, { color: Colors.primary }]}>Call</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: Colors.successBg, flex: 1.5 }]}
+            onPress={onResolve}
+          >
             <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
             <Text style={[styles.actionText, { color: Colors.success }]}>Mark Resolved</Text>
           </TouchableOpacity>
@@ -127,7 +168,9 @@ function IncidentCard({ incident }: { incident: typeof MOCK_INCIDENTS[0] }) {
       ) : (
         <View style={styles.resolvedBadge}>
           <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-          <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.success }}>Resolved</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.success }}>
+            {incident.status === 'resolved' ? 'Resolved' : 'Dismissed'}
+          </Text>
         </View>
       )}
     </TouchableOpacity>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, KeyboardAvoidingView, Platform,
+  ScrollView, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { createSticker } from '../hooks/useApi';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors } from '../constants/Colors';
@@ -42,16 +43,39 @@ export default function ActivateScreen() {
   const [loading, setLoading] = useState(false);
 
   async function handleNext() {
-    if (step < STEPS.length - 1) {
-      if (step === 0) {
-        setLoading(true);
-        await new Promise(r => setTimeout(r, 1000));
+    if (step === 0) {
+      if (!stickerCode) return;
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      if (!vehicleType || !regNo) {
+        Alert.alert('Missing info', 'Please select a vehicle type and enter registration number.');
+        return;
+      }
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setLoading(true);
+      try {
+        await createSticker({
+          code: stickerCode.toUpperCase(),
+          vehicle_type: vehicleType,
+          registration: regNo.toUpperCase().replace(/\s+/g, ''),
+          color: color || undefined,
+          backup_phone: backupPhone || undefined,
+          vehicle_name: undefined,
+        });
+        setStep(3);
+      } catch (e: any) {
+        Alert.alert('Could not activate', e?.message || 'Please try again');
+      } finally {
         setLoading(false);
       }
-      setStep(s => s + 1);
-    } else {
-      router.replace('/(tabs)/stickers');
+      return;
     }
+    router.replace('/(tabs)/stickers');
   }
 
   return (

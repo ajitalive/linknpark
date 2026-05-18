@@ -5,6 +5,7 @@ import { Colors } from '../../constants/Colors';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useReportSocket, ReportPayload } from '../../hooks/usePushNotifications';
 import { ReportBanner } from '../../components/ReportBanner';
+import { useStickers } from '../../hooks/useApi';
 
 function TabIcon({ name, color, focused }: { name: any; color: string; focused: boolean }) {
   return (
@@ -16,10 +17,14 @@ function TabIcon({ name, color, focused }: { name: any; color: string; focused: 
 
 export default function TabsLayout() {
   const [activeReport, setActiveReport] = useState<ReportPayload | null>(null);
+  const { stickers } = useStickers();
+  const codes = stickers.map(s => s.code);
 
-  useReportSocket((report) => {
-    setActiveReport(report);
-  });
+  useReportSocket(
+    (report) => setActiveReport(report),
+    undefined,
+    codes,
+  );
 
   return (
     <View style={{ flex: 1 }}>

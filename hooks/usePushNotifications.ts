@@ -2,26 +2,32 @@ import { useEffect, useRef, useCallback } from 'react';
 
 export const API_BASE = 'https://linknpark.onrender.com';
 const WS_URL = 'wss://linknpark.onrender.com';
-const PROTOTYPE_STICKER_CODE = 'STK-2025-AB1234';
 
 export type ReportPayload = {
   reportId: string;
   reason: string;
   reasonLabel: string;
   message: string | null;
+  stickerCode?: string;
   ts: number;
 };
 
 type OnReportCallback = (report: ReportPayload) => void;
 type OnConnectCallback = (connected: boolean) => void;
 
-export function useReportSocket(onReport: OnReportCallback, onConnect?: OnConnectCallback) {
+export function useReportSocket(
+  onReport: OnReportCallback,
+  onConnect?: OnConnectCallback,
+  stickerCodes: string[] = [],
+) {
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onReportRef = useRef(onReport);
   const onConnectRef = useRef(onConnect);
+  const codesRef = useRef(stickerCodes);
   onReportRef.current = onReport;
   onConnectRef.current = onConnect;
+  codesRef.current = stickerCodes;
 
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
@@ -31,18 +37,12 @@ export function useReportSocket(onReport: OnReportCallback, onConnect?: OnConnec
 
     socket.onopen = () => {
       onConnectRef.current?.(true);
-      socket.send(JSON.stringify({ type: 'subscribe', stickerCode: PROTOTYPE_STICKER_CODE }));
-      fetch(`${API_BASE}/api/register-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stickerCode: PROTOTYPE_STICKER_CODE,
-          vehicleInfo: {
-            type: 'car', color: 'Silver',
-            make: 'Honda City', platePartial: 'MH 12 ██ ████',
-          },
-        }),
-      }).catch(() => {});
+      const codes = codesRef.current.length > 0
+        ? codesRef.current
+        : ['STK-2025-AB1234'];
+      codes.forEach(code => {
+        socket.send(JSON.stringify({ type: 'subscribe', stickerCode: code }));
+      });
     };
 
     socket.onmessage = (event) => {
@@ -54,10 +54,7 @@ export function useReportSocket(onReport: OnReportCallback, onConnect?: OnConnec
       } catch {}
     };
 
-    socket.onerror = () => {
-      onConnectRef.current?.(false);
-    };
-
+    socket.onerror = () => onConnectRef.current?.(false);
     socket.onclose = () => {
       onConnectRef.current?.(false);
       reconnectTimer.current = setTimeout(connect, 5000);
@@ -71,4 +68,13 @@ export function useReportSocket(onReport: OnReportCallback, onConnect?: OnConnec
       ws.current?.close();
     };
   }, [connect]);
+
+  // Re-subscribe when sticker codes change
+  useEffect(() => {
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      stickerCodes.forEach(code => {
+        ws.current!.send(JSON.stringify({ type: 'subscribe', stickerCode: code }));
+      });
+    }
+  }, [stickerCodes.join(',')]);
 }
