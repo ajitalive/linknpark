@@ -403,11 +403,15 @@
         document.getElementById('report-btn').classList.remove('hidden');
         document.getElementById('report-hint').classList.remove('hidden');
       } catch {
-        // API not running or sticker not found — fall back to demo vehicle card
         document.getElementById('loading-card').classList.add('hidden');
-        document.getElementById('vehicle-label').textContent = 'Silver Honda City';
-        document.getElementById('vehicle-plate').textContent = 'MH 12 ██ ████';
+        document.getElementById('vehicle-label').textContent = 'Sticker not active';
+        document.getElementById('vehicle-plate').textContent = STICKER_CODE;
         document.getElementById('vehicle-card').classList.remove('hidden');
+        const banner = document.createElement('div');
+        banner.className = 'mt-3 p-3 rounded-lg text-sm';
+        banner.style.cssText = 'background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;line-height:1.4';
+        banner.innerHTML = 'This sticker has not been registered yet. The owner may not receive your message until they activate it.';
+        document.getElementById('vehicle-card').appendChild(banner);
         document.getElementById('report-btn').classList.remove('hidden');
         document.getElementById('report-hint').classList.remove('hidden');
       }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -9,42 +10,91 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, IncidentColors } from '../../constants/Colors';
 import { Card, Button, Badge } from '../../components/ui';
 import { IncidentIcon } from '../../components/IncidentIcon';
-import { MOCK_INCIDENTS } from '../../constants/MockData';
+import { useIncidents, resolveIncident } from '../../hooks/useApi';
 
-const TIMELINE = [
-  { event: 'Incident reported', time: '14 min ago', icon: 'flag', done: true },
-  { event: 'Push notification sent', time: '14 min ago', icon: 'notifications', done: true },
-  { event: 'WhatsApp message sent', time: '13 min ago', icon: 'logo-whatsapp', done: true },
-  { event: 'Backup contact alerted', time: '4 min ago', icon: 'person', done: true },
-  { event: 'Society admin escalation', time: 'Pending', icon: 'arrow-up-circle', done: false },
-];
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 export default function IncidentDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const incident = MOCK_INCIDENTS.find(i => i.id === id) ?? MOCK_INCIDENTS[0];
-  const meta = IncidentColors[incident.type];
-  const isOpen = incident.status === 'open';
-  const [message, setMessage] = useState('');
-  const [resolved, setResolved] = useState(!isOpen);
+  const { incidents, loading, refresh, setIncidents } = useIncidents();
+  const incident = incidents.find(i => i.id === id);
+  const [resolving, setResolving] = useState(false);
+
+  if (loading && !incident) {
+    return (
+      <View style={[styles.center, { backgroundColor: Colors.bg }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!incident) {
+    return (
+      <View style={[styles.center, { backgroundColor: Colors.bg, padding: 24 }]}>
+        <Ionicons name="alert-circle-outline" size={56} color={Colors.textMuted} />
+        <Text style={styles.notFoundTitle}>Incident not found</Text>
+        <Text style={styles.notFoundSub}>It may have been deleted or doesn't belong to you.</Text>
+        <Button label="Back" onPress={() => router.back()} style={{ marginTop: 20 }} />
+      </View>
+    );
+  }
+
+  const meta = IncidentColors[incident.reason as keyof typeof IncidentColors];
+  const label = meta?.label || incident.reason_label || incident.reason;
+  const color = meta?.color || Colors.high;
+  const sticker = incident.stickers;
+  const isResolved = incident.status !== 'open';
+
+  async function handleResolve(status: 'resolved' | 'dismissed') {
+    setResolving(true);
+    try {
+      const updated = await resolveIncident(incident!.id, status);
+      setIncidents(prev => prev.map(i => i.id === incident!.id ? { ...i, ...updated } : i));
+      refresh();
+    } catch (e: any) {
+      Alert.alert('Could not update', e?.message || 'Try again');
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  function handleCall() {
+    if (incident!.reporter_phone) Linking.openURL(`tel:${incident!.reporter_phone}`);
+  }
+
+  function handleWhatsApp() {
+    if (incident!.reporter_phone) {
+      const num = incident!.reporter_phone.replace(/\D/g, '');
+      Linking.openURL(`whatsapp://send?phone=${num}`);
+    }
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      {/* Header */}
       <LinearGradient
-        colors={[meta?.color ?? Colors.primary, `${meta?.color ?? Colors.primary}CC`]}
+        colors={[color, `${color}CC`]}
         style={[styles.header, { paddingTop: insets.top }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <IncidentIcon type={incident.type} size={28} />
-          <Text style={styles.headerTitle}>{meta?.label}</Text>
-          <Text style={styles.headerVehicle}>{incident.registration} · {incident.stickerName}</Text>
+          <IncidentIcon type={incident.reason as any} size={28} />
+          <Text style={styles.headerTitle}>{label}</Text>
+          <Text style={styles.headerVehicle}>
+            {sticker?.registration || incident.sticker_code}
+            {sticker?.vehicle_name ? ` · ${sticker.vehicle_name}` : ''}
+          </Text>
           <Badge
-            label={resolved ? 'RESOLVED' : incident.severity.toUpperCase()}
-            color={resolved ? Colors.success : meta?.color}
+            label={isResolved ? incident.status.toUpperCase() : incident.severity.toUpperCase()}
+            color={isResolved ? Colors.success : color}
             bg="rgba(255,255,255,0.25)"
           />
         </View>
@@ -54,121 +104,97 @@ export default function IncidentDetailScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Scanner message */}
         <Card>
           <View style={styles.scannerRow}>
             <View style={styles.scannerAvatar}>
               <Ionicons name="person" size={20} color={Colors.textSecondary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.scannerName}>{incident.reportedBy}</Text>
-              <Text style={styles.scannerTime}>{incident.reportedAgo}</Text>
-            </View>
-            <View style={[styles.locPin, incident.hasPhoto && { backgroundColor: Colors.primaryBg }]}>
-              <Ionicons name="location" size={14} color={incident.hasPhoto ? Colors.primary : Colors.textMuted} />
+              <Text style={styles.scannerName}>
+                {incident.reporter_phone || 'Anonymous'}
+              </Text>
+              <Text style={styles.scannerTime}>{timeAgo(incident.reported_at)}</Text>
             </View>
           </View>
-          <Text style={styles.scannerMsg}>{incident.message}</Text>
-          {incident.hasPhoto && (
-            <View style={styles.photoBanner}>
-              <Ionicons name="image" size={16} color={Colors.primary} />
-              <Text style={styles.photoText}>1 photo attached · Tap to view</Text>
-            </View>
+          {incident.message ? (
+            <Text style={styles.scannerMsg}>"{incident.message}"</Text>
+          ) : (
+            <Text style={[styles.scannerMsg, { color: Colors.textMuted, fontStyle: 'italic' }]}>
+              No message provided
+            </Text>
           )}
         </Card>
 
-        {/* Quick actions */}
-        {!resolved && (
+        {!isResolved && incident.reporter_phone && (
           <View style={styles.quickActions}>
-            <QuickAction icon="call-outline" label="Masked Call" color={Colors.primary} bg={Colors.primaryBg} />
-            <QuickAction icon="chatbubble-outline" label="Chat" color={Colors.primary} bg={Colors.primaryBg} />
-            <QuickAction icon="logo-whatsapp" label="WhatsApp" color="#25D366" bg="#F0FDF4" />
-            <QuickAction icon="arrow-up-circle-outline" label="Escalate" color={Colors.high} bg={Colors.highBg} />
+            <QuickAction icon="call" label="Call" color={Colors.primary} bg={Colors.primaryBg} onPress={handleCall} />
+            <QuickAction icon="logo-whatsapp" label="WhatsApp" color="#25D366" bg="#F0FDF4" onPress={handleWhatsApp} />
           </View>
         )}
 
-        {/* Escalation status */}
         <Card>
-          <Text style={styles.sectionLabel}>Escalation Status</Text>
-          {TIMELINE.map((t, i) => (
-            <View key={i} style={styles.timelineItem}>
-              <View style={[styles.timelineDot, t.done && styles.timelineDotDone]}>
-                <Ionicons name={t.icon as any} size={12} color={t.done ? '#fff' : Colors.textMuted} />
-              </View>
-              {i < TIMELINE.length - 1 && (
-                <View style={[styles.timelineLine, t.done && styles.timelineLineDone]} />
-              )}
-              <View style={styles.timelineContent}>
-                <Text style={[styles.timelineEvent, !t.done && { color: Colors.textMuted }]}>{t.event}</Text>
-                <Text style={styles.timelineTime}>{t.time}</Text>
-              </View>
-            </View>
-          ))}
+          <Text style={styles.sectionLabel}>Report Details</Text>
+          <InfoRow label="Reason" value={label} />
+          <InfoRow label="Reported" value={new Date(incident.reported_at).toLocaleString('en-IN')} />
+          {incident.resolved_at ? (
+            <InfoRow
+              label={incident.status === 'resolved' ? 'Resolved' : 'Dismissed'}
+              value={new Date(incident.resolved_at).toLocaleString('en-IN')}
+            />
+          ) : null}
+          <InfoRow label="Severity" value={incident.severity.toUpperCase()} />
+          <InfoRow label="Sticker" value={incident.sticker_code} mono />
         </Card>
 
-        {/* Chat thread */}
-        <Card>
-          <Text style={styles.sectionLabel}>Message Thread</Text>
-          <View style={styles.chatBubble}>
-            <Text style={styles.chatText}>{incident.message}</Text>
-            <Text style={styles.chatTime}>Scanner · {incident.reportedAgo}</Text>
-          </View>
-          <View style={[styles.chatBubble, styles.chatBubbleOwner]}>
-            <Text style={[styles.chatText, { color: '#fff' }]}>On my way, will move the car in 5 minutes.</Text>
-            <Text style={[styles.chatTime, { color: 'rgba(255,255,255,0.7)', textAlign: 'right' }]}>You · 10 min ago</Text>
-          </View>
-
-          {!resolved && (
-            <View style={styles.chatInput}>
-              <TextInput
-                style={styles.chatField}
-                placeholder="Type a message..."
-                placeholderTextColor={Colors.textMuted}
-                value={message}
-                onChangeText={setMessage}
-              />
-              <TouchableOpacity style={styles.sendBtn}>
-                <Ionicons name="send" size={18} color={Colors.primary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </Card>
-
-        {/* Resolve */}
-        {!resolved ? (
-          <Button
-            label="Mark as Resolved"
-            onPress={() => setResolved(true)}
-            size="lg"
-            icon={<Ionicons name="checkmark-circle" size={18} color="#fff" />}
-          />
+        {!isResolved ? (
+          <>
+            <Button
+              label={resolving ? 'Updating…' : 'Mark as Resolved'}
+              onPress={() => handleResolve('resolved')}
+              size="lg"
+              disabled={resolving}
+              icon={<Ionicons name="checkmark-circle" size={18} color="#fff" />}
+            />
+            <TouchableOpacity
+              style={styles.dismissBtn}
+              onPress={() => handleResolve('dismissed')}
+              disabled={resolving}
+            >
+              <Text style={styles.dismissText}>Dismiss as spam or irrelevant</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <Card style={{ backgroundColor: Colors.successBg, shadowOpacity: 0 }}>
             <View style={styles.resolvedCard}>
               <Ionicons name="checkmark-circle" size={28} color={Colors.success} />
               <View>
-                <Text style={styles.resolvedTitle}>Incident Resolved</Text>
-                <Text style={styles.resolvedSub}>Closed · {incident.reportedAgo}</Text>
+                <Text style={styles.resolvedTitle}>
+                  Incident {incident.status === 'resolved' ? 'resolved' : 'dismissed'}
+                </Text>
+                <Text style={styles.resolvedSub}>
+                  Closed · {incident.resolved_at ? timeAgo(incident.resolved_at) : timeAgo(incident.reported_at)}
+                </Text>
               </View>
             </View>
           </Card>
-        )}
-
-        {/* Danger */}
-        {!resolved && (
-          <TouchableOpacity style={styles.spamBtn}>
-            <Ionicons name="flag-outline" size={16} color={Colors.textMuted} />
-            <Text style={styles.spamText}>Report as spam or abuse</Text>
-          </TouchableOpacity>
         )}
       </ScrollView>
     </View>
   );
 }
 
-function QuickAction({ icon, label, color, bg }: any) {
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <TouchableOpacity style={[styles.quickAction, { backgroundColor: bg }]} activeOpacity={0.75}>
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, mono && { fontFamily: 'monospace', fontSize: 12 }]}>{value}</Text>
+    </View>
+  );
+}
+
+function QuickAction({ icon, label, color, bg, onPress }: any) {
+  return (
+    <TouchableOpacity style={[styles.quickAction, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.75}>
       <Ionicons name={icon} size={22} color={color} />
       <Text style={[styles.quickLabel, { color }]}>{label}</Text>
     </TouchableOpacity>
@@ -176,6 +202,9 @@ function QuickAction({ icon, label, color, bg }: any) {
 }
 
 const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  notFoundTitle: { fontSize: 18, fontWeight: '700', color: Colors.text, marginTop: 16 },
+  notFoundSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
   header: { paddingHorizontal: 20, paddingBottom: 24 },
   backBtn: { paddingVertical: 12 },
   headerContent: { alignItems: 'center', gap: 8 },
@@ -185,32 +214,17 @@ const styles = StyleSheet.create({
   scannerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center' },
   scannerName: { fontSize: 14, fontWeight: '700', color: Colors.text },
   scannerTime: { fontSize: 12, color: Colors.textMuted },
-  locPin: { padding: 6, borderRadius: 8 },
   scannerMsg: { fontSize: 14, color: Colors.text, lineHeight: 22 },
-  photoBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, backgroundColor: Colors.primaryBg, borderRadius: 8, padding: 10 },
-  photoText: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
   quickActions: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  quickAction: { flex: 1, alignItems: 'center', borderRadius: 12, paddingVertical: 12, gap: 4 },
-  quickLabel: { fontSize: 11, fontWeight: '600' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 16 },
-  timelineItem: { flexDirection: 'row', gap: 12, minHeight: 40 },
-  timelineDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surfaceSecondary, borderWidth: 2, borderColor: Colors.divider, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  timelineDotDone: { backgroundColor: Colors.success, borderColor: Colors.success },
-  timelineLine: { position: 'absolute', left: 13, top: 30, width: 2, height: 20, backgroundColor: Colors.divider },
-  timelineLineDone: { backgroundColor: Colors.success },
-  timelineContent: { flex: 1, paddingBottom: 16 },
-  timelineEvent: { fontSize: 14, fontWeight: '600', color: Colors.text },
-  timelineTime: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  chatBubble: { backgroundColor: Colors.surfaceSecondary, borderRadius: 12, padding: 12, marginBottom: 10, maxWidth: '85%' },
-  chatBubbleOwner: { backgroundColor: Colors.primary, alignSelf: 'flex-end' },
-  chatText: { fontSize: 14, color: Colors.text, lineHeight: 20 },
-  chatTime: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
-  chatInput: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  chatField: { flex: 1, height: 44, backgroundColor: Colors.surfaceSecondary, borderRadius: 22, paddingHorizontal: 16, fontSize: 14, color: Colors.text },
-  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center' },
+  quickAction: { flex: 1, alignItems: 'center', borderRadius: 12, paddingVertical: 14, gap: 4 },
+  quickLabel: { fontSize: 12, fontWeight: '600' },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+  infoLabel: { fontSize: 14, color: Colors.textSecondary },
+  infoValue: { fontSize: 14, fontWeight: '600', color: Colors.text },
+  dismissBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
+  dismissText: { fontSize: 13, color: Colors.textMuted, textDecorationLine: 'underline' },
   resolvedCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   resolvedTitle: { fontSize: 16, fontWeight: '700', color: Colors.success },
   resolvedSub: { fontSize: 13, color: Colors.success },
-  spamBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16 },
-  spamText: { fontSize: 13, color: Colors.textMuted },
 });
