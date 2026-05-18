@@ -43,7 +43,13 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "LinkNPark needs camera access to scan sticker QR codes"
+        }
+      ]
     ],
     "extra": {
       "eas": {

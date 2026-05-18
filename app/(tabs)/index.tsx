@@ -16,8 +16,8 @@ import { MOCK_USER, MOCK_STICKERS, MOCK_INCIDENTS, MOCK_SCAN_HISTORY } from '../
 const { width } = Dimensions.get('window');
 
 const QUICK_ACTIONS = [
-  { icon: 'qr-code', label: 'Activate\nSticker', route: '/activate', color: Colors.primary, bg: Colors.primaryBg },
-  { icon: 'location', label: 'Parked\nLocation', route: null, color: Colors.success, bg: Colors.successBg },
+  { icon: 'scan', label: 'Scan\nQR Code', route: '/scan', color: Colors.primary, bg: Colors.primaryBg },
+  { icon: 'qr-code', label: 'Activate\nSticker', route: '/activate', color: Colors.success, bg: Colors.successBg },
   { icon: 'medical', label: 'SOS\nAlert', route: null, color: Colors.critical, bg: Colors.criticalBg },
   { icon: 'shield', label: 'Guard\nMode', route: '/guard', color: Colors.amber, bg: Colors.amberBg },
 ];

@@ -15,6 +15,7 @@ export default function RootLayout() {
           <Stack.Screen name="sticker/[id]" options={{ presentation: 'card' }} />
           <Stack.Screen name="incident/[id]" options={{ presentation: 'card' }} />
           <Stack.Screen name="activate" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="guard" options={{ presentation: 'card' }} />
         </Stack>
       </SafeAreaProvider>

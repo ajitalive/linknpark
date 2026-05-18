@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors } from '../constants/Colors';
@@ -25,8 +25,16 @@ const VEHICLE_TYPES = [
 
 export default function ActivateScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ code?: string }>();
   const [step, setStep] = useState(0);
   const [stickerCode, setStickerCode] = useState('');
+
+  useEffect(() => {
+    if (params.code) {
+      setStickerCode(params.code);
+      setStep(1);
+    }
+  }, [params.code]);
   const [vehicleType, setVehicleType] = useState('');
   const [regNo, setRegNo] = useState('');
   const [color, setColor] = useState('');
@@ -118,7 +126,11 @@ function StepScan({ code, onCode }: any) {
       <Text style={styles.stepTitle}>Find your sticker code</Text>
       <Text style={styles.stepSub}>Scan the QR code on your sticker or enter the 12-digit code printed on the back.</Text>
 
-      <TouchableOpacity style={styles.scanBox}>
+      <TouchableOpacity
+        style={styles.scanBox}
+        onPress={() => router.push({ pathname: '/scan', params: { returnTo: '/activate' } })}
+        activeOpacity={0.85}
+      >
         <Ionicons name="camera" size={40} color={Colors.primary} />
         <Text style={styles.scanBoxTitle}>Scan QR Code</Text>
         <Text style={styles.scanBoxSub}>Tap to open camera</Text>
