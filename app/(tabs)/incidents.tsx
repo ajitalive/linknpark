@@ -26,7 +26,7 @@ export default function IncidentsScreen() {
   const [filter, setFilter] = useState('All');
   const { incidents, loading, error, refresh, setIncidents } = useIncidents();
 
-  useFocusEffect(React.useCallback(() => { refresh(); }, [refresh]));
+  useFocusEffect(React.useCallback(() => { refresh(); }, []));
 
   const filtered = incidents.filter(i =>
     filter === 'All' || i.status === filter.toLowerCase()

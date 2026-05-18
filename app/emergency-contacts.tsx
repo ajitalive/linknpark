@@ -1,31 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Linking,
+  TextInput, Alert, Linking, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 
+const CONTACTS_KEY = 'emergency_contacts_v1';
+
 type Contact = { id: string; name: string; phone: string; relation: string };
 
-const DEFAULT_CONTACTS: Contact[] = [
-  { id: '1', name: 'Priya Nair', phone: '+91 98765 43210', relation: 'Spouse' },
-  { id: '2', name: 'Rahul Nair', phone: '+91 87654 32109', relation: 'Brother' },
-];
+async function loadContacts(): Promise<Contact[]> {
+  try {
+    const raw = await SecureStore.getItemAsync(CONTACTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+async function persistContacts(contacts: Contact[]) {
+  await SecureStore.setItemAsync(CONTACTS_KEY, JSON.stringify(contacts));
+}
 
 export default function EmergencyContactsScreen() {
   const insets = useSafeAreaInsets();
-  const [contacts, setContacts] = useState<Contact[]>(DEFAULT_CONTACTS);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newRelation, setNewRelation] = useState('');
 
-  function handleAdd() {
+  useEffect(() => {
+    loadContacts().then(c => { setContacts(c); setLoadingContacts(false); });
+  }, []);
+
+  async function handleAdd() {
     if (!newName.trim() || !newPhone.trim()) {
       Alert.alert('Required', 'Name and phone number are required.');
       return;
@@ -36,7 +50,9 @@ export default function EmergencyContactsScreen() {
       phone: newPhone.trim(),
       relation: newRelation.trim() || 'Contact',
     };
-    setContacts(prev => [...prev, contact]);
+    const updated = [...contacts, contact];
+    setContacts(updated);
+    await persistContacts(updated);
     setNewName(''); setNewPhone(''); setNewRelation('');
     setAdding(false);
   }
@@ -44,7 +60,13 @@ export default function EmergencyContactsScreen() {
   function handleDelete(id: string) {
     Alert.alert('Remove Contact', 'Remove this emergency contact?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => setContacts(prev => prev.filter(c => c.id !== id)) },
+      {
+        text: 'Remove', style: 'destructive', onPress: async () => {
+          const updated = contacts.filter(c => c.id !== id);
+          setContacts(updated);
+          await persistContacts(updated);
+        },
+      },
     ]);
   }
 
@@ -70,6 +92,10 @@ export default function EmergencyContactsScreen() {
         <Text style={styles.infoText}>
           These contacts are notified when you trigger SOS. They receive your location and a distress message.
         </Text>
+
+        {loadingContacts && (
+          <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 20 }} />
+        )}
 
         {contacts.map(contact => (
           <Card key={contact.id}>

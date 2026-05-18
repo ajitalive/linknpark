@@ -28,7 +28,7 @@ export default function StickersScreen() {
   const [search, setSearch] = useState('');
   const { stickers, loading, error, refresh } = useStickers();
 
-  useFocusEffect(React.useCallback(() => { refresh(); }, [refresh]));
+  useFocusEffect(React.useCallback(() => { refresh(); }, []));
 
   const filtered = stickers.filter(s => {
     const matchFilter = filter === 'All' || s.status === filter.toLowerCase();

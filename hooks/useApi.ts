@@ -118,17 +118,18 @@ export function useStickers() {
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
 
+  // Broadcast listener — other hook instances push updates here
   useEffect(() => {
     mounted.current = true;
-    // Subscribe to updates from other hook instances
-    const notify = () => { if (mounted.current && _stickers) setStickers([..._stickers]); };
+    const notify = () => {
+      if (mounted.current && cache.stickers) setStickers([...(cache.stickers as Sticker[])]);
+    };
     stickerListeners.add(notify);
     return () => { mounted.current = false; stickerListeners.delete(notify); };
   }, []);
 
-  const refresh = useCallback(async (force = false) => {
-    const isStale = Date.now() - cache.stickersFetchedAt > STALE_MS;
-    if (!force && !isStale && cache.stickers !== null) return;
+  // Stable refresh — always fetches, safe to use as useFocusEffect dependency
+  const refresh = useCallback(async () => {
     if (!mounted.current) return;
     setLoading(true);
     setError(null);
@@ -143,11 +144,15 @@ export function useStickers() {
     } finally {
       if (mounted.current) setLoading(false);
     }
-  }, []);
+  }, []); // empty deps → same reference every render, no infinite loops
 
-  useEffect(() => { refresh(); }, [refresh]);
+  // On mount: only fetch if cache is empty or stale
+  useEffect(() => {
+    const isStale = Date.now() - cache.stickersFetchedAt > STALE_MS;
+    if (cache.stickers === null || isStale) refresh();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { stickers, loading, error, refresh: () => refresh(true) };
+  return { stickers, loading, error, refresh };
 }
 
 export function useIncidents() {
@@ -158,14 +163,14 @@ export function useIncidents() {
 
   useEffect(() => {
     mounted.current = true;
-    const notify = () => { if (mounted.current && _incidents) setIncidents([..._incidents]); };
+    const notify = () => {
+      if (mounted.current && cache.incidents) setIncidents([...(cache.incidents as Incident[])]);
+    };
     incidentListeners.add(notify);
     return () => { mounted.current = false; incidentListeners.delete(notify); };
   }, []);
 
-  const refresh = useCallback(async (force = false) => {
-    const isStale = Date.now() - cache.incidentsFetchedAt > STALE_MS;
-    if (!force && !isStale && cache.incidents !== null) return;
+  const refresh = useCallback(async () => {
     if (!mounted.current) return;
     setLoading(true);
     setError(null);
@@ -180,9 +185,12 @@ export function useIncidents() {
     } finally {
       if (mounted.current) setLoading(false);
     }
-  }, []);
+  }, []); // stable reference
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    const isStale = Date.now() - cache.incidentsFetchedAt > STALE_MS;
+    if (cache.incidents === null || isStale) refresh();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setIncidentsLocal = useCallback((updater: (prev: Incident[]) => Incident[]) => {
     const next = updater((cache.incidents as Incident[]) ?? []);
@@ -192,5 +200,5 @@ export function useIncidents() {
     notifyIncidents();
   }, []);
 
-  return { incidents, loading, error, refresh: () => refresh(true), setIncidents: setIncidentsLocal };
+  return { incidents, loading, error, refresh, setIncidents: setIncidentsLocal };
 }
