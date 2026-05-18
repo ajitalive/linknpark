@@ -338,6 +338,13 @@ app.post('/api/register-token', async (req, res) => {
 // ============ HEALTH ============
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));
 
+// Root: redirect any sticker scan that hit the API server by mistake
+app.get('/', (req, res) => {
+  const code = req.query.code;
+  if (code) return res.redirect(`https://scan.linknpark.in?code=${encodeURIComponent(code)}`);
+  res.redirect('https://linknpark.in');
+});
+
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\nLinkNPark API server → http://0.0.0.0:${PORT}`);
