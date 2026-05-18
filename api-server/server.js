@@ -225,6 +225,23 @@ app.patch('/api/incidents/:id', requireAuth, async (req, res) => {
   res.json({ incident: data });
 });
 
+// ============ EXPO PUSH NOTIFICATIONS ============
+async function sendExpoPush(token, { title, body, data = {} }) {
+  try {
+    const res = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ to: token, title, body, data, sound: 'default', priority: 'high', channelId: 'incidents' }),
+    });
+    const json = await res.json();
+    if (json.data?.status === 'error') console.warn('[PUSH] Expo error:', json.data.message);
+    return json.data?.status === 'ok';
+  } catch (e) {
+    console.error('[PUSH] Send failed:', e.message);
+    return false;
+  }
+}
+
 // ============ REAL-TIME PUSH (WebSocket) ============
 const stickerClients = {};
 
@@ -326,8 +343,40 @@ app.post('/api/report', async (req, res) => {
     ts: new Date(incident.reported_at).getTime(),
   };
   const sent = pushToClients(code, payload);
-  console.log(`[REPORT] ${incident.id} | ${code} | ${reason} → pushed to ${sent} client(s)`);
+  console.log(`[REPORT] ${incident.id} | ${code} | ${reason} → pushed to ${sent} WS client(s)`);
+
+  // Send Expo push notification (works when app is closed/background)
+  const { data: ownerRow } = await supabase
+    .from('stickers').select('owner_email').eq('code', code).single();
+  if (ownerRow?.owner_email) {
+    const { data: tokenRow } = await supabase
+      .from('user_push_tokens').select('token').eq('email', ownerRow.owner_email).single();
+    if (tokenRow?.token) {
+      const pushBody = message ? `"${message}"` : 'Someone needs your attention.';
+      const pushed = await sendExpoPush(tokenRow.token, {
+        title: `🚨 ${reasonLabel}`,
+        body: pushBody,
+        data: { reportId: incident.id, stickerCode: code },
+      });
+      console.log(`[PUSH] Expo notification → ${ownerRow.owner_email}: ${pushed ? 'sent' : 'failed'}`);
+    }
+  }
+
   res.json({ ok: true, reportId: incident.id });
+});
+
+// POST /api/push-token — store Expo push token for authenticated user
+app.post('/api/push-token', requireAuth, async (req, res) => {
+  const { token } = req.body;
+  if (!token || !token.startsWith('ExponentPushToken[')) {
+    return res.status(400).json({ error: 'Valid Expo push token required' });
+  }
+  const { error } = await supabase
+    .from('user_push_tokens')
+    .upsert({ email: req.user.email, token, updated_at: new Date().toISOString() }, { onConflict: 'email' });
+  if (error) return res.status(500).json({ error: error.message });
+  console.log(`[PUSH] Token stored for ${req.user.email}`);
+  res.json({ ok: true });
 });
 
 // Legacy endpoint kept for the prototype app currently in production
