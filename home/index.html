@@ -303,14 +303,33 @@
     <div class="flex items-center gap-4 sm:gap-6 md:gap-8 font-medium">
       <a href="#how-it-works" class="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">How it works</a>
       <a href="#features" class="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">Features</a>
-      <a href="/app.apk" download class="text-gray-300 hover:text-[var(--green)] transition-colors flex items-center" title="Download Android App">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="block sm:hidden"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        <span class="hidden sm:block text-sm whitespace-nowrap">Download App</span>
+      <a href="/app.apk" download class="hidden md:flex text-gray-300 hover:text-[var(--green)] transition-colors items-center gap-1.5" title="Download Android App">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span class="text-sm whitespace-nowrap">Download App</span>
       </a>
-      <a href="#get-sticker" class="btn-primary px-3.5 py-2 sm:px-5 sm:py-2 rounded-[10px] sm:rounded-xl text-[13px] sm:text-sm whitespace-nowrap flex items-center gap-1">Get Sticker<span class="hidden sm:inline"> →</span></a>
+      <a href="#get-sticker" class="btn-primary px-5 py-2 rounded-xl text-sm whitespace-nowrap hidden md:flex">Get Sticker →</a>
+      
+      <!-- Mobile Hamburger Button -->
+      <button id="mobileMenuBtn" class="md:hidden text-gray-300 hover:text-white p-1 focus:outline-none ml-2">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
     </div>
   </div>
 </nav>
+
+<!-- Mobile Menu Overlay -->
+<div id="mobileMenu" class="fixed inset-0 z-[60] bg-[#06090F]/95 backdrop-blur-xl translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col justify-center items-center gap-8">
+  <button id="closeMenuBtn" class="absolute top-5 right-5 text-gray-400 hover:text-white p-3 focus:outline-none">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+  </button>
+  <a href="#how-it-works" class="mobile-link text-2xl font-bold text-gray-200 hover:text-white">How it works</a>
+  <a href="#features" class="mobile-link text-2xl font-bold text-gray-200 hover:text-white">Features</a>
+  <a href="/app.apk" download class="mobile-link text-2xl font-bold text-[var(--green)] flex items-center gap-2">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    Download App
+  </a>
+  <a href="#get-sticker" class="mobile-link btn-primary px-8 py-4 rounded-xl text-lg font-bold mt-4 shadow-lg shadow-[var(--green-glow)]">Get Sticker</a>
+</div>
 
 <!-- ══════════════════════════════════════
      HERO
@@ -880,5 +899,25 @@
   cycleHeroState();
   setInterval(cycleHeroState, 3500);
 </script>
+  <script>
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const closeMenuBtn = document.getElementById('closeMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileLinks = document.querySelectorAll('.mobile-link');
+
+    if (mobileMenuBtn && mobileMenu && closeMenuBtn) {
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.remove('translate-x-full');
+      });
+      closeMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.add('translate-x-full');
+      });
+      mobileLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenu.classList.add('translate-x-full');
+        });
+      });
+    }
+  </script>
 </body>
 </html>
