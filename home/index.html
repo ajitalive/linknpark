@@ -209,6 +209,80 @@
     /* ── Progress bar ── */
     .prog { height: 2px; border-radius: 1px; background: rgba(255,255,255,0.07); overflow: hidden; }
     .prog-fill { height: 100%; background: var(--green); }
+
+    /* ── Real photo cards ── */
+    .photo-card {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+      aspect-ratio: 4 / 5;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    }
+    .photo-card img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.7s ease;
+    }
+    .photo-card:hover img { transform: scale(1.04); }
+    .photo-card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(6,9,15,0.96) 0%, rgba(6,9,15,0.35) 38%, transparent 65%);
+      pointer-events: none;
+    }
+    .photo-caption {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 22px 22px 20px;
+      z-index: 5;
+    }
+    .photo-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 999px;
+      background: rgba(44,255,5,0.12);
+      border: 1px solid rgba(44,255,5,0.3);
+      color: var(--green);
+      font-size: 11px; font-weight: 700;
+      margin-bottom: 10px;
+      backdrop-filter: blur(6px);
+    }
+    .photo-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; line-height: 1.2; }
+    .photo-sub   { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.45; }
+
+    /* ── Hero car shot ── */
+    .hero-car {
+      position: relative;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      aspect-ratio: 4 / 5;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+    .hero-car img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-car::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(6,9,15,0.9), transparent 45%);
+    }
+    .hero-sticker-badge {
+      position: absolute; bottom: 20px; left: 20px; right: 20px;
+      z-index: 4;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: rgba(15,25,41,0.72);
+      backdrop-filter: blur(14px) saturate(180%);
+      border: 1px solid rgba(44,255,5,0.25);
+      border-radius: 14px;
+    }
+    .hero-sticker-mini {
+      width: 38px; height: 38px;
+      background: var(--green);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(44,255,5,0.4);
+    }
   </style>
 </head>
 <body>
@@ -222,14 +296,7 @@
 <nav class="fixed top-0 left-0 right-0 z-50">
   <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
     <div class="flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:var(--green)">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-          <rect x="1" y="1" width="6" height="6" rx="1.5" fill="#000"/>
-          <rect x="9" y="1" width="6" height="6" rx="1.5" fill="#000" opacity="0.55"/>
-          <rect x="1" y="9" width="6" height="6" rx="1.5" fill="#000" opacity="0.55"/>
-          <rect x="10" y="10" width="5" height="5" rx="1" fill="#000"/>
-        </svg>
-      </div>
+      <img src="./logo.png" class="w-9 h-9 rounded-[10px] shadow-sm flex-shrink-0" alt="LinkNPark Logo" />
       <span class="font-black text-white tracking-tight text-base">LinkNPark</span>
       <span class="text-xs px-2 py-0.5 rounded-full font-bold hidden sm:inline" style="background:rgba(44,255,5,0.12);color:var(--green);border:1px solid rgba(44,255,5,0.2)">BETA</span>
     </div>
@@ -465,6 +532,128 @@
 </section>
 
 <!-- ══════════════════════════════════════
+     SEE IT IN ACTION (real car imagery)
+══════════════════════════════════════ -->
+<section id="in-action" class="py-24 px-5 relative">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="text-center mb-14 reveal">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
+           style="background:rgba(44,255,5,0.1);border:1px solid rgba(44,255,5,0.22);color:var(--green)">
+        See it in action
+      </div>
+      <h2 class="text-4xl font-black text-white mb-4">A sticker your neighbour can spot<br/>from across the parking lot</h2>
+      <p class="text-gray-400 max-w-md mx-auto text-sm leading-relaxed">
+        The bright neon green is intentional — visible day or night, recognisable in seconds.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-5">
+
+      <!-- Photo 1: Sticker on windshield -->
+      <div class="photo-card reveal" style="transition-delay:0.05s">
+        <img src="https://image.pollinations.ai/prompt/photorealistic%20close%20up%20of%20Honda%20City%20car%20windshield%20with%20small%20bright%20green%20sticker%2C%20Indian%20parking%2C%20daylight?width=800&height=1000&nologo=true&seed=101"
+             alt="Car windshield with LinkNPark QR sticker" loading="lazy"
+             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=900&q=80&auto=format&fit=crop'"/>
+        <!-- Overlay sticker on the windshield -->
+        <div class="overlay-sticker" style="position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-2deg);z-index:3;">
+          <div class="sticker-css p-2 rounded-lg flex items-center gap-2" style="background:#2CFF05;border:1.5px solid #111;width:110px;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:8px;font-weight:900;color:#000;line-height:1;letter-spacing:-0.3px">LinkNPark</div>
+              <div style="font-size:5px;color:#222;margin-top:1px">linknpark.in</div>
+              <div style="font-size:6.5px;font-weight:900;color:#000;margin-top:4px;line-height:1;text-transform:uppercase;letter-spacing:-0.2px">SCAN TO<br/>CONTACT</div>
+            </div>
+            <div style="width:30px;height:30px;background:#fff;border-radius:3px;padding:2px;display:grid;grid-template-columns:repeat(5,1fr);gap:0.8px;flex-shrink:0;border:1px solid #111;">
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b>
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b>
+              <b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b>
+            </div>
+          </div>
+        </div>
+        <div class="photo-caption">
+          <span class="photo-tag">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#2CFF05"/></svg>
+            On the windshield
+          </span>
+          <div class="photo-title">Always visible</div>
+          <div class="photo-sub">Inside the windshield — protected from rain, dust, and theft attempts.</div>
+        </div>
+      </div>
+
+      <!-- Photo 2: Person scanning -->
+      <div class="photo-card reveal" style="transition-delay:0.15s">
+        <img src="https://image.pollinations.ai/prompt/Indian%20person%20holding%20smartphone%20scanning%20QR%20code%20on%20car%20windshield%2C%20parking%20lot%20daylight%2C%20photorealistic?width=800&height=1000&nologo=true&seed=202"
+             alt="Person scanning a QR code with smartphone" loading="lazy"
+             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1535303311164-664fc9ec6532?w=900&q=80&auto=format&fit=crop'"/>
+        <div class="photo-caption">
+          <span class="photo-tag" style="background:rgba(59,47,245,0.18);border-color:rgba(59,47,245,0.36);color:#818CF8">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#818CF8"/></svg>
+            Anyone can scan
+          </span>
+          <div class="photo-title">No app needed</div>
+          <div class="photo-sub">Camera detects the QR in under a second. Opens a form in their browser.</div>
+        </div>
+      </div>
+
+      <!-- Photo 3: Indian society parking -->
+      <div class="photo-card reveal" style="transition-delay:0.25s">
+        <img src="https://image.pollinations.ai/prompt/Indian%20residential%20society%20parking%20area%20with%20parked%20Maruti%20Swift%20and%20Honda%20City%20cars%2C%20evening%20golden%20hour%2C%20photorealistic?width=800&height=1000&nologo=true&seed=303"
+             alt="Cars parked at an Indian residential society" loading="lazy"
+             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=900&q=80&auto=format&fit=crop'"/>
+        <div class="photo-caption">
+          <span class="photo-tag" style="background:rgba(245,158,11,0.14);border-color:rgba(245,158,11,0.32);color:#FBBF24">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#FBBF24"/></svg>
+            Built for India
+          </span>
+          <div class="photo-title">Societies, offices, malls</div>
+          <div class="photo-sub">Designed for how Indian cities actually park — apartments, RWAs, gated communities.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Wide hero shot: car with sticker overlay -->
+    <div class="mt-10 reveal" style="transition-delay:0.35s">
+      <div class="photo-card" style="aspect-ratio:21/9;max-width:none">
+        <img src="https://image.pollinations.ai/prompt/Honda%20City%20sedan%20parked%20in%20Indian%20residential%20society%20parking%20at%20evening%2C%20wide%20cinematic%20shot%2C%20photorealistic?width=1600&height=700&nologo=true&seed=404"
+             alt="Modern sedan parked with LinkNPark sticker" loading="lazy"
+             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1800&q=85&auto=format&fit=crop'"/>
+        <!-- Floating sticker overlay -->
+        <div style="position:absolute;top:50%;right:8%;transform:translateY(-50%);z-index:3;animation:float 3.5s ease-in-out infinite;">
+          <div class="sticker-css p-3 rounded-xl flex items-center gap-2.5" style="background:#2CFF05;border:1.5px solid #111;width:170px;box-shadow:0 16px 48px rgba(0,0,0,0.5),0 0 32px rgba(44,255,5,0.35);">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:900;color:#000;line-height:1;letter-spacing:-0.4px">LinkNPark</div>
+              <div style="font-size:6.5px;color:#222;margin-top:1.5px">linknpark.in</div>
+              <div style="font-size:9px;font-weight:900;color:#000;margin-top:5px;line-height:1.1;text-transform:uppercase;letter-spacing:-0.3px">SCAN TO<br/>CONTACT OWNER</div>
+              <div style="font-size:5.5px;font-weight:800;color:#111;font-family:monospace;margin-top:3px;letter-spacing:0.4px">STK-2025-AA0001</div>
+            </div>
+            <div style="width:48px;height:48px;background:#fff;border-radius:4px;padding:3px;display:grid;grid-template-columns:repeat(5,1fr);gap:1px;flex-shrink:0;border:1.5px solid #111;">
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b>
+              <b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b>
+              <b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
+              <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b>
+            </div>
+          </div>
+        </div>
+        <div class="photo-caption" style="padding:32px 36px 28px">
+          <span class="photo-tag">60-second setup</span>
+          <div class="photo-title" style="font-size:22px;max-width:520px;line-height:1.25">
+            Peel. Stick. Done.
+          </div>
+          <div class="photo-sub" style="max-width:520px;font-size:14px;">
+            No drilling, no wiring, no professional installation. Just press it onto the inside of your windshield and you're live.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
      STATS
 ══════════════════════════════════════ -->
 <section class="py-6 px-5">
@@ -588,14 +777,7 @@
 <footer class="py-10 px-5" style="border-top:1px solid rgba(255,255,255,0.05)">
   <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
     <div class="flex items-center gap-2.5">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:var(--green)">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-          <rect x="1" y="1" width="6" height="6" rx="1.5" fill="#000"/>
-          <rect x="9" y="1" width="6" height="6" rx="1.5" fill="#000" opacity="0.5"/>
-          <rect x="1" y="9" width="6" height="6" rx="1.5" fill="#000" opacity="0.5"/>
-          <rect x="10" y="10" width="5" height="5" rx="1" fill="#000"/>
-        </svg>
-      </div>
+      <img src="./logo.png" class="w-8 h-8 rounded-lg shadow-sm flex-shrink-0" alt="LinkNPark Logo" />
       <span class="font-black text-white">LinkNPark</span>
       <span class="text-xs text-gray-600">· Park Smart. Stay Reachable.</span>
     </div>

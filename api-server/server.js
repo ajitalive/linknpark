@@ -113,6 +113,62 @@ app.post('/api/auth/verify-otp', (req, res) => {
   res.json({ ok: true, token, user: { email: normalizedEmail } });
 });
 
+app.post('/api/auth/truecaller', async (req, res) => {
+  const { authorizationCode, codeVerifier } = req.body;
+  const clientId = process.env.TRUECALLER_CLIENT_ID || 'ut7yqtyuuc6dwiyfjk1u_4hnlhuspwbhr-4qr0sp0pe';
+
+  if (!authorizationCode || !codeVerifier) {
+    return res.status(400).json({ error: 'Missing authorizationCode or codeVerifier' });
+  }
+
+  try {
+    // 1. Exchange for access token
+    const tokenParams = new URLSearchParams();
+    tokenParams.append('grant_type', 'authorization_code');
+    tokenParams.append('client_id', clientId);
+    tokenParams.append('code', authorizationCode);
+    tokenParams.append('code_verifier', codeVerifier);
+
+    const tokenRes = await fetch('https://oauth-account-noneu.truecaller.com/v1/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: tokenParams,
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok) {
+      throw new Error(`Token exchange failed: ${tokenData.error_description || tokenData.error || tokenRes.statusText}`);
+    }
+
+    // 2. Get user info
+    const profileRes = await fetch('https://oauth-account-noneu.truecaller.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+
+    const profileData = await profileRes.json();
+    if (!profileRes.ok) {
+      throw new Error(`Profile fetch failed: ${profileData.error_description || profileData.error || profileRes.statusText}`);
+    }
+
+    // Use phone_number as the identity
+    const normalizedIdentity = String(profileData.phone_number).trim();
+
+    if (!normalizedIdentity) {
+      return res.status(400).json({ error: 'Truecaller profile did not return a phone number' });
+    }
+
+    // 3. Issue our JWT (we inject the phone number into the 'email' field for Option A mapping)
+    const token = jwt.sign({ email: normalizedIdentity }, JWT_SECRET, { expiresIn: '90d' });
+    console.log(`[AUTH] Truecaller login verified for ${normalizedIdentity}`);
+    
+    res.json({ ok: true, token, user: { email: normalizedIdentity, name: profileData.name } });
+
+  } catch (err) {
+    console.error('[AUTH] Truecaller Error:', err.message);
+    res.status(500).json({ error: 'Truecaller authentication failed', detail: err.message });
+  }
+});
+
 function requireAuth(req, res, next) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;

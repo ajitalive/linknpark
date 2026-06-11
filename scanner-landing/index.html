@@ -18,8 +18,12 @@
         }
       }
     }
-    // Change to your computer's local IP when testing on device
-    const API_BASE = 'https://linknpark.onrender.com';
+    // Auto-detect environment: use localhost API when running locally
+    const IS_LOCAL = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
+                     || window.location.protocol === 'file:';
+    const API_BASE = IS_LOCAL
+      ? 'http://localhost:3001'
+      : 'https://linknpark.onrender.com';
     // Sticker code from QR URL query param: ?code=STK-2025-AB1234
     const STICKER_CODE = new URLSearchParams(window.location.search).get('code') || 'STK-2025-AB1234';
   </script>

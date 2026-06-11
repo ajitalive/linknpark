@@ -57,6 +57,21 @@ export async function verifyOTP(email: string, code: string): Promise<{ ok: bool
     return { ok: false, error: e?.message || 'Network error' };
   }
 }
+export async function truecallerLogin(authorizationCode: string, codeVerifier: string): Promise<{ ok: boolean; error?: string; token?: string; user?: AuthUser }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/truecaller`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authorizationCode, codeVerifier }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data.error || 'Truecaller login failed' };
+    await saveAuth(data.token, data.user);
+    return { ok: true, token: data.token, user: data.user };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Network error' };
+  }
+}
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);

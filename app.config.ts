@@ -1,14 +1,27 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-const IS_PROD = process.env.APP_ENV === 'production';
+const APP_ENV = process.env.APP_ENV || 'local';
+const IS_PROD = APP_ENV === 'production';
+const IS_LOCAL = APP_ENV === 'local';
+
+// When running locally, the app needs your machine's LAN IP to reach localhost:3001
+// Find it with: ipconfig (Windows) or ifconfig (Mac/Linux)
+// Or set LOCAL_API_IP env var before running: set LOCAL_API_IP=192.168.1.5
+const LOCAL_IP = process.env.LOCAL_API_IP || 'localhost';
+
+const API_URLS: Record<string, string> = {
+  local: `http://${LOCAL_IP}:3001`,
+  staging: 'https://linknpark-staging.onrender.com',
+  production: 'https://linknpark.onrender.com',
+};
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_PROD ? 'LinkNPark' : 'LinkNPark (Test)',
+  name: IS_PROD ? 'LinkNPark' : IS_LOCAL ? 'LinkNPark (Dev)' : 'LinkNPark (Test)',
   slug: 'StickerOS',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: IS_PROD ? './assets/icon.png' : './assets/icon-dev.png',
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   scheme: 'linknpark',
@@ -22,9 +35,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
   },
   android: {
+    usesCleartextTraffic: true,
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#06090F',
+      foregroundImage: IS_PROD ? './assets/adaptive-icon.png' : './assets/adaptive-icon-dev.png',
+      backgroundColor: IS_PROD ? '#06090F' : '#2A2A35',
     },
     package: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
     versionCode: 3,
@@ -56,19 +70,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        icon: './assets/icon.png',
+        icon: IS_PROD ? './assets/icon.png' : './assets/icon-dev.png',
         color: '#2CFF05',
         androidMode: 'default',
-        androidCollapsedTitle: IS_PROD ? 'LinkNPark Alert' : 'LinkNPark (Test)',
+        androidCollapsedTitle: IS_PROD ? 'LinkNPark Alert' : 'LinkNPark (Dev)',
       },
     ],
+    [
+      'expo-truecaller',
+      {
+        androidClientId: 'ut7yqtyuuc6dwiyfjk1u_4hnlhuspwbhr-4qr0sp0pe'
+      }
+    ]
   ],
   extra: {
     // Read in app via Constants.expoConfig.extra.apiUrl
-    apiUrl: IS_PROD
-      ? 'https://linknpark.onrender.com'
-      : 'https://linknpark-staging.onrender.com',
-    appEnv: IS_PROD ? 'production' : 'staging',
+    apiUrl: API_URLS[APP_ENV] || API_URLS.local,
+    appEnv: APP_ENV,
     eas: {
       projectId: 'e0f55a41-94cf-42a2-99f1-de78d8298f8f',
     },

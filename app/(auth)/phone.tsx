@@ -9,12 +9,52 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui';
-import { sendOTP } from '../../hooks/useAuth';
+import { sendOTP, truecallerLogin } from '../../hooks/useAuth';
+import { initializeAsync, verifyUserAsync, TruecallerErrorCodes } from "expo-truecaller";
 
 export default function EmailScreen() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [truecallerUsable, setTruecallerUsable] = useState(false);
+  const [truecallerLoading, setTruecallerLoading] = useState(false);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const { isUsable } = await initializeAsync({
+          consentMode: "bottomsheet",
+          heading: "logInTo",
+          theme: "dark",
+        });
+        setTruecallerUsable(isUsable);
+      } catch (e) {
+        console.log('Truecaller init error:', e);
+      }
+    })();
+  }, []);
+
+  async function handleTruecaller() {
+    try {
+      setTruecallerLoading(true);
+      const { authorizationCode, codeVerifier } = await verifyUserAsync();
+      
+      const result = await truecallerLogin(authorizationCode, codeVerifier);
+      setTruecallerLoading(false);
+      
+      if (!result.ok) {
+        Alert.alert('Truecaller Error', result.error || 'Failed to login with Truecaller');
+        return;
+      }
+      
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      setTruecallerLoading(false);
+      if (e.code !== TruecallerErrorCodes.USER_CANCELLED) {
+        Alert.alert('Error', e.message || 'Truecaller login failed');
+      }
+    }
+  }
 
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -61,6 +101,23 @@ export default function EmailScreen() {
         </LinearGradient>
 
         <View style={styles.form}>
+          {truecallerUsable && (
+            <View style={{ marginBottom: 12 }}>
+              <Button
+                label="1-Tap Login with Truecaller"
+                onPress={handleTruecaller}
+                loading={truecallerLoading}
+                size="lg"
+                style={{ backgroundColor: '#0087FF' }}
+              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: Colors.divider }} />
+                <Text style={{ marginHorizontal: 16, color: Colors.textMuted, fontSize: 12, fontWeight: '600' }}>OR</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: Colors.divider }} />
+              </View>
+            </View>
+          )}
+
           <Text style={styles.formTitle}>Enter your email</Text>
           <Text style={styles.formSub}>We'll send a 6-digit code to verify it's you</Text>
 

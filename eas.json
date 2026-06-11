@@ -11,6 +11,16 @@
         "APP_ENV": "staging"
       }
     },
+    "local-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "local",
+        "LOCAL_API_IP": "192.168.1.6"
+      }
+    },
     "staging": {
       "distribution": "internal",
       "android": {
