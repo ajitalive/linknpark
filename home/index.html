@@ -291,10 +291,14 @@
 </head>
 <body>
 
+<div class="relative w-full max-w-[100vw] overflow-x-hidden min-h-screen flex flex-col">
+
 <!-- ── Background blobs ── -->
-<div class="blob" style="width:700px;height:700px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(44,255,5,0.09),transparent 70%);"></div>
-<div class="blob" style="width:600px;height:600px;top:400px;left:-300px;background:radial-gradient(circle,rgba(59,47,245,0.12),transparent 70%);"></div>
-<div class="blob" style="width:500px;height:500px;bottom:0;right:0;background:radial-gradient(circle,rgba(44,255,5,0.06),transparent 70%);"></div>
+<div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+  <div class="blob" style="width:700px;height:700px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(44,255,5,0.09),transparent 70%);"></div>
+  <div class="blob" style="width:600px;height:600px;top:400px;left:-300px;background:radial-gradient(circle,rgba(59,47,245,0.12),transparent 70%);"></div>
+  <div class="blob" style="width:500px;height:500px;bottom:0;right:0;background:radial-gradient(circle,rgba(44,255,5,0.06),transparent 70%);"></div>
+</div>
 
 <!-- ── Nav ── -->
 <nav class="fixed top-0 left-0 right-0 z-50">
@@ -923,5 +927,6 @@
       });
     }
   </script>
+</div>
 </body>
 </html>
