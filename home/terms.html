@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+  <title>Terms of Service — LinkNPark</title>
+  <meta name="description" content="LinkNPark Terms of Service — the rules and conditions for using our platform."/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --green: #2CFF05;
+      --green-dim: rgba(44,255,5,0.12);
+      --green-glow: rgba(44,255,5,0.35);
+      --bg: #06090F;
+      --surface: #0C1322;
+      --card: #0F1929;
+      --border: rgba(255,255,255,0.07);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    html, body {
+      background: var(--bg);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+    html { scroll-behavior: smooth; }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+
+    nav {
+      background: rgba(6,9,15,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+      font-weight: 800;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      background: #45ff22;
+      box-shadow: 0 0 24px rgba(44,255,5,0.5);
+      transform: translateY(-1px);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, var(--green) 0%, #00E5FF 60%, var(--green) 100%);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .legal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .legal-section { border-bottom: 1px solid var(--border); }
+    .legal-section:last-child { border-bottom: none; }
+
+    h2.section-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-body {
+      color: rgba(255,255,255,0.72);
+      font-size: 0.9375rem;
+      line-height: 1.75;
+    }
+    .section-body p + p { margin-top: 10px; }
+    .section-body ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .section-body ul li {
+      padding-left: 20px;
+      position: relative;
+    }
+    .section-body ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-size: 12px;
+    }
+    .section-body a {
+      color: var(--green);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .highlight-box {
+      background: rgba(44,255,5,0.06);
+      border: 1px solid rgba(44,255,5,0.18);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 12px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.875rem;
+      line-height: 1.65;
+    }
+    .warning-box {
+      background: rgba(255,160,0,0.07);
+      border: 1px solid rgba(255,160,0,0.25);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 12px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.875rem;
+      line-height: 1.65;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fade-up 0.6s ease both; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+
+<div class="relative w-full max-w-[100vw] overflow-x-hidden min-h-screen flex flex-col">
+
+  <!-- Background blobs -->
+  <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+    <div style="position:absolute;width:600px;height:600px;top:-150px;right:-200px;background:radial-gradient(circle,rgba(59,47,245,0.1),transparent 70%);border-radius:50%;filter:blur(80px);"></div>
+    <div style="position:absolute;width:500px;height:500px;bottom:0;left:-200px;background:radial-gradient(circle,rgba(44,255,5,0.07),transparent 70%);border-radius:50%;filter:blur(80px);"></div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="./logo.png" class="w-8 h-8 rounded-lg shadow-sm flex-shrink-0" alt="LinkNPark Logo"/>
+        <span class="font-black text-white tracking-tight text-base">LinkNPark</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold hidden sm:inline" style="background:rgba(44,255,5,0.12);color:var(--green);border:1px solid rgba(44,255,5,0.2)">BETA</span>
+      </a>
+      <a href="/#get-sticker" class="btn-primary px-5 py-2 rounded-xl text-sm">Get Sticker →</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="relative z-10 flex-1 pt-28 pb-20 px-4">
+    <div class="max-w-3xl mx-auto">
+
+      <!-- Header -->
+      <div class="text-center mb-12 fade-up">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5" style="background:rgba(59,47,245,0.15);color:#A89CFF;border:1px solid rgba(59,47,245,0.35)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>
+          Legal Agreement
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">Terms of <span class="gradient-text">Service</span></h1>
+        <p class="text-gray-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">By using LinkNPark, you agree to these terms. Please read them carefully.</p>
+        <p class="text-gray-600 text-sm mt-4">Last updated: June 2025 · Effective immediately</p>
+      </div>
+
+      <!-- Quick summary card -->
+      <div class="fade-up delay-1 mb-8 p-6 rounded-2xl" style="background:rgba(59,47,245,0.08);border:1px solid rgba(59,47,245,0.25)">
+        <p class="text-sm font-bold mb-2" style="color:#A89CFF">📋 TL;DR — Plain English Summary</p>
+        <p class="text-gray-300 text-sm leading-relaxed">Use LinkNPark honestly and legally. Don't misuse the scanner to harass vehicle owners. Don't create fake stickers. Don't try to extract other users' phone numbers. We provide the service as-is in Beta, and we can suspend accounts that violate these rules.</p>
+      </div>
+
+      <!-- Sections -->
+      <div class="legal-card fade-up delay-2 overflow-hidden">
+
+        <!-- 1 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">1</span>
+            Acceptance of Terms
+          </h2>
+          <div class="section-body">
+            <p>By downloading the LinkNPark app, scanning a LinkNPark QR sticker, or visiting our website at <a href="https://linknpark.in">linknpark.in</a>, you agree to be bound by these Terms of Service and our <a href="/privacy.html">Privacy Policy</a>.</p>
+            <p>If you do not agree to these terms, please do not use our services. These Terms constitute a legally binding agreement between you and LinkNPark.</p>
+          </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">2</span>
+            Description of Service
+          </h2>
+          <div class="section-body">
+            <p>LinkNPark provides a vehicle contactability platform. Our service includes:</p>
+            <ul>
+              <li>Physical QR stickers that vehicle owners affix to their vehicles</li>
+              <li>A mobile app for managing stickers, vehicles, and viewing incident reports</li>
+              <li>A public web scanner (no app required) for passersby to contact vehicle owners anonymously</li>
+              <li>A real-time push notification system to alert owners when their sticker is scanned</li>
+            </ul>
+            <div class="warning-box">
+              ⚠️ <strong>Beta Notice:</strong> LinkNPark is currently in Beta. Features may change, and occasional downtime may occur. We are not liable for service interruptions during this phase.
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">3</span>
+            Account Registration
+          </h2>
+          <div class="section-body">
+            <p>To use the app as a vehicle owner, you must create an account by verifying your phone number. You agree to:</p>
+            <ul>
+              <li>Provide accurate and truthful information</li>
+              <li>Keep your login credentials secure and confidential</li>
+              <li>Notify us immediately if you suspect unauthorized use of your account</li>
+              <li>Be at least 18 years old to create an account</li>
+              <li>Use only one account per person (duplicate accounts may be suspended)</li>
+            </ul>
+            <p style="margin-top:12px">You are responsible for all activity that occurs under your account.</p>
+          </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">4</span>
+            Permitted Use
+          </h2>
+          <div class="section-body">
+            <p>LinkNPark may be used only for its intended purpose: to enable contactability for parked vehicles in good faith. Permitted uses include:</p>
+            <ul>
+              <li>Registering your own vehicles and managing their sticker codes</li>
+              <li>Scanning a sticker to notify a vehicle owner of a legitimate parking concern</li>
+              <li>Using the app to view and manage incident reports for your vehicles</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 5 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">5</span>
+            Prohibited Conduct
+          </h2>
+          <div class="section-body">
+            <p>You must not use LinkNPark to:</p>
+            <ul>
+              <li>Harass, threaten, intimidate, or stalk a vehicle owner</li>
+              <li>Submit false, misleading, or malicious incident reports</li>
+              <li>Attempt to identify or extract the phone number or personal details of a vehicle owner</li>
+              <li>Reverse-engineer, scrape, or attempt to access our API beyond normal usage</li>
+              <li>Create stickers for vehicles you do not own or have authorization to manage</li>
+              <li>Use the service in violation of any applicable Indian or international law</li>
+              <li>Impersonate another person or entity</li>
+              <li>Use automated bots or scripts to interact with the platform</li>
+            </ul>
+            <div class="highlight-box">
+              Violation of these rules will result in immediate account suspension and may be reported to law enforcement where applicable.
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">6</span>
+            Stickers &amp; Physical Products
+          </h2>
+          <div class="section-body">
+            <p>When you receive a LinkNPark QR sticker:</p>
+            <ul>
+              <li>The sticker code is unique and linked to your account upon activation</li>
+              <li>You are responsible for affixing the sticker properly and keeping it legible</li>
+              <li>Do not affix a sticker to a vehicle you do not own without the owner's consent</li>
+              <li>Lost or stolen stickers should be reported to us so we can deactivate the code</li>
+              <li>Defaced or unreadable stickers are your responsibility to replace</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 7 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">7</span>
+            Intellectual Property
+          </h2>
+          <div class="section-body">
+            <p>All content, design, code, trademarks, and branding associated with LinkNPark — including the name "LinkNPark", our logo, and the app interface — are our exclusive intellectual property.</p>
+            <p>You may not reproduce, redistribute, or create derivative works from any part of our service without our written permission. The LinkNPark app is licensed to you (not sold) for personal, non-commercial use only.</p>
+          </div>
+        </div>
+
+        <!-- 8 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">8</span>
+            Disclaimer of Warranties
+          </h2>
+          <div class="section-body">
+            <p>LinkNPark is provided <strong style="color:#fff">"as is"</strong> and <strong style="color:#fff">"as available"</strong> without any warranties of any kind, either express or implied.</p>
+            <p>We do not guarantee that:</p>
+            <ul>
+              <li>The service will be uninterrupted, error-free, or secure at all times</li>
+              <li>Push notifications will be delivered instantly or at all (depending on your device and connectivity)</li>
+              <li>A vehicle owner will respond to a scan notification</li>
+              <li>The service will prevent any specific parking incident or property damage</li>
+            </ul>
+            <div class="warning-box" style="margin-top:12px">
+              ⚠️ LinkNPark is a <strong>communication tool</strong>, not a security or enforcement service. We are not responsible for the outcome of any parking dispute.
+            </div>
+          </div>
+        </div>
+
+        <!-- 9 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">9</span>
+            Limitation of Liability
+          </h2>
+          <div class="section-body">
+            <p>To the maximum extent permitted by applicable law, LinkNPark and its founders, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:</p>
+            <ul>
+              <li>Loss of data, revenue, or profits</li>
+              <li>Property damage resulting from a parking incident</li>
+              <li>Harassment or harm from a third-party scanner or vehicle owner</li>
+              <li>Unauthorized access to your account due to your negligence</li>
+            </ul>
+            <p style="margin-top:12px">Our total liability for any claim arising under these Terms shall not exceed ₹500 (five hundred Indian rupees) or the amount you paid for our service in the past 3 months, whichever is lower.</p>
+          </div>
+        </div>
+
+        <!-- 10 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">10</span>
+            Termination
+          </h2>
+          <div class="section-body">
+            <p>We reserve the right to suspend or terminate your account at any time, with or without notice, for:</p>
+            <ul>
+              <li>Violation of these Terms of Service</li>
+              <li>Behavior that harms other users or the integrity of the platform</li>
+              <li>Extended inactivity (accounts inactive for 12+ months may be deactivated)</li>
+            </ul>
+            <p style="margin-top:12px">You may also delete your account at any time by contacting us. Upon termination, your right to use the service immediately ceases.</p>
+          </div>
+        </div>
+
+        <!-- 11 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">11</span>
+            Governing Law &amp; Dispute Resolution
+          </h2>
+          <div class="section-body">
+            <p>These Terms are governed by the laws of India. Any dispute arising from these Terms or your use of the service shall first be attempted to be resolved through informal negotiation by contacting us at <a href="mailto:legal@linknpark.in">legal@linknpark.in</a>.</p>
+            <p>If informal resolution fails, disputes shall be subject to the exclusive jurisdiction of the courts located in India.</p>
+          </div>
+        </div>
+
+        <!-- 12 -->
+        <div class="legal-section p-6 sm:p-8">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">12</span>
+            Changes to These Terms
+          </h2>
+          <div class="section-body">
+            <p>We may revise these Terms from time to time. We will notify you of material changes via the app or email at least 7 days before they take effect. Continued use of the service after that date constitutes your acceptance of the updated Terms.</p>
+          </div>
+        </div>
+
+        <!-- Contact footer -->
+        <div class="p-6 sm:p-8" style="background:rgba(44,255,5,0.04)">
+          <h2 class="section-title">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black" style="background:rgba(44,255,5,0.15);color:var(--green)">✉</span>
+            Contact Us
+          </h2>
+          <div class="section-body">
+            <p>For any questions about these Terms:</p>
+            <div class="highlight-box mt-3">
+              <strong style="color:var(--green)">LinkNPark Legal</strong><br/>
+              Email: <a href="mailto:legal@linknpark.in">legal@linknpark.in</a><br/>
+              Website: <a href="https://linknpark.in">linknpark.in</a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /legal-card -->
+
+      <!-- Footer links -->
+      <div class="text-center mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
+        <a href="/" class="hover:text-white transition-colors">← Back to Home</a>
+        <span>·</span>
+        <a href="/privacy.html" class="hover:text-white transition-colors">Privacy Policy</a>
+        <span>·</span>
+        <a href="mailto:legal@linknpark.in" class="hover:text-white transition-colors">Contact Us</a>
+      </div>
+    </div>
+  </main>
+
+</div>
+</body>
+</html>
