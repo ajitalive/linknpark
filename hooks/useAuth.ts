@@ -29,46 +29,76 @@ export async function clearAuth() {
 
 export async function sendOTP(email: string): Promise<{ ok: boolean; error?: string; devCode?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
-    });
+    }, 55_000);
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || 'Failed to send OTP' };
     return { ok: true, devCode: data.devCode };
   } catch (e: any) {
+    if (e?.name === 'AbortError') return { ok: false, error: 'Server took too long. Please try again.' };
     return { ok: false, error: e?.message || 'Network error' };
   }
 }
 
 export async function verifyOTP(email: string, code: string): Promise<{ ok: boolean; error?: string; token?: string; user?: AuthUser }> {
   try {
-    const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+    const res = await fetchWithTimeout(`${API_BASE}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code }),
-    });
+    }, 55_000);
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || 'Invalid code' };
     await saveAuth(data.token, data.user);
     return { ok: true, token: data.token, user: data.user };
   } catch (e: any) {
+    if (e?.name === 'AbortError') return { ok: false, error: 'Server took too long. Please try again.' };
     return { ok: false, error: e?.message || 'Network error' };
   }
 }
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
+export async function warmUpServer(): Promise<void> {
+  try {
+    await fetchWithTimeout(`${API_BASE}/health`, { method: 'GET' }, 55_000);
+  } catch (_) {
+    // Ignore — we just want to wake Render up; main request handles real errors
+  }
+}
+
 export async function truecallerLogin(authorizationCode: string, codeVerifier: string): Promise<{ ok: boolean; error?: string; token?: string; user?: AuthUser }> {
   try {
-    const res = await fetch(`${API_BASE}/api/auth/truecaller`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authorizationCode, codeVerifier }),
-    });
+    const res = await fetchWithTimeout(
+      `${API_BASE}/api/auth/truecaller`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authorizationCode, codeVerifier }),
+      },
+      55_000, // 55-second timeout — longer than Render cold-start
+    );
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || 'Truecaller login failed' };
     await saveAuth(data.token, data.user);
     return { ok: true, token: data.token, user: data.user };
   } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      return { ok: false, error: 'Server took too long to respond. Please try again.' };
+    }
     return { ok: false, error: e?.message || 'Network error' };
   }
 }

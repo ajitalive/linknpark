@@ -9,7 +9,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui';
-import { sendOTP, truecallerLogin } from '../../hooks/useAuth';
+import { sendOTP, truecallerLogin, warmUpServer } from '../../hooks/useAuth';
+import { API_BASE } from '../../hooks/usePushNotifications';
 import { initializeAsync, verifyUserAsync, TruecallerErrorCodes } from "expo-truecaller";
 
 export default function EmailScreen() {
@@ -20,6 +21,9 @@ export default function EmailScreen() {
   const [truecallerLoading, setTruecallerLoading] = useState(false);
 
   React.useEffect(() => {
+    // Pre-warm the Render server so it's ready when user taps login
+    warmUpServer();
+
     (async () => {
       try {
         const { isUsable } = await initializeAsync({
@@ -43,7 +47,7 @@ export default function EmailScreen() {
       setTruecallerLoading(false);
       
       if (!result.ok) {
-        Alert.alert('Truecaller Error', result.error || 'Failed to login with Truecaller');
+        Alert.alert('Truecaller Error', `${result.error}\n\nEndpoint: ${API_BASE}`);
         return;
       }
       
@@ -51,7 +55,7 @@ export default function EmailScreen() {
     } catch (e: any) {
       setTruecallerLoading(false);
       if (e.code !== TruecallerErrorCodes.USER_CANCELLED) {
-        Alert.alert('Error', e.message || 'Truecaller login failed');
+        Alert.alert('Error', `${e.message || 'Truecaller login failed'}\n\nEndpoint: ${API_BASE}`);
       }
     }
   }
