@@ -653,7 +653,7 @@ app.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
     code: String(c).toUpperCase(),
     status: 'unclaimed',
     // Provide safe defaults to bypass any NOT NULL constraints on other fields
-    owner_email: null,
+    owner_email: 'unclaimed@linknpark.in',
     vehicle_type: 'pending',
     registration: 'PENDING'
   }));
