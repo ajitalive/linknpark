@@ -83,9 +83,17 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="store"
+          options={{
+            title: 'Store',
+            tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'bag-handle' : 'bag-handle-outline'} color={color} focused={focused} />,
+          }}
+        />
+        <Tabs.Screen
           name="vault"
           options={{
             title: 'Vault',
+            href: null,
             tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'lock-closed' : 'lock-closed-outline'} color={color} focused={focused} />,
           }}
         />

@@ -23,6 +23,7 @@ const MENU_SECTIONS = [
     items: [
       { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: null, route: '/guard' },
       { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: '/parking-timer' },
+      { icon: 'lock-closed', label: 'Secure Vault', color: Colors.secondary, badge: null, route: '/(tabs)/vault' },
     ],
   },
   {
