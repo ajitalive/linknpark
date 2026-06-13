@@ -41,7 +41,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
   },
   android: {
-    usesCleartextTraffic: true,
     adaptiveIcon: {
       foregroundImage: IS_PROD ? './assets/adaptive-icon.png' : './assets/adaptive-icon-dev.png',
       backgroundColor: IS_PROD ? '#06090F' : '#2A2A35',
@@ -87,6 +86,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         androidClientId: 'ut7yqtyuuc6dwiyfjk1u_4hnlhuspwbhr-4qr0sp0pe'
       }
+    ],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          usesCleartextTraffic: true,
+        },
+      },
     ]
   ],
   extra: {

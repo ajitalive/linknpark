@@ -127,6 +127,9 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
   headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   form: { flex: 1, padding: 28 },
+  truecallerContainer: {
+    width: '100%',
+  },
   formTitle: { fontSize: 24, fontWeight: '700', color: Colors.text, marginBottom: 8 },
   formSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 28 },
   emailRow: {

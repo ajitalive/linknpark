@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,9 +19,47 @@ export default function GuardianNetworkScreen() {
   const [loading, setLoading] = useState(true);
   const [networkEnabled, setNetworkEnabled] = useState(true);
 
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneArea, setNewZoneArea] = useState('');
+  const [creatingZone, setCreatingZone] = useState(false);
+
   useEffect(() => {
     fetchZones();
   }, []);
+
+  async function handleCreateZone() {
+    if (!newZoneName.trim() || !newZoneArea.trim()) return;
+    setCreatingZone(true);
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const res = await fetch(`${API_URL}/api/guardians/zones`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newZoneName,
+          zone: newZoneArea
+        })
+      });
+      const data = await res.json();
+      if (data.ok && data.zone) {
+        setGuardians(prev => [...prev, data.zone]);
+        setIsModalVisible(false);
+        setNewZoneName('');
+        setNewZoneArea('');
+      } else {
+        Alert.alert('Error', data.error || 'Failed to create new zone');
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setCreatingZone(false);
+    }
+  }
 
   async function fetchZones() {
     try {
@@ -126,7 +164,7 @@ export default function GuardianNetworkScreen() {
 
         <Button
           label="Join a New Zone"
-          onPress={() => {}}
+          onPress={() => setIsModalVisible(true)}
           icon={<Ionicons name="add" size={18} color="#fff" />}
           size="lg"
           style={{ marginTop: 12 }}
@@ -140,6 +178,53 @@ export default function GuardianNetworkScreen() {
           </View>
         </Card>
       </ScrollView>
+
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Join a New Zone</Text>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalForm}>
+              <Text style={styles.inputLabel}>Community / Zone Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newZoneName}
+                onChangeText={setNewZoneName}
+                placeholder="e.g. Sector 7 Residents, Whitefield Watch"
+                placeholderTextColor={Colors.textMuted}
+              />
+
+              <Text style={styles.inputLabel}>Area / Location</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newZoneArea}
+                onChangeText={setNewZoneArea}
+                placeholder="e.g. Koramangala, Bengaluru"
+                placeholderTextColor={Colors.textMuted}
+              />
+
+              <Button
+                label="Create & Join Zone"
+                onPress={handleCreateZone}
+                loading={creatingZone}
+                disabled={!newZoneName.trim() || !newZoneArea.trim()}
+                size="lg"
+                style={{ marginTop: 16 }}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -190,4 +275,51 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row' },
   statValue: { fontSize: 22, fontWeight: '800' },
   statLabel: { fontSize: 11, color: Colors.textMuted, textAlign: 'center' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.bg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: Colors.divider,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  modalForm: {
+    gap: 16,
+    paddingBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  textInput: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.divider,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+    color: Colors.text,
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });

@@ -12,3 +12,8 @@ web-build/
 # Logs, caches
 *.log
 .DS_Store
+
+# Tools/backups
+.claude/
+.wrangler/
+*.backup

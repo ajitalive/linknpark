@@ -476,6 +476,25 @@ app.post('/api/guardians/join', requireAuth, (req, res) => {
   res.json({ ok: true, active });
 });
 
+app.post('/api/guardians/zones', requireAuth, (req, res) => {
+  const { name, zone } = req.body;
+  if (!name || !zone) {
+    return res.status(400).json({ error: 'Name and zone area are required' });
+  }
+  const newZone = {
+    id: String(MOCK_ZONES.length + 1),
+    name: name.trim(),
+    zone: zone.trim(),
+  };
+  MOCK_ZONES.push(newZone);
+  
+  // Auto-join the creator
+  const email = req.user.email;
+  guardianMemberships.add(`${email}:${newZone.id}`);
+  
+  res.json({ ok: true, zone: { ...newZone, active: true } });
+});
+
 // ============ IN-APP MESSAGING (MVP In-Memory) ============
 const chatRooms = {}; // incidentId -> Array of { sender, text, ts }
 
