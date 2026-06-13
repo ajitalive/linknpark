@@ -383,7 +383,7 @@
       box.scrollTop = box.scrollHeight;
 
       try {
-        await fetch(\`\${API_BASE}/api/chat/\${currentReportId}\`, {
+        await fetch(`${API_BASE}/api/chat/${currentReportId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sender: 'scanner', text }),
