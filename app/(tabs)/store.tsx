@@ -21,26 +21,6 @@ const PRODUCTS = [
     category: 'Stickers'
   },
   {
-    id: 'business-card',
-    name: 'Smart Business Card (NFC + QR)',
-    desc: 'Premium PVC card. Share your profile instantly with a tap.',
-    price: 599,
-    originalPrice: 999,
-    image: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=400&q=80',
-    discount: '40%',
-    category: 'Cards'
-  },
-  {
-    id: 'door-tag-2',
-    name: 'Video Door Tag (Pack of 2)',
-    desc: 'Video Calls from Home & Office. Emergency help.',
-    price: 499,
-    originalPrice: 1999,
-    image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=400&q=80',
-    discount: '75%',
-    category: 'Stickers'
-  },
-  {
     id: 'lost-found-pack',
     name: 'Lost & Found Tag (1 Ring + 4 Stickers)',
     desc: 'Use this tag on anything you dont want to lose.',
