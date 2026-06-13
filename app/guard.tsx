@@ -8,7 +8,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
-import { GUARD_VEHICLES } from '../constants/MockData';
+import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 const { width } = Dimensions.get('window');
 
@@ -27,24 +30,57 @@ export default function GuardScreen() {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<GuardMode>('home');
   const [plate, setPlate] = useState('');
-  const [found, setFound] = useState<typeof GUARD_VEHICLES[0] | null>(null);
+  const [found, setFound] = useState<any>(null);
   const [selectedIncident, setSelectedIncident] = useState('');
   const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function searchVehicle() {
-    const v = GUARD_VEHICLES.find(
-      g => g.plate.toLowerCase().includes(plate.toLowerCase())
-    ) ?? GUARD_VEHICLES[0];
-    setFound(v);
-    setMode('vehicle');
+  async function searchVehicle() {
+    if (plate.trim().length < 4) return;
+    setLoading(true);
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const res = await fetch(`${API_URL}/api/guard/vehicle?query=${encodeURIComponent(plate)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.vehicle) {
+        setFound(data.vehicle);
+        setMode('vehicle');
+      } else {
+        alert(data.error || 'Vehicle not found');
+      }
+    } catch (e) {
+      alert('Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function startContact(incType: string) {
+  async function startContact(incType: string) {
     setSelectedIncident(incType);
     setMode('incident');
     setTimer(300); // 5 min countdown
     setTimerActive(true);
+
+    if (found?.code) {
+      try {
+        const token = await SecureStore.getItemAsync('token');
+        await fetch(`${API_URL}/api/report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            stickerCode: found.code,
+            reason: incType,
+            reasonLabel: INCIDENT_TYPES.find(t => t.id === incType)?.label.replace('\n', ' ') || 'Security Incident',
+            message: 'A security guard has raised an alert for your vehicle.'
+          })
+        });
+      } catch (e) {
+        console.error('Failed to report', e);
+      }
+    }
   }
 
   function resolveIncident() {
@@ -152,22 +188,9 @@ function GuardHome({ onScan, onManualSearch }: any) {
 
       {/* Recent incidents */}
       <Text style={styles.sectionTitle}>Recent Incidents</Text>
-      {GUARD_VEHICLES.slice(0, 2).map((v, i) => (
-        <View key={i} style={styles.recentCard}>
-          <View style={styles.recentIcon}>
-            <Ionicons name="warning" size={16} color={Colors.high} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.recentPlate}>{v.plate} · {v.flat}, {v.tower}</Text>
-            <Text style={styles.recentInfo}>{v.resident} · {i === 0 ? '23 min ago' : '1hr 12 min ago'}</Text>
-          </View>
-          <View style={[styles.recentStatus, { backgroundColor: i === 0 ? Colors.highBg : Colors.successBg }]}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: i === 0 ? Colors.high : Colors.success }}>
-              {i === 0 ? 'Open' : 'Resolved'}
-            </Text>
-          </View>
-        </View>
-      ))}
+      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+        <Text style={{ color: Colors.textMuted }}>No recent incidents today.</Text>
+      </View>
     </View>
   );
 }
@@ -201,9 +224,9 @@ function GuardScan({ plate, onPlate, onSearch, onBack }: any) {
       />
 
       <Button
-        label="Find Vehicle"
+        label={loading ? "Searching..." : "Find Vehicle"}
         onPress={onSearch}
-        disabled={plate.length < 4}
+        disabled={plate.length < 4 || loading}
         size="lg"
         style={{ marginTop: 16 }}
       />
@@ -211,7 +234,7 @@ function GuardScan({ plate, onPlate, onSearch, onBack }: any) {
   );
 }
 
-function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
+function GuardVehicleResult({ vehicle, onIncident, onBack, loading }: any) {
   const isRepeat = vehicle.incidents > 1;
 
   return (

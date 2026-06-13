@@ -472,48 +472,104 @@ app.post('/api/register-token', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ============ GUARDIAN NETWORK (MVP In-Memory) ============
-const MOCK_ZONES = [
-  { id: '1', name: 'Sector 7 Residents', zone: 'Koramangala, Bengaluru' },
-  { id: '2', name: 'Tech Park Commuters', zone: 'Electronic City, Bengaluru' },
-];
-const guardianMemberships = new Set(); // Stores "email:zoneId"
-
-app.get('/api/guardians/zones', requireAuth, (req, res) => {
+// ============ GUARDIAN NETWORK ============
+app.get('/api/guardians/zones', requireAuth, async (req, res) => {
   const email = req.user.email;
-  const zones = MOCK_ZONES.map(z => ({
-    ...z,
-    active: guardianMemberships.has(`${email}:${z.id}`)
+  
+  // Get all zones
+  const { data: zonesData, error: zonesErr } = await supabase.from('zones').select('*');
+  if (zonesErr) return res.status(500).json({ error: zonesErr.message });
+  
+  // Get user memberships
+  const { data: memData, error: memErr } = await supabase.from('zone_members').select('zone_id').eq('user_email', email);
+  if (memErr) return res.status(500).json({ error: memErr.message });
+
+  const joinedIds = new Set((memData || []).map(m => m.zone_id));
+  
+  const zones = (zonesData || []).map(z => ({
+    id: z.id,
+    name: z.name,
+    zone: z.area,
+    active: joinedIds.has(z.id)
   }));
   res.json({ zones });
 });
 
-app.post('/api/guardians/join', requireAuth, (req, res) => {
+app.post('/api/guardians/join', requireAuth, async (req, res) => {
   const { zoneId, active } = req.body;
   const email = req.user.email;
-  const key = `${email}:${zoneId}`;
-  if (active) guardianMemberships.add(key);
-  else guardianMemberships.delete(key);
+  if (!zoneId) return res.status(400).json({ error: 'zoneId required' });
+
+  if (active) {
+    // using insert without upsert since onConflict can be tricky, let's just ignore duplicate errors
+    const { error } = await supabase.from('zone_members').insert({ zone_id: zoneId, user_email: email });
+    if (error && error.code !== '23505') return res.status(500).json({ error: error.message });
+  } else {
+    const { error } = await supabase.from('zone_members').delete().match({ zone_id: zoneId, user_email: email });
+    if (error) return res.status(500).json({ error: error.message });
+  }
   res.json({ ok: true, active });
 });
 
-app.post('/api/guardians/zones', requireAuth, (req, res) => {
+app.post('/api/guardians/zones', requireAuth, async (req, res) => {
   const { name, zone } = req.body;
   if (!name || !zone) {
     return res.status(400).json({ error: 'Name and zone area are required' });
   }
-  const newZone = {
-    id: String(MOCK_ZONES.length + 1),
+  
+  // Insert zone
+  const { data: newZone, error: zErr } = await supabase.from('zones').insert({
     name: name.trim(),
-    zone: zone.trim(),
-  };
-  MOCK_ZONES.push(newZone);
+    area: zone.trim()
+  }).select().single();
+  if (zErr) return res.status(500).json({ error: zErr.message });
   
-  // Auto-join the creator
+  // Auto-join creator
   const email = req.user.email;
-  guardianMemberships.add(`${email}:${newZone.id}`);
+  await supabase.from('zone_members').insert({ zone_id: newZone.id, user_email: email });
   
-  res.json({ ok: true, zone: { ...newZone, active: true } });
+  res.json({ ok: true, zone: { id: newZone.id, name: newZone.name, zone: newZone.area, active: true } });
+});
+
+// ============ GUARD MODE ============
+app.get('/api/guard/vehicle', requireAuth, async (req, res) => {
+  const { query } = req.query; // plate or code
+  if (!query) return res.status(400).json({ error: 'query required' });
+  
+  const search = query.trim().toUpperCase();
+  
+  // Search by code OR registration
+  const { data, error } = await supabase
+    .from('stickers')
+    .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color')
+    .or(`code.eq."${search}",registration.eq."${search}"`)
+    .not('owner_email', 'is', 'null')
+    .neq('status', 'unclaimed')
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({ error: 'Vehicle not found or not registered' });
+  }
+
+  // Get incident count (approx) by counting rows where stickerCode matches
+  const { count } = await supabase
+    .from('reports')
+    .select('*', { count: 'exact', head: true })
+    .eq('stickerCode', data.code);
+
+  res.json({
+    vehicle: {
+      code: data.code,
+      plate: data.registration,
+      color: data.color || 'Unknown',
+      type: data.vehicle_type,
+      resident: data.vehicle_name || 'Resident',
+      flat: 'N/A', 
+      tower: 'N/A',
+      incidents: count || 0
+    }
+  });
 });
 
 // ============ IN-APP MESSAGING (MVP In-Memory) ============
