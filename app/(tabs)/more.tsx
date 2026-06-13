@@ -81,10 +81,9 @@ export default function MoreScreen() {
           <Text style={styles.profileName}>{displayName}</Text>
           <Text style={styles.profilePhone}>{displayHandle}</Text>
         </View>
-        <View style={styles.planBadge}>
-          <Ionicons name="star" size={12} color={Colors.amber} />
-          <Text style={styles.planText}>{MOCK_USER.plan}</Text>
-        </View>
+        <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
+          <Ionicons name="pencil" size={16} color="#fff" />
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Quick stats */}
@@ -149,6 +148,7 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
   profileName: { fontSize: 18, fontWeight: '800', color: '#fff' },
   profilePhone: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 10, borderRadius: 20 },
   planBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   planText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
