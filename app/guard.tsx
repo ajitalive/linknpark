@@ -10,6 +10,7 @@ import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
+import { getToken } from '../hooks/useAuth';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
@@ -40,7 +41,7 @@ export default function GuardScreen() {
     if (plate.trim().length < 4) return;
     setLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getToken();
       const res = await fetch(`${API_URL}/api/guard/vehicle?query=${encodeURIComponent(plate)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -66,7 +67,7 @@ export default function GuardScreen() {
 
     if (found?.code) {
       try {
-        const token = await SecureStore.getItemAsync('token');
+        const token = await getToken();
         await fetch(`${API_URL}/api/report`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

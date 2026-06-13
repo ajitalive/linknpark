@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
+import { getToken } from '../hooks/useAuth';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
@@ -32,7 +32,7 @@ export default function GuardianNetworkScreen() {
     if (!newZoneName.trim() || !newZoneArea.trim()) return;
     setCreatingZone(true);
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getToken();
       const res = await fetch(`${API_URL}/api/guardians/zones`, {
         method: 'POST',
         headers: {
@@ -63,7 +63,7 @@ export default function GuardianNetworkScreen() {
 
   async function fetchZones() {
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getToken();
       const res = await fetch(`${API_URL}/api/guardians/zones`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -80,7 +80,7 @@ export default function GuardianNetworkScreen() {
     const nextActive = !currentActive;
     setGuardians(prev => prev.map(g => g.id === id ? { ...g, active: nextActive } : g));
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getToken();
       await fetch(`${API_URL}/api/guardians/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
