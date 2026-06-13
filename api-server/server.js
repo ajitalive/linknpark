@@ -209,9 +209,9 @@ app.get('/api/stickers', requireAuth, async (req, res) => {
 });
 
 app.post('/api/stickers', requireAuth, async (req, res) => {
-  const { code, vehicle_type, vehicle_name, registration, color, backup_phone } = req.body;
-  if (!code || !vehicle_type || !registration) {
-    return res.status(400).json({ error: 'code, vehicle_type, registration required' });
+  const { code, vehicle_name, vehicle_type, vehicle_color, plate_number, tag_type, tag_title } = req.body;
+  if (!code || !vehicle_type || !plate_number) {
+    return res.status(400).json({ error: 'code, vehicle_type, plate_number required' });
   }
   
   const normalizedCode = code.toUpperCase();
@@ -237,9 +237,10 @@ app.post('/api/stickers', requireAuth, async (req, res) => {
     owner_email: req.user.email,
     vehicle_type,
     vehicle_name: vehicle_name || null,
-    registration: registration.toUpperCase(),
-    color: color || null,
-    backup_phone: backup_phone || null,
+    registration: plate_number.toUpperCase(),
+    color: vehicle_color || null,
+    tag_type: tag_type || 'vehicle',
+    tag_title: tag_title || null,
     status: 'active'
   }).eq('code', normalizedCode).select().single();
 
@@ -252,7 +253,7 @@ app.post('/api/stickers', requireAuth, async (req, res) => {
 
 app.patch('/api/stickers/:id', requireAuth, async (req, res) => {
   const updates = {};
-  ['vehicle_name', 'registration', 'color', 'status', 'backup_phone'].forEach(k => {
+  ['vehicle_name', 'registration', 'color', 'status', 'backup_phone', 'tag_type', 'tag_title'].forEach(k => {
     if (req.body[k] !== undefined) updates[k] = req.body[k];
   });
   const { data, error } = await supabase
@@ -379,7 +380,7 @@ function pushToClients(stickerCode, payload) {
 app.get('/api/sticker/:code', async (req, res) => {
   const code = req.params.code.toUpperCase();
   const { data } = await supabase
-    .from('stickers').select('*').eq('code', code).single();
+    .from('stickers').select('vehicle_type, color, vehicle_name, registration, status, tag_type, tag_title').eq('code', code).single();
   if (!data) return res.status(404).json({ error: 'Sticker not found or not activated' });
   const plate = data.registration || '';
   const platePartial = plate.length > 4
@@ -391,6 +392,8 @@ app.get('/api/sticker/:code', async (req, res) => {
     vehicleColor: data.color || 'Unknown',
     vehicleMake: data.vehicle_name || data.vehicle_type,
     platePartial,
+    tagType: data.tag_type || 'vehicle',
+    tagTitle: data.tag_title || null,
     ownerReachable: data.status === 'active',
   });
 });
@@ -541,7 +544,7 @@ app.get('/api/guard/vehicle', requireAuth, async (req, res) => {
   // Search by code OR registration
   const { data, error } = await supabase
     .from('stickers')
-    .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color')
+    .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color, tag_type, tag_title')
     .or(`code.eq."${search}",registration.eq."${search}"`)
     .not('owner_email', 'is', 'null')
     .neq('status', 'unclaimed')

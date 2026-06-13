@@ -31,6 +31,8 @@ export type Sticker = {
   color: string | null;
   status: string;
   backup_phone: string | null;
+  tag_type: string;
+  tag_title: string | null;
   scan_count: number;
   last_scanned_at: string | null;
   created_at: string;
@@ -86,6 +88,8 @@ export async function createSticker(input: {
   registration: string;
   color?: string;
   backup_phone?: string;
+  tag_type?: string;
+  tag_title?: string;
 }): Promise<Sticker> {
   const d = await authFetch('/api/stickers', { method: 'POST', body: JSON.stringify(input) });
   return d.sticker;

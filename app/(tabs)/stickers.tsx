@@ -117,12 +117,19 @@ export default function StickersScreen() {
 
 function StickerCard({ sticker }: { sticker: Sticker }) {
   const isPaused = sticker.status === 'paused';
-  const displayName = sticker.vehicle_name || sticker.registration;
+  const displayName = sticker.tag_title || sticker.vehicle_name || sticker.registration || 'Tag';
+  const isVehicle = !sticker.tag_type || sticker.tag_type === 'vehicle';
 
   return (
     <Card onPress={() => router.push(`/sticker/${sticker.id}` as any)} style={isPaused ? { opacity: 0.75 } : {}}>
       <View style={styles.cardTop}>
-        <VehicleIcon type={sticker.vehicle_type} size={22} />
+        {isVehicle ? (
+          <VehicleIcon type={sticker.vehicle_type} size={22} />
+        ) : (
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name={sticker.tag_type === 'keychain' ? 'key' : sticker.tag_type === 'pet' ? 'paw' : sticker.tag_type === 'doorbell' ? 'home' : 'cube'} size={22} color={Colors.primary} />
+          </View>
+        )}
         <View style={styles.cardInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.cardName}>{displayName}</Text>
@@ -132,7 +139,10 @@ function StickerCard({ sticker }: { sticker: Sticker }) {
             </Text>
           </View>
           <Text style={styles.cardReg}>
-            {sticker.registration}{sticker.color ? ` · ${sticker.color}` : ''} {sticker.vehicle_type}
+            {isVehicle 
+              ? `${sticker.registration}${sticker.color ? ` · ${sticker.color}` : ''} ${sticker.vehicle_type}`
+              : sticker.tag_type.charAt(0).toUpperCase() + sticker.tag_type.slice(1)
+            }
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />

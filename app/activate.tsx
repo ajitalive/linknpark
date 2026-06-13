@@ -14,7 +14,14 @@ import { API_BASE } from '../hooks/usePushNotifications';
 
 const SCANNER_BASE = API_BASE.replace(':3001', ':8082');
 
-const STEPS = ['Scan', 'Vehicle', 'Backup Contact', 'Done'];
+const STEPS = ['Scan', 'Details', 'Backup Contact', 'Done'];
+const TAG_TYPES = [
+  { id: 'vehicle', icon: 'car', label: 'Vehicle' },
+  { id: 'keychain', icon: 'key', label: 'Keychain' },
+  { id: 'pet', icon: 'paw', label: 'Pet Tag' },
+  { id: 'doorbell', icon: 'home', label: 'Doorbell' },
+  { id: 'other', icon: 'cube', label: 'Other' },
+];
 const VEHICLE_TYPES = [
   { id: 'car', icon: 'car', label: 'Car' },
   { id: 'bike', icon: 'bicycle', label: 'Bike' },
@@ -36,6 +43,8 @@ export default function ActivateScreen() {
       setStep(1);
     }
   }, [params.code]);
+  const [tagType, setTagType] = useState('vehicle');
+  const [tagTitle, setTagTitle] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [regNo, setRegNo] = useState('');
   const [color, setColor] = useState('');
@@ -49,9 +58,16 @@ export default function ActivateScreen() {
       return;
     }
     if (step === 1) {
-      if (!vehicleType || !regNo) {
-        Alert.alert('Missing info', 'Please select a vehicle type and enter registration number.');
-        return;
+      if (tagType === 'vehicle') {
+        if (!vehicleType || !regNo) {
+          Alert.alert('Missing info', 'Please select a vehicle type and enter registration number.');
+          return;
+        }
+      } else {
+        if (!tagTitle) {
+          Alert.alert('Missing info', 'Please give this tag a title (e.g. "My House Keys").');
+          return;
+        }
       }
       setStep(2);
       return;
@@ -61,11 +77,13 @@ export default function ActivateScreen() {
       try {
         await createSticker({
           code: stickerCode.toUpperCase(),
-          vehicle_type: vehicleType,
-          registration: regNo.toUpperCase().replace(/\s+/g, ''),
+          vehicle_type: tagType === 'vehicle' ? vehicleType : 'other',
+          registration: tagType === 'vehicle' ? regNo.toUpperCase().replace(/\s+/g, '') : 'N/A',
           color: color || undefined,
           backup_phone: backupPhone || undefined,
           vehicle_name: undefined,
+          tag_type: tagType,
+          tag_title: tagTitle || undefined,
         });
         setStep(3);
       } catch (e: any) {
@@ -118,6 +136,8 @@ export default function ActivateScreen() {
         {step === 0 && <StepScan code={stickerCode} onCode={setStickerCode} />}
         {step === 1 && (
           <StepVehicle
+            tagType={tagType} onTagType={setTagType}
+            tagTitle={tagTitle} onTagTitle={setTagTitle}
             vehicleType={vehicleType} onType={setVehicleType}
             regNo={regNo} onReg={setRegNo}
             color={color} onColor={setColor}
@@ -186,44 +206,73 @@ function StepScan({ code, onCode }: any) {
   );
 }
 
-function StepVehicle({ vehicleType, onType, regNo, onReg, color, onColor }: any) {
+function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, onType, regNo, onReg, color, onColor }: any) {
   return (
     <View>
-      <Text style={styles.stepTitle}>Tell us about your vehicle</Text>
-      <Text style={styles.stepSub}>This helps scanners identify your vehicle quickly.</Text>
+      <Text style={styles.stepTitle}>Tell us about your tag</Text>
+      <Text style={styles.stepSub}>What item are you putting this sticker on?</Text>
 
-      <Text style={styles.fieldLabel}>Vehicle Type</Text>
+      <Text style={styles.fieldLabel}>Tag Type</Text>
       <View style={styles.typeGrid}>
-        {VEHICLE_TYPES.map(t => (
+        {TAG_TYPES.map(t => (
           <TouchableOpacity
             key={t.id}
-            style={[styles.typeCard, vehicleType === t.id && styles.typeCardActive]}
-            onPress={() => onType(t.id)}
+            style={[styles.typeCard, tagType === t.id && styles.typeCardActive]}
+            onPress={() => onTagType(t.id)}
           >
-            <Ionicons name={t.icon as any} size={24} color={vehicleType === t.id ? Colors.primary : Colors.textSecondary} />
-            <Text style={[styles.typeLabel, vehicleType === t.id && { color: Colors.primary, fontWeight: '700' }]}>{t.label}</Text>
+            <Ionicons name={t.icon as any} size={24} color={tagType === t.id ? Colors.primary : Colors.textSecondary} />
+            <Text style={[styles.typeLabel, tagType === t.id && { color: Colors.primary, fontWeight: '700' }]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.fieldLabel}>Registration Number</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="MH12AB1234"
-        placeholderTextColor={Colors.textMuted}
-        value={regNo}
-        onChangeText={onReg}
-        autoCapitalize="characters"
-      />
+      {tagType === 'vehicle' ? (
+        <View>
+          <Text style={styles.fieldLabel}>Vehicle Type</Text>
+          <View style={styles.typeGrid}>
+            {VEHICLE_TYPES.map(t => (
+              <TouchableOpacity
+                key={t.id}
+                style={[styles.typeCard, vehicleType === t.id && styles.typeCardActive]}
+                onPress={() => onType(t.id)}
+              >
+                <Ionicons name={t.icon as any} size={24} color={vehicleType === t.id ? Colors.primary : Colors.textSecondary} />
+                <Text style={[styles.typeLabel, vehicleType === t.id && { color: Colors.primary, fontWeight: '700' }]}>{t.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-      <Text style={styles.fieldLabel}>Vehicle Color</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. White, Silver, Red"
-        placeholderTextColor={Colors.textMuted}
-        value={color}
-        onChangeText={onColor}
-      />
+          <Text style={styles.fieldLabel}>Registration Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="MH12AB1234"
+            placeholderTextColor={Colors.textMuted}
+            value={regNo}
+            onChangeText={onReg}
+            autoCapitalize="characters"
+          />
+
+          <Text style={styles.fieldLabel}>Vehicle Color</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. White, Silver, Red"
+            placeholderTextColor={Colors.textMuted}
+            value={color}
+            onChangeText={onColor}
+          />
+        </View>
+      ) : (
+        <View>
+          <Text style={styles.fieldLabel}>Tag Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder='e.g. "My House Keys" or "Fluffy"'
+            placeholderTextColor={Colors.textMuted}
+            value={tagTitle}
+            onChangeText={onTagTitle}
+          />
+        </View>
+      )}
     </View>
   );
 }
