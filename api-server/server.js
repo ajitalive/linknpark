@@ -158,7 +158,7 @@ app.post('/api/auth/truecaller', async (req, res) => {
     }
 
     // 3. Issue our JWT (we inject the phone number into the 'email' field for Option A mapping)
-    const token = jwt.sign({ email: normalizedIdentity }, JWT_SECRET, { expiresIn: '90d' });
+    const token = jwt.sign({ email: normalizedIdentity, name: profileData.name }, JWT_SECRET, { expiresIn: '90d' });
     console.log(`[AUTH] Truecaller login verified for ${normalizedIdentity}`);
     
     res.json({ ok: true, token, user: { email: normalizedIdentity, name: profileData.name } });
@@ -183,6 +183,17 @@ function requireAuth(req, res, next) {
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+app.post('/api/auth/update', requireAuth, (req, res) => {
+  const { name } = req.body;
+  const updatedUser = { ...req.user, name };
+  // Remove JWT standard claims before signing a new token
+  delete updatedUser.iat;
+  delete updatedUser.exp;
+  
+  const token = jwt.sign(updatedUser, JWT_SECRET, { expiresIn: '90d' });
+  res.json({ ok: true, token, user: updatedUser });
 });
 
 // ============ STICKERS (authenticated) ============

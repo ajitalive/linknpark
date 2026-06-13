@@ -15,8 +15,6 @@ import { initializeAsync, verifyUserAsync, TruecallerErrorCodes } from "expo-tru
 
 export default function EmailScreen() {
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [truecallerUsable, setTruecallerUsable] = useState(false);
   const [truecallerLoading, setTruecallerLoading] = useState(false);
 
@@ -60,25 +58,7 @@ export default function EmailScreen() {
     }
   }
 
-  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  async function handleSendOTP() {
-    if (!isValid) return;
-    setLoading(true);
-    const result = await sendOTP(email);
-    setLoading(false);
-
-    if (!result.ok) {
-      Alert.alert('Could not send code', result.error || 'Please try again');
-      return;
-    }
-
-    if (result.devCode) {
-      Alert.alert('Dev mode', `OTP not sent via email (Resend not configured).\n\nUse code: ${result.devCode}`);
-    }
-
-    router.push({ pathname: '/(auth)/otp', params: { email } });
-  }
 
   return (
     <KeyboardAvoidingView
@@ -105,62 +85,30 @@ export default function EmailScreen() {
         </LinearGradient>
 
         <View style={styles.form}>
-          {truecallerUsable && (
-            <View style={{ marginBottom: 12 }}>
+          {truecallerUsable ? (
+            <View style={styles.truecallerContainer}>
+              <Text style={styles.formTitle}>Welcome to LinkNPark</Text>
+              <Text style={styles.formSub}>Fast, secure 1-Tap Login</Text>
               <Button
                 label="1-Tap Login with Truecaller"
                 onPress={handleTruecaller}
                 loading={truecallerLoading}
                 size="lg"
-                style={{ backgroundColor: '#0087FF' }}
+                style={{ backgroundColor: '#0087FF', marginTop: 12 }}
               />
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: Colors.divider }} />
-                <Text style={{ marginHorizontal: 16, color: Colors.textMuted, fontSize: 12, fontWeight: '600' }}>OR</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: Colors.divider }} />
-              </View>
+              <Text style={styles.terms}>
+                By continuing you agree to our{' '}
+                <Text style={styles.link}>Terms of Service</Text>
+                {' '}and{' '}
+                <Text style={styles.link}>Privacy Policy</Text>
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.truecallerContainer}>
+              <Text style={styles.formTitle}>Truecaller Required</Text>
+              <Text style={styles.formSub}>Please install the Truecaller app to login to LinkNPark.</Text>
             </View>
           )}
-
-          <Text style={styles.formTitle}>Enter your email</Text>
-          <Text style={styles.formSub}>We'll send a 6-digit code to verify it's you</Text>
-
-          <View style={styles.emailRow}>
-            <Ionicons name="mail" size={20} color={Colors.textSecondary} style={{ marginRight: 10 }} />
-            <TextInput
-              style={styles.emailInput}
-              placeholder="you@example.com"
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              value={email}
-              onChangeText={setEmail}
-              autoFocus
-            />
-          </View>
-
-          <Button
-            label="Send Code"
-            onPress={handleSendOTP}
-            loading={loading}
-            disabled={!isValid}
-            size="lg"
-            style={{ marginTop: 28 }}
-          />
-
-          <Text style={styles.terms}>
-            By continuing you agree to our{' '}
-            <Text style={styles.link}>Terms of Service</Text>
-            {' '}and{' '}
-            <Text style={styles.link}>Privacy Policy</Text>
-          </Text>
-
-          <View style={styles.hint}>
-            <Ionicons name="lock-closed" size={14} color={Colors.textMuted} />
-            <Text style={styles.hintText}>Your email is kept private and never shared</Text>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

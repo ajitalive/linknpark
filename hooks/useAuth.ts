@@ -6,7 +6,7 @@ import { clearApiCache } from './apiCache';
 const TOKEN_KEY = 'linknpark_auth_token';
 const USER_KEY = 'linknpark_auth_user';
 
-export type AuthUser = { email: string };
+export type AuthUser = { email: string; name?: string; };
 
 export async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN_KEY);

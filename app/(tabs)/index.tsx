@@ -52,8 +52,9 @@ export default function HomeScreen() {
   const openIncidents = incidents.filter(i => i.status === 'open');
   const openIncident = openIncidents[0];
   const totalScans = stickers.reduce((sum, s) => sum + (s.scan_count || 0), 0);
-  const firstName = user?.email?.split('@')[0] || 'there';
-  const initials = (firstName[0] || 'L').toUpperCase() + (firstName[1] || '').toUpperCase();
+  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
+  const firstName = displayName.split(' ')[0];
+  const initials = (displayName[0] || 'L').toUpperCase() + (displayName[1] || '').toUpperCase();
 
   return (
     <ScrollView
