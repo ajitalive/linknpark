@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import type { ExpoConfig, ConfigContext } from 'expo/config';
 
 const APP_ENV = process.env.APP_ENV || 'local';
 const IS_PROD = APP_ENV === 'production';
@@ -29,6 +29,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
     backgroundColor: '#06090F',
+  },
+  updates: {
+    url: "https://u.expo.dev/e0f55a41-94cf-42a2-99f1-de78d8298f8f"
+  },
+  runtimeVersion: {
+    policy: "appVersion"
   },
   ios: {
     supportsTablet: true,

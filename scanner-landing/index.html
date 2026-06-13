@@ -25,7 +25,7 @@
       ? 'http://localhost:3001'
       : 'https://linknpark.onrender.com';
     // Sticker code from QR URL query param: ?code=STK-2025-AB1234
-    const STICKER_CODE = new URLSearchParams(window.location.search).get('code') || 'STK-2025-AB1234';
+    const STICKER_CODE = new URLSearchParams(window.location.search).get('code') || null;
   </script>
   <style>
     body { background: #F8F9FB; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -92,9 +92,9 @@
           <div>
             <div id="vehicle-label" class="font-semibold text-gray-900 text-base">—</div>
             <div id="vehicle-plate" class="text-sm text-gray-500 mt-0.5">—</div>
-            <div class="flex items-center gap-1.5 mt-1.5">
-              <div class="w-2 h-2 rounded-full bg-green-500"></div>
-              <span class="text-xs text-gray-500">Owner is reachable</span>
+            <div id="reachable-status" class="flex items-center gap-1.5 mt-1.5">
+              <div id="reachable-dot" class="w-2 h-2 rounded-full bg-green-500"></div>
+              <span id="reachable-text" class="text-xs text-gray-500">Owner is reachable</span>
             </div>
           </div>
         </div>
@@ -396,6 +396,31 @@
 
     // Load sticker info on page open
     async function loadSticker() {
+      // No ?code= in URL — user visited the bare URL directly
+      if (!STICKER_CODE) {
+        document.getElementById('loading-card').classList.add('hidden');
+        document.getElementById('vehicle-card').classList.add('hidden');
+        const noCode = document.createElement('div');
+        noCode.className = 'bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-4 flex flex-col items-center text-center';
+        noCode.innerHTML = `
+          <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:#EEF2FF">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect x="3" y="3" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
+              <rect x="17" y="3" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
+              <rect x="3" y="17" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
+              <rect x="19" y="19" width="4" height="4" rx="1" fill="#3B2FF5"/>
+            </svg>
+          </div>
+          <p class="font-semibold text-gray-900 text-base mb-1">Scan a LinkNPark sticker</p>
+          <p class="text-sm text-gray-500 leading-relaxed">Point your phone camera at the QR code on a vehicle's windshield to report a parking issue.</p>
+          <div class="mt-4 w-full bg-gray-50 rounded-xl p-3">
+            <p class="text-xs text-gray-400">No app needed · Takes 30 seconds · Owner stays anonymous</p>
+          </div>
+        `;
+        document.getElementById('step-0').appendChild(noCode);
+        return;
+      }
+
       try {
         const res = await fetch(`${API_BASE}/api/sticker/${STICKER_CODE}`);
         if (!res.ok) throw new Error('not found');
@@ -403,21 +428,34 @@
         document.getElementById('loading-card').classList.add('hidden');
         document.getElementById('vehicle-label').textContent = `${data.vehicleColor} ${data.vehicleMake}`;
         document.getElementById('vehicle-plate').textContent = data.platePartial;
+        // Update reachable status based on API response
+        if (data.ownerReachable) {
+          document.getElementById('reachable-dot').className = 'w-2 h-2 rounded-full bg-green-500';
+          document.getElementById('reachable-text').textContent = 'Owner is reachable';
+        } else {
+          document.getElementById('reachable-dot').className = 'w-2 h-2 rounded-full bg-gray-400';
+          document.getElementById('reachable-text').textContent = 'Owner may not be reachable yet';
+          document.getElementById('reachable-text').classList.add('text-gray-400');
+        }
         document.getElementById('vehicle-card').classList.remove('hidden');
         document.getElementById('report-btn').classList.remove('hidden');
         document.getElementById('report-hint').classList.remove('hidden');
       } catch {
         document.getElementById('loading-card').classList.add('hidden');
-        document.getElementById('vehicle-label').textContent = 'Sticker not active';
-        document.getElementById('vehicle-plate').textContent = STICKER_CODE;
-        document.getElementById('vehicle-card').classList.remove('hidden');
-        const banner = document.createElement('div');
-        banner.className = 'mt-3 p-3 rounded-lg text-sm';
-        banner.style.cssText = 'background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;line-height:1.4';
-        banner.innerHTML = 'This sticker has not been registered yet. The owner may not receive your message until they activate it.';
-        document.getElementById('vehicle-card').appendChild(banner);
-        document.getElementById('report-btn').classList.remove('hidden');
-        document.getElementById('report-hint').classList.remove('hidden');
+        document.getElementById('vehicle-card').classList.add('hidden');
+        // Show the proper not-found card
+        const nf = document.getElementById('notfound-card');
+        nf.querySelector('p.font-semibold').textContent = 'Sticker not active';
+        nf.querySelector('p.text-sm').innerHTML = `<strong>${STICKER_CODE}</strong> has not been registered yet. The owner may not receive your message until they activate it.`;
+        nf.classList.remove('hidden');
+        // Show a prompt to tell the owner to register (no report button)
+        const tip = document.createElement('div');
+        tip.className = 'bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mt-4 text-center';
+        tip.innerHTML = `
+          <p class="text-sm text-gray-700 font-medium mb-1">Know the vehicle owner?</p>
+          <p class="text-xs text-gray-500 leading-relaxed">Ask them to download the <strong>LinkNPark</strong> app and register this sticker so you can reach them next time.</p>
+        `;
+        nf.after(tip);
       }
     }
     loadSticker();

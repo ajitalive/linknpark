@@ -132,7 +132,7 @@ app.post('/api/auth/truecaller', async (req, res) => {
     const tokenRes = await fetch('https://oauth-account-noneu.truecaller.com/v1/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: tokenParams,
+      body: tokenParams.toString(),
     });
 
     const tokenData = await tokenRes.json();
