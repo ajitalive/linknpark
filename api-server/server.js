@@ -708,13 +708,11 @@ app.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
   const rows = codes.map(c => ({
     code: String(c).toUpperCase(),
     status: 'unclaimed',
-    // Provide safe defaults to bypass any NOT NULL constraints on other fields
     owner_email: 'unclaimed@linknpark.in',
     vehicle_type: 'pending',
     registration: 'PENDING'
   }));
 
-  // Upsert allows us to ignore already pre-registered codes without failing the batch
   const { data, error } = await supabase
     .from('stickers')
     .upsert(rows, { onConflict: 'code', ignoreDuplicates: true })
@@ -724,6 +722,20 @@ app.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
 
   console.log(`[ADMIN] Pre-registered ${data.length} new code(s) out of ${codes.length}`);
   res.json({ ok: true, registered: data.length, total_submitted: codes.length });
+});
+
+app.get('/api/admin/debug-db', async (req, res) => {
+  // Use native fetch to check what tables exist using the exact URL/Key the server uses
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/', {
+      headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+    });
+    const data = await r.json();
+    const tables = Object.keys(data.definitions || {}).filter(k => !k.includes('_'));
+    res.json({ supabase_url: SUPABASE_URL, tables });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
 });
 
 // ============ HEALTH ============
