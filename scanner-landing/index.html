@@ -350,13 +350,13 @@
         const data = await res.json();
         const box = document.getElementById('chat-messages');
         if (data.messages && data.messages.length > 0) {
-          box.innerHTML = data.messages.map(m => \`
-            <div class="flex \${m.sender === 'scanner' ? 'justify-end' : 'justify-start'}">
-              <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm \${m.sender === 'scanner' ? 'bg-primary text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}">
-                \${m.text.replace(/</g, "&lt;")}
+          box.innerHTML = data.messages.map(m => `
+            <div class="flex ${m.sender === 'scanner' ? 'justify-end' : 'justify-start'}">
+              <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.sender === 'scanner' ? 'bg-primary text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}">
+                ${m.text.replace(/</g, "&lt;")}
               </div>
             </div>
-          \`).join('');
+          `).join('');
           box.scrollTop = box.scrollHeight;
         }
       } catch (e) {}
@@ -373,13 +373,13 @@
       // Optimistic UI
       const box = document.getElementById('chat-messages');
       if (box.innerHTML.includes('Waiting')) box.innerHTML = '';
-      box.innerHTML += \`
+      box.innerHTML += `
         <div class="flex justify-end opacity-50">
           <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm bg-primary text-white rounded-br-none">
-            \${text.replace(/</g, "&lt;")}
+            ${text.replace(/</g, "&lt;")}
           </div>
         </div>
-      \`;
+      `;
       box.scrollTop = box.scrollHeight;
 
       try {
