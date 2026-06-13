@@ -213,20 +213,40 @@ app.post('/api/stickers', requireAuth, async (req, res) => {
   if (!code || !vehicle_type || !registration) {
     return res.status(400).json({ error: 'code, vehicle_type, registration required' });
   }
-  const { data, error } = await supabase.from('stickers').insert({
+  
+  const normalizedCode = code.toUpperCase();
+
+  // 1. Check if the sticker code exists and is unclaimed
+  const { data: existing, error: lookupError } = await supabase
+    .from('stickers')
+    .select('*')
+    .eq('code', normalizedCode)
+    .single();
+
+  if (!existing) {
+    // We enforce that the code MUST be pre-registered by the admin
+    return res.status(400).json({ error: 'Invalid sticker code. This code is not recognized.' });
+  }
+
+  if (existing.owner_email && existing.status !== 'unclaimed') {
+    return res.status(409).json({ error: 'This sticker has already been registered.' });
+  }
+
+  // 2. Claim the sticker via UPDATE
+  const { data, error } = await supabase.from('stickers').update({
     owner_email: req.user.email,
-    code: code.toUpperCase(),
     vehicle_type,
     vehicle_name: vehicle_name || null,
     registration: registration.toUpperCase(),
     color: color || null,
     backup_phone: backup_phone || null,
-  }).select().single();
+    status: 'active'
+  }).eq('code', normalizedCode).select().single();
+
   if (error) {
-    if (error.code === '23505') return res.status(409).json({ error: 'Sticker code already registered' });
     return res.status(500).json({ error: error.message });
   }
-  console.log(`[STICKER] ${req.user.email} activated ${code}`);
+  console.log(`[STICKER] ${req.user.email} activated ${normalizedCode}`);
   res.json({ sticker: data });
 });
 
@@ -620,6 +640,34 @@ app.post('/api/admin/stickers/bulk-status', requireAdmin, async (req, res) => {
 
   console.log(`[ADMIN] Bulk ${status}: ${targetCodes.length} sticker(s)`);
   res.json({ updated: targetCodes.length, codes: targetCodes, status });
+});
+
+// POST /api/admin/stickers/pre-register — pre-register codes into the database
+app.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
+  const { codes } = req.body;
+  if (!codes || !Array.isArray(codes) || codes.length === 0) {
+    return res.status(400).json({ error: 'Array of codes required' });
+  }
+
+  const rows = codes.map(c => ({
+    code: String(c).toUpperCase(),
+    status: 'unclaimed',
+    // Provide safe defaults to bypass any NOT NULL constraints on other fields
+    owner_email: null,
+    vehicle_type: 'pending',
+    registration: 'PENDING'
+  }));
+
+  // Upsert allows us to ignore already pre-registered codes without failing the batch
+  const { data, error } = await supabase
+    .from('stickers')
+    .upsert(rows, { onConflict: 'code', ignoreDuplicates: true })
+    .select('code');
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  console.log(`[ADMIN] Pre-registered ${data.length} new code(s) out of ${codes.length}`);
+  res.json({ ok: true, registered: data.length, total_submitted: codes.length });
 });
 
 // ============ HEALTH ============
