@@ -451,6 +451,68 @@ app.post('/api/register-token', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ============ GUARDIAN NETWORK (MVP In-Memory) ============
+const MOCK_ZONES = [
+  { id: '1', name: 'Sector 7 Residents', zone: 'Koramangala, Bengaluru' },
+  { id: '2', name: 'Tech Park Commuters', zone: 'Electronic City, Bengaluru' },
+];
+const guardianMemberships = new Set(); // Stores "email:zoneId"
+
+app.get('/api/guardians/zones', requireAuth, (req, res) => {
+  const email = req.user.email;
+  const zones = MOCK_ZONES.map(z => ({
+    ...z,
+    active: guardianMemberships.has(`${email}:${z.id}`)
+  }));
+  res.json({ zones });
+});
+
+app.post('/api/guardians/join', requireAuth, (req, res) => {
+  const { zoneId, active } = req.body;
+  const email = req.user.email;
+  const key = `${email}:${zoneId}`;
+  if (active) guardianMemberships.add(key);
+  else guardianMemberships.delete(key);
+  res.json({ ok: true, active });
+});
+
+// ============ IN-APP MESSAGING (MVP In-Memory) ============
+const chatRooms = {}; // incidentId -> Array of { sender, text, ts }
+
+app.get('/api/chat/:incidentId', (req, res) => {
+  const msgs = chatRooms[req.params.incidentId] || [];
+  res.json({ messages: msgs });
+});
+
+app.post('/api/chat/:incidentId', async (req, res) => {
+  const { sender, text } = req.body;
+  const incidentId = req.params.incidentId;
+  
+  if (!chatRooms[incidentId]) chatRooms[incidentId] = [];
+  chatRooms[incidentId].push({ sender, text, ts: Date.now() });
+
+  // If scanner sends a message, notify the owner
+  if (sender === 'scanner') {
+    const { data: incident } = await supabase.from('incidents').select('sticker_code').eq('id', incidentId).single();
+    if (incident) {
+      const code = incident.sticker_code;
+      const { data: ownerRow } = await supabase.from('stickers').select('owner_email').eq('code', code).single();
+      if (ownerRow?.owner_email) {
+        const { data: tokenRow } = await supabase.from('user_push_tokens').select('token').eq('email', ownerRow.owner_email).single();
+        if (tokenRow?.token) {
+          await sendExpoPush(tokenRow.token, {
+            title: '💬 New Message',
+            body: text,
+            data: { reportId: incidentId, stickerCode: code },
+          });
+        }
+      }
+    }
+  }
+  
+  res.json({ ok: true });
+});
+
 // ============ HEALTH ============
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));
 

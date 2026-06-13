@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
+import * as SMS from 'expo-sms';
+import * as Location from 'expo-location';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+
+const CONTACTS_KEY = 'emergency_contacts_v1';
+type Contact = { id: string; name: string; phone: string; relation: string };
 
 export default function SOSSettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -14,17 +20,57 @@ export default function SOSSettingsScreen() {
   const [alertContacts, setAlertContacts] = useState(true);
   const [sosWord, setSosWord] = useState('HELP');
 
-  function handleTestSOS() {
+  async function handleTestSOS() {
     Alert.alert(
-      'Test SOS',
-      'This will send a test alert to your emergency contacts. Continue?',
+      'Trigger SOS',
+      'This will prepare an emergency message to send to your contacts. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Send Test', style: 'default', onPress: () =>
-          Alert.alert('Test Sent', 'A test SOS alert was sent to your emergency contacts.')
-        },
+        { text: 'Proceed', style: 'destructive', onPress: executeSOS },
       ],
     );
+  }
+
+  async function executeSOS() {
+    try {
+      const raw = await SecureStore.getItemAsync(CONTACTS_KEY);
+      const contacts: Contact[] = raw ? JSON.parse(raw) : [];
+
+      if (contacts.length === 0) {
+        Alert.alert('No Contacts', 'Please add emergency contacts first.');
+        return;
+      }
+
+      const phoneNumbers = contacts.map(c => c.phone);
+      let locationLink = '';
+
+      if (shareLocation) {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          try {
+            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            locationLink = `\nMy location: https://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
+          } catch (e) {
+            console.log('Location error:', e);
+          }
+        }
+      }
+
+      const message = `🚨 I need help! This is an emergency alert from LinkNPark.${locationLink}\nPlease contact me or call emergency services immediately.`;
+
+      const isAvailable = await SMS.isAvailableAsync();
+      if (isAvailable) {
+        await SMS.sendSMSAsync(phoneNumbers, message);
+      } else {
+        // Fallback for simulators or unsupported devices
+        const phoneList = Platform.OS === 'ios' ? phoneNumbers.join(',') : phoneNumbers.join(';');
+        const url = `sms:${phoneList}?body=${encodeURIComponent(message)}`;
+        await Linking.openURL(url);
+      }
+    } catch (error) {
+      console.error('SOS Error:', error);
+      Alert.alert('Error', 'Could not trigger SOS properly.');
+    }
   }
 
   return (

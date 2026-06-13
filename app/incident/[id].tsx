@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -11,6 +11,9 @@ import { Colors, IncidentColors } from '../../constants/Colors';
 import { Card, Button, Badge } from '../../components/ui';
 import { IncidentIcon } from '../../components/IncidentIcon';
 import { useIncidents, resolveIncident } from '../../hooks/useApi';
+import Constants from 'expo-constants';
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -20,12 +23,44 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+type ChatMessage = { sender: string; text: string; ts: number };
+
 export default function IncidentDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { incidents, loading, refresh, setIncidents } = useIncidents();
   const incident = incidents.find(i => i.id === id);
   const [resolving, setResolving] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatText, setChatText] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchChat = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/chat/${id}`);
+        const data = await res.json();
+        if (data.messages) setChatMessages(data.messages);
+      } catch (e) {}
+    };
+    fetchChat();
+    const interval = setInterval(fetchChat, 3000);
+    return () => clearInterval(interval);
+  }, [id]);
+
+  async function handleSendChat() {
+    if (!chatText.trim()) return;
+    const text = chatText.trim();
+    setChatText('');
+    setChatMessages(prev => [...prev, { sender: 'owner', text, ts: Date.now() }]);
+    try {
+      await fetch(`${API_URL}/api/chat/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: 'owner', text })
+      });
+    } catch (e) {}
+  }
 
   if (loading && !incident) {
     return (
@@ -77,7 +112,7 @@ export default function IncidentDetailScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <LinearGradient
         colors={[color, `${color}CC`]}
         style={[styles.header, { paddingTop: insets.top }]}
@@ -123,6 +158,34 @@ export default function IncidentDetailScreen() {
               No message provided
             </Text>
           )}
+        </Card>
+
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.divider }}>
+            <Text style={styles.sectionLabel}>Live Chat (Anonymous)</Text>
+          </View>
+          <View style={{ maxHeight: 250, padding: 16, gap: 10 }}>
+            {chatMessages.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: Colors.textMuted, fontSize: 13 }}>No messages yet</Text>
+            ) : (
+              chatMessages.map((m, i) => (
+                <View key={i} style={{ alignSelf: m.sender === 'owner' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                  <View style={{ backgroundColor: m.sender === 'owner' ? Colors.primary : Colors.surfaceSecondary, padding: 10, borderRadius: 12, borderBottomRightRadius: m.sender === 'owner' ? 0 : 12, borderBottomLeftRadius: m.sender === 'owner' ? 12 : 0 }}>
+                    <Text style={{ color: m.sender === 'owner' ? '#fff' : Colors.text }}>{m.text}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+          <View style={{ flexDirection: 'row', padding: 12, borderTopWidth: 1, borderTopColor: Colors.divider }}>
+            <TextInput
+              style={{ flex: 1, backgroundColor: Colors.surfaceSecondary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8 }}
+              placeholder="Reply anonymously..."
+              value={chatText}
+              onChangeText={setChatText}
+            />
+            <Button label="Send" onPress={handleSendChat} style={{ paddingHorizontal: 16 }} />
+          </View>
         </Card>
 
         {!isResolved && incident.reporter_phone && (
@@ -179,7 +242,7 @@ export default function IncidentDetailScreen() {
           </Card>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

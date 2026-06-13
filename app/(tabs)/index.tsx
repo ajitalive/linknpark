@@ -11,7 +11,7 @@ import { Colors, IncidentColors } from '../../constants/Colors';
 import { Card, SectionHeader, Badge, StatusDot } from '../../components/ui';
 import { VehicleIcon } from '../../components/VehicleIcon';
 import { IncidentIcon } from '../../components/IncidentIcon';
-import { MOCK_SCAN_HISTORY } from '../../constants/MockData';
+
 import { useStickers, useIncidents } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
 import { useFocusEffect } from 'expo-router';

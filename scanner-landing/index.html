@@ -201,45 +201,13 @@
 
       <!-- Status card -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Report Status</div>
-
-        <!-- Timeline -->
-        <div class="space-y-0">
-          <div class="flex gap-3 items-start">
-            <div class="flex flex-col items-center">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style="background:#EEF2FF">
-                <div class="w-2 h-2 rounded-full" style="background:#3B2FF5"></div>
-              </div>
-              <div class="w-px h-6 bg-gray-200 my-0.5"></div>
-            </div>
-            <div class="pt-0.5">
-              <div class="text-sm font-medium text-gray-900">Report delivered</div>
-              <div class="text-xs text-gray-400">Just now</div>
-            </div>
-          </div>
-          <div class="flex gap-3 items-start">
-            <div class="flex flex-col items-center">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-gray-100">
-                <div class="w-2 h-2 rounded-full bg-gray-300"></div>
-              </div>
-              <div class="w-px h-6 bg-gray-200 my-0.5"></div>
-            </div>
-            <div class="pt-0.5">
-              <div class="text-sm font-medium text-gray-400">Owner notified via app + SMS</div>
-              <div class="text-xs text-gray-400">Sending…</div>
-            </div>
-          </div>
-          <div class="flex gap-3 items-start">
-            <div class="flex flex-col items-center">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-gray-100">
-                <div class="w-2 h-2 rounded-full bg-gray-300"></div>
-              </div>
-            </div>
-            <div class="pt-0.5">
-              <div class="text-sm font-medium text-gray-400">Owner responds</div>
-              <div class="text-xs text-gray-400">Usually within 10 min</div>
-            </div>
-          </div>
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Live Chat (Anonymous)</div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto max-h-60 space-y-3 mb-3 pr-2">
+          <div class="text-xs text-center text-gray-400">Waiting for owner to join...</div>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="chat-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Type a message..." />
+          <button onclick="sendChatMessage()" class="bg-primary text-white px-4 py-2 rounded-lg font-semibold text-sm ripple">Send</button>
         </div>
       </div>
 
@@ -340,6 +308,9 @@
       }
     }
 
+    let currentReportId = null;
+    let chatInterval = null;
+
     async function submitReport() {
       const phone = document.getElementById('phone-input').value.trim();
       const message = document.getElementById('msg-input').value.trim();
@@ -363,25 +334,62 @@
         });
         const data = await res.json();
         if (data.ok) {
-          // Animate timeline: mark "owner notified" as done
-          setTimeout(() => {
-            const dots = document.querySelectorAll('#step-3 .w-2.h-2');
-            if (dots[1]) {
-              dots[1].style.background = '#3B2FF5';
-              dots[1].closest('.w-6').style.background = '#EEF2FF';
-            }
-          }, 800);
+          currentReportId = data.reportId;
+          chatInterval = setInterval(pollChat, 3000);
+          pollChat(); // initial fetch
         }
-      } catch {
-        // API not reachable — still show success (demo mode)
-        setTimeout(() => {
-          const dots = document.querySelectorAll('#step-3 .w-2.h-2');
-          if (dots[1]) {
-            dots[1].style.background = '#9CA3AF';
-            dots[1].closest('.w-6').style.background = '#F3F4F6';
-          }
-        }, 800);
+      } catch (e) {
+        console.error('Failed to send report', e);
       }
+    }
+
+    async function pollChat() {
+      if (!currentReportId) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/chat/${currentReportId}`);
+        const data = await res.json();
+        const box = document.getElementById('chat-messages');
+        if (data.messages && data.messages.length > 0) {
+          box.innerHTML = data.messages.map(m => \`
+            <div class="flex \${m.sender === 'scanner' ? 'justify-end' : 'justify-start'}">
+              <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm \${m.sender === 'scanner' ? 'bg-primary text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}">
+                \${m.text.replace(/</g, "&lt;")}
+              </div>
+            </div>
+          \`).join('');
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch (e) {}
+    }
+
+    async function sendChatMessage() {
+      if (!currentReportId) return;
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      input.value = '';
+      
+      // Optimistic UI
+      const box = document.getElementById('chat-messages');
+      if (box.innerHTML.includes('Waiting')) box.innerHTML = '';
+      box.innerHTML += \`
+        <div class="flex justify-end opacity-50">
+          <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm bg-primary text-white rounded-br-none">
+            \${text.replace(/</g, "&lt;")}
+          </div>
+        </div>
+      \`;
+      box.scrollTop = box.scrollHeight;
+
+      try {
+        await fetch(\`\${API_BASE}/api/chat/\${currentReportId}\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender: 'scanner', text }),
+        });
+        pollChat();
+      } catch (e) {}
     }
 
     function resetFlow() {

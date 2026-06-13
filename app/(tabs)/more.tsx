@@ -5,15 +5,15 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
-import { MOCK_USER } from '../../constants/MockData';
 import { useAuth } from '../../hooks/useAuth';
+import { useStickers, useIncidents } from '../../hooks/useApi';
 import { Alert } from 'react-native';
 
 const MENU_SECTIONS = [
   {
     title: 'Safety',
     items: [
-      { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: '2 contacts', route: '/emergency-contacts' },
+      { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: 'Manage', route: '/emergency-contacts' },
       { icon: 'shield', label: 'Guardian Network', color: Colors.primary, badge: null, route: '/guardian-network' },
       { icon: 'medical', label: 'SOS Settings', color: Colors.critical, badge: null, route: '/sos-settings' },
     ],
@@ -43,9 +43,15 @@ const MENU_SECTIONS = [
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
-  const displayName = user?.email?.split('@')[0] ?? MOCK_USER.name;
-  const displayHandle = user?.email ?? MOCK_USER.phone;
-  const initials = (displayName[0] || 'L').toUpperCase() + (displayName[1] || '').toUpperCase();
+  const { stickers } = useStickers();
+  const { incidents } = useIncidents();
+  
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const displayHandle = user?.email || '';
+  const initials = (displayName[0] || 'U').toUpperCase() + (displayName[1] || '').toUpperCase();
+
+  const openIncidentsCount = incidents.filter(i => i.status === 'open').length;
+  const totalScans = stickers.reduce((sum, s) => sum + (s.scan_count || 0), 0);
 
   function handleMenuPress(item: any) {
     if (item.label === 'Log Out') {
@@ -88,9 +94,9 @@ export default function MoreScreen() {
 
       {/* Quick stats */}
       <View style={styles.statsRow}>
-        <StatPill icon="pricetag" label="3 Stickers" color={Colors.primary} bg={Colors.primaryBg} />
-        <StatPill icon="alert-circle" label="1 Open" color={Colors.high} bg={Colors.highBg} />
-        <StatPill icon="scan" label="14 Scans" color={Colors.success} bg={Colors.successBg} />
+        <StatPill icon="pricetag" label={`${stickers.length} Stickers`} color={Colors.primary} bg={Colors.primaryBg} />
+        <StatPill icon="alert-circle" label={`${openIncidentsCount} Open`} color={openIncidentsCount > 0 ? Colors.high : Colors.textMuted} bg={openIncidentsCount > 0 ? Colors.highBg : Colors.surfaceSecondary} />
+        <StatPill icon="scan" label={`${totalScans} Scans`} color={Colors.success} bg={Colors.successBg} />
       </View>
 
       {/* Menu Sections */}

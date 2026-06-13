@@ -1,26 +1,57 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 type Guardian = { id: string; name: string; zone: string; active: boolean };
 
-const MOCK_GUARDIANS: Guardian[] = [
-  { id: '1', name: 'Sector 7 Residents', zone: 'Koramangala, Bengaluru', active: true },
-  { id: '2', name: 'Tech Park Commuters', zone: 'Electronic City, Bengaluru', active: false },
-];
-
 export default function GuardianNetworkScreen() {
   const insets = useSafeAreaInsets();
-  const [guardians, setGuardians] = useState<Guardian[]>(MOCK_GUARDIANS);
+  const [guardians, setGuardians] = useState<Guardian[]>([]);
+  const [loading, setLoading] = useState(true);
   const [networkEnabled, setNetworkEnabled] = useState(true);
 
-  function toggleGuardian(id: string) {
-    setGuardians(prev => prev.map(g => g.id === id ? { ...g, active: !g.active } : g));
+  useEffect(() => {
+    fetchZones();
+  }, []);
+
+  async function fetchZones() {
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const res = await fetch(`${API_URL}/api/guardians/zones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.zones) setGuardians(data.zones);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleGuardian(id: string, currentActive: boolean) {
+    const nextActive = !currentActive;
+    setGuardians(prev => prev.map(g => g.id === id ? { ...g, active: nextActive } : g));
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      await fetch(`${API_URL}/api/guardians/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ zoneId: id, active: nextActive })
+      });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update zone status');
+      setGuardians(prev => prev.map(g => g.id === id ? { ...g, active: currentActive } : g));
+    }
   }
 
   return (
@@ -69,31 +100,36 @@ export default function GuardianNetworkScreen() {
         </Card>
 
         <Text style={styles.listLabel}>Your Zones</Text>
-        {guardians.map(g => (
-          <Card key={g.id}>
-            <View style={styles.guardianRow}>
-              <View style={[styles.zoneIcon, { backgroundColor: g.active ? Colors.primaryBg : Colors.surfaceSecondary }]}>
-                <Ionicons name="location" size={20} color={g.active ? Colors.primary : Colors.textMuted} />
+        {loading ? (
+          <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 20 }} />
+        ) : (
+          guardians.map(g => (
+            <Card key={g.id}>
+              <View style={styles.guardianRow}>
+                <View style={[styles.zoneIcon, { backgroundColor: g.active ? Colors.primaryBg : Colors.surfaceSecondary }]}>
+                  <Ionicons name="location" size={20} color={g.active ? Colors.primary : Colors.textMuted} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.zoneName}>{g.name}</Text>
+                  <Text style={styles.zoneArea}>{g.zone}</Text>
+                </View>
+                <Switch
+                  value={g.active}
+                  onValueChange={() => toggleGuardian(g.id, g.active)}
+                  trackColor={{ true: Colors.primary, false: Colors.divider }}
+                  thumbColor="#fff"
+                />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.zoneName}>{g.name}</Text>
-                <Text style={styles.zoneArea}>{g.zone}</Text>
-              </View>
-              <Switch
-                value={g.active}
-                onValueChange={() => toggleGuardian(g.id)}
-                trackColor={{ true: Colors.primary, false: Colors.divider }}
-                thumbColor="#fff"
-              />
-            </View>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
 
         <Button
           label="Join a New Zone"
           onPress={() => {}}
           icon={<Ionicons name="add" size={18} color="#fff" />}
           size="lg"
+          style={{ marginTop: 12 }}
         />
 
         <Card style={{ marginTop: 8 }}>
