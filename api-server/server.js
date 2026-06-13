@@ -21,6 +21,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'LinkNPark <onboarding@resend.dev>'
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const OTP_TTL_MS = 5 * 60 * 1000;
+const ADMIN_KEY = process.env.ADMIN_KEY || 'linknpark-admin-dev-key';
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY
@@ -530,6 +531,95 @@ app.post('/api/chat/:incidentId', async (req, res) => {
   }
   
   res.json({ ok: true });
+});
+
+// ============ ADMIN STICKER MANAGEMENT ============
+function requireAdmin(req, res, next) {
+  const key = req.headers['x-admin-key'] || req.query.admin_key;
+  if (!key || key !== ADMIN_KEY) {
+    return res.status(403).json({ error: 'Invalid admin key' });
+  }
+  next();
+}
+
+// GET /api/admin/stickers?code=STK-2025-AA0001 — lookup single sticker
+// GET /api/admin/stickers?prefix=STK-2025-AA — list stickers matching prefix
+// GET /api/admin/stickers?status=active — filter by status
+app.get('/api/admin/stickers', requireAdmin, async (req, res) => {
+  const { code, prefix, status, limit } = req.query;
+  let query = supabase.from('stickers').select('*');
+
+  if (code) {
+    query = query.eq('code', String(code).toUpperCase());
+  } else if (prefix) {
+    const p = String(prefix).toUpperCase();
+    query = query.gte('code', p).lt('code', p + '\uffff');
+  }
+  if (status) query = query.eq('status', status);
+  query = query.order('code', { ascending: true }).limit(parseInt(limit) || 100);
+
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ stickers: data || [], count: (data || []).length });
+});
+
+// PATCH /api/admin/stickers/:code — update a single sticker by code
+app.patch('/api/admin/stickers/:code', requireAdmin, async (req, res) => {
+  const code = req.params.code.toUpperCase();
+  const updates = {};
+  ['status', 'vehicle_name', 'registration', 'color', 'backup_phone'].forEach(k => {
+    if (req.body[k] !== undefined) updates[k] = req.body[k];
+  });
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+  const { data, error } = await supabase
+    .from('stickers').update(updates).eq('code', code).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!data) return res.status(404).json({ error: 'Sticker not found' });
+  console.log(`[ADMIN] Updated ${code}: ${JSON.stringify(updates)}`);
+  res.json({ sticker: data });
+});
+
+// POST /api/admin/stickers/bulk-status — change status for multiple codes
+app.post('/api/admin/stickers/bulk-status', requireAdmin, async (req, res) => {
+  const { codes, prefix, from_code, to_code, status } = req.body;
+  if (!status || !['active', 'paused', 'inactive', 'lost'].includes(status)) {
+    return res.status(400).json({ error: 'Valid status required: active, paused, inactive, lost' });
+  }
+
+  let targetCodes = [];
+
+  if (codes && Array.isArray(codes)) {
+    // Explicit list of codes
+    targetCodes = codes.map(c => String(c).toUpperCase());
+  } else if (from_code && to_code) {
+    // Range: fetch all codes between from and to (inclusive)
+    const from = String(from_code).toUpperCase();
+    const to = String(to_code).toUpperCase();
+    const { data } = await supabase
+      .from('stickers').select('code').gte('code', from).lte('code', to).order('code');
+    targetCodes = (data || []).map(s => s.code);
+  } else if (prefix) {
+    // All codes with this prefix
+    const p = String(prefix).toUpperCase();
+    const { data } = await supabase
+      .from('stickers').select('code').gte('code', p).lt('code', p + '\uffff').order('code');
+    targetCodes = (data || []).map(s => s.code);
+  } else {
+    return res.status(400).json({ error: 'Provide codes[], prefix, or from_code+to_code' });
+  }
+
+  if (targetCodes.length === 0) {
+    return res.json({ updated: 0, codes: [] });
+  }
+
+  const { error } = await supabase
+    .from('stickers').update({ status }).in('code', targetCodes);
+  if (error) return res.status(500).json({ error: error.message });
+
+  console.log(`[ADMIN] Bulk ${status}: ${targetCodes.length} sticker(s)`);
+  res.json({ updated: targetCodes.length, codes: targetCodes, status });
 });
 
 // ============ HEALTH ============
