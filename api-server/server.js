@@ -725,14 +725,23 @@ app.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/admin/debug-db', async (req, res) => {
-  // Use native fetch to check what tables exist using the exact URL/Key the server uses
   try {
     const r = await fetch(SUPABASE_URL + '/rest/v1/', {
       headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
     });
     const data = await r.json();
-    const tables = Object.keys(data.definitions || {}).filter(k => !k.includes('_'));
-    res.json({ supabase_url: SUPABASE_URL, tables });
+    const tables = Object.keys(data.definitions || {});
+    
+    // Test actual queries
+    const { data: zData, error: zErr } = await supabase.from('zones').select('*').limit(1);
+    const { data: zmData, error: zmErr } = await supabase.from('zone_members').select('*').limit(1);
+
+    res.json({ 
+      supabase_url: SUPABASE_URL, 
+      tables,
+      zones_query_error: zErr ? zErr.message : null,
+      zone_members_query_error: zmErr ? zmErr.message : null
+    });
   } catch (e) {
     res.json({ error: e.message });
   }
