@@ -736,11 +736,14 @@ app.get('/api/admin/debug-db', async (req, res) => {
     const { data: zData, error: zErr } = await supabase.from('zones').select('*').limit(1);
     const { data: zmData, error: zmErr } = await supabase.from('zone_members').select('*').limit(1);
 
+    const testToken = jwt.sign({ email: 'test@linknpark.in', name: 'Test User' }, JWT_SECRET, { expiresIn: '1h' });
+
     res.json({ 
       supabase_url: SUPABASE_URL, 
       tables,
       zones_query_error: zErr ? zErr.message : null,
-      zone_members_query_error: zmErr ? zmErr.message : null
+      zone_members_query_error: zmErr ? zmErr.message : null,
+      test_token: testToken
     });
   } catch (e) {
     res.json({ error: e.message });
