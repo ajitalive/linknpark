@@ -101,11 +101,8 @@ export default function EditProfileScreen() {
           label={saved ? "Saved!" : "Save Changes"}
           onPress={handleSave}
           loading={loading && !saved}
-          style={[
-          styles.saveButton,
-          { marginTop: 40 },
-          !hasChanges && { backgroundColor: Colors.dark.surface }
-        ]}/>
+          style={[{ marginTop: 32 }, saved ? { backgroundColor: Colors.success } : undefined]}
+        />
       </View>
     </KeyboardAvoidingView>
   );
