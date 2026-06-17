@@ -11,6 +11,7 @@ import { Colors, IncidentColors } from '../../constants/Colors';
 import { Card, SectionHeader, Badge, StatusDot } from '../../components/ui';
 import { VehicleIcon } from '../../components/VehicleIcon';
 import { IncidentIcon } from '../../components/IncidentIcon';
+import { MarketingBanner } from '../../components/MarketingBanner';
 
 import { useStickers, useIncidents } from '../../hooks/useApi';
 import { useAuth } from '../../hooks/useAuth';
@@ -30,8 +31,8 @@ const { width } = Dimensions.get('window');
 const QUICK_ACTIONS = [
   { icon: 'scan', label: 'Scan\nQR Code', route: '/scan', color: Colors.primary, bg: Colors.primaryBg },
   { icon: 'qr-code', label: 'Activate\nSticker', route: '/activate', color: Colors.success, bg: Colors.successBg },
-  { icon: 'medical', label: 'SOS\nAlert', route: null, color: Colors.critical, bg: Colors.criticalBg },
-  { icon: 'shield', label: 'Guard\nMode', route: '/guard', color: Colors.amber, bg: Colors.amberBg },
+  { icon: 'medical', label: 'SOS\nAlert', route: '/sos-settings', color: Colors.critical, bg: Colors.criticalBg },
+  { icon: 'shield', label: 'Guardian\nNetwork', route: '/guardian-network', color: Colors.amber, bg: Colors.amberBg },
 ];
 
 export default function HomeScreen() {
@@ -63,14 +64,11 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{firstName} 👋</Text>
+            <Text style={styles.greeting}>LinkNPark OS</Text>
+            <Text style={styles.userName}>Hello, {firstName} <Text style={{color: Colors.primary}}>●</Text></Text>
           </View>
           <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/(tabs)/more')}>
             <View style={styles.avatar}>
@@ -96,9 +94,12 @@ export default function HomeScreen() {
             <Text style={styles.alertTime}>{timeAgo(openIncident.reported_at)}</Text>
           </TouchableOpacity>
         )}
-      </LinearGradient>
+      </View>
+
+      <MarketingBanner />
 
       <View style={styles.content}>
+
         {/* KPI Cards */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kpiScroll} contentContainerStyle={{ paddingRight: 16 }}>
           <KPICard value={String(stickers.length)} label="Active Stickers" icon="pricetag" color={Colors.primary} bg={Colors.primaryBg} />
@@ -139,9 +140,13 @@ export default function HomeScreen() {
                   <View style={styles.incidentHeader}>
                     <Text style={styles.incidentType}>{openIncident.reason_label}</Text>
                     <Badge
-                      label={openIncident.severity.toUpperCase()}
-                      color={(Colors as any)[openIncident.severity] || Colors.high}
-                      bg={(Colors as any)[`${openIncident.severity}Bg`] || Colors.highBg}
+                      label={
+                        (IncidentColors[openIncident.reason as keyof typeof IncidentColors]?.color === Colors.critical) ? 'CRITICAL' :
+                        (IncidentColors[openIncident.reason as keyof typeof IncidentColors]?.color === Colors.high) ? 'HIGH' :
+                        (IncidentColors[openIncident.reason as keyof typeof IncidentColors]?.color === Colors.low) ? 'LOW' : 'MEDIUM'
+                      }
+                      color={IncidentColors[openIncident.reason as keyof typeof IncidentColors]?.color || Colors.high}
+                      bg={IncidentColors[openIncident.reason as keyof typeof IncidentColors]?.bg || Colors.highBg}
                       size="sm"
                     />
                   </View>
@@ -232,42 +237,46 @@ function KPICard({ value, label, icon, color, bg }: any) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 28 },
+  header: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: Colors.bg },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  greeting: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  userName: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  greeting: { color: Colors.textSecondary, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: '700', marginBottom: 4 },
+  userName: { color: Colors.text, fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   avatarBtn: {},
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.surfaceSecondary, borderWidth: 1, borderColor: Colors.divider, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: Colors.text, fontWeight: '700', fontSize: 16 },
   alertBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', borderRadius: 12, padding: 14,
+    backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: Colors.high,
+    shadowColor: Colors.high, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4
   },
-  alertLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  alertLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   alertDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.high },
   alertText: { fontSize: 13, fontWeight: '600', color: Colors.text },
   alertTime: { fontSize: 12, color: Colors.textSecondary },
   content: { padding: 16 },
   kpiScroll: { marginLeft: -16, marginBottom: 24 },
   kpiCard: {
-    backgroundColor: Colors.surface, borderRadius: 14,
-    padding: 16, marginLeft: 16, width: 120,
+    backgroundColor: Colors.surface, borderRadius: 16,
+    padding: 16, marginLeft: 16, width: 140,
     borderLeftWidth: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
+    borderColor: Colors.divider,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 2,
   },
   kpiIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   kpiValue: { fontSize: 24, fontWeight: '800', marginBottom: 2 },
-  kpiLabel: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+  kpiLabel: { fontSize: 13, color: Colors.textSecondary, fontWeight: '600' },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   quickAction: {
-    width: (width - 52) / 4, alignItems: 'center',
-    borderRadius: 14, paddingVertical: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    flex: 1, minWidth: '45%', height: 120,
+    borderRadius: 20, padding: 16,
+    alignItems: 'flex-start', justifyContent: 'space-between',
+    borderWidth: 1, borderColor: Colors.divider,
   },
-  quickIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  quickLabel: { fontSize: 11, color: Colors.text, fontWeight: '600', textAlign: 'center', lineHeight: 15 },
+  quickIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  quickLabel: { fontSize: 14, fontWeight: '800', color: Colors.text, marginTop: 8, textAlign: 'left', lineHeight: 18 },
   incidentRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
   incidentInfo: { flex: 1 },
   incidentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },

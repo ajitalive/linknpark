@@ -33,9 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   updates: {
     url: "https://u.expo.dev/e0f55a41-94cf-42a2-99f1-de78d8298f8f"
   },
-  runtimeVersion: {
-    policy: "appVersion"
-  },
+  runtimeVersion: '1.0.0',
   ios: {
     supportsTablet: true,
     bundleIdentifier: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
@@ -46,6 +44,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: IS_PROD ? '#06090F' : '#2A2A35',
     },
     package: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
+    googleServicesFile: IS_PROD ? './google-services.json' : undefined,
+    config: {
+      googleMaps: {
+        apiKey: 'AIzaSyAw668SqSxSTsYwZ8vwYmm_oWfbPEpyebs'
+      }
+    },
     versionCode: 3,
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
@@ -79,6 +83,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: '#2CFF05',
         androidMode: 'default',
         androidCollapsedTitle: IS_PROD ? 'LinkNPark Alert' : 'LinkNPark (Dev)',
+        sounds: ['./assets/alert_sound.wav'],
       },
     ],
     [

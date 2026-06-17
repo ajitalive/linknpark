@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Animated, Easing
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,20 +9,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
 import { getToken } from '../hooks/useAuth';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
-
 const { width } = Dimensions.get('window');
 
+// Dark theme specific colors
+const GuardColors = {
+  bg: '#0B0F19',
+  surface: 'rgba(20, 26, 40, 0.7)',
+  surfaceLight: 'rgba(30, 40, 60, 0.8)',
+  border: 'rgba(255, 255, 255, 0.1)',
+  text: '#FFFFFF',
+  textSecondary: '#94A3B8',
+  primary: '#00F0FF', // Cyan neon
+  primaryDark: '#007A8A',
+  secondary: '#8B5CF6', // Purple neon
+  critical: '#FF2A55',
+  warning: '#F59E0B',
+  success: '#10B981',
+};
+
 const INCIDENT_TYPES = [
-  { id: 'blocking_exit', icon: 'alert-circle', label: 'Blocking\nExit', color: Colors.high, bg: Colors.highBg, urgent: true },
-  { id: 'wrong_parking', icon: 'warning', label: 'Wrong\nParking', color: Colors.medium, bg: Colors.mediumBg, urgent: false },
-  { id: 'security_concern', icon: 'shield', label: 'Security\nConcern', color: Colors.critical, bg: Colors.criticalBg, urgent: true },
-  { id: 'lights_on', icon: 'bulb', label: 'Lights\nOn', color: Colors.low, bg: Colors.lowBg, urgent: false },
-  { id: 'visitor_arrived', icon: 'person-add', label: 'Visitor\nEntry', color: Colors.success, bg: Colors.successBg, urgent: false },
-  { id: 'general', icon: 'notifications', label: 'General\nAlert', color: Colors.textSecondary, bg: Colors.surfaceSecondary, urgent: false },
+  { id: 'blocking_exit', icon: 'alert-circle', label: 'Blocking\nExit', color: GuardColors.warning, urgent: true },
+  { id: 'wrong_parking', icon: 'warning', label: 'Wrong\nParking', color: GuardColors.secondary, urgent: false },
+  { id: 'security_concern', icon: 'shield', label: 'Security\nConcern', color: GuardColors.critical, urgent: true },
+  { id: 'lights_on', icon: 'bulb', label: 'Lights\nOn', color: GuardColors.primary, urgent: false },
+  { id: 'visitor_arrived', icon: 'person-add', label: 'Visitor\nEntry', color: GuardColors.success, urgent: false },
+  { id: 'general', icon: 'notifications', label: 'General\nAlert', color: GuardColors.textSecondary, urgent: false },
 ];
 
 type GuardMode = 'home' | 'scan' | 'vehicle' | 'incident' | 'done';
@@ -37,6 +51,24 @@ export default function GuardScreen() {
   const [timerActive, setTimerActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Fade animation for mode transitions
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const animateTransition = (nextMode: GuardMode) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setMode(nextMode);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
   async function searchVehicle() {
     if (plate.trim().length < 4) return;
     setLoading(true);
@@ -48,7 +80,7 @@ export default function GuardScreen() {
       const data = await res.json();
       if (res.ok && data.vehicle) {
         setFound(data.vehicle);
-        setMode('vehicle');
+        animateTransition('vehicle');
       } else {
         alert(data.error || 'Vehicle not found');
       }
@@ -61,7 +93,7 @@ export default function GuardScreen() {
 
   async function startContact(incType: string) {
     setSelectedIncident(incType);
-    setMode('incident');
+    animateTransition('incident');
     setTimer(300); // 5 min countdown
     setTimerActive(true);
 
@@ -85,46 +117,46 @@ export default function GuardScreen() {
   }
 
   function resolveIncident() {
-    setMode('done');
+    animateTransition('done');
     setTimerActive(false);
   }
 
   function reset() {
-    setMode('home');
+    animateTransition('home');
     setPlate('');
     setFound(null);
     setSelectedIncident('');
     setTimer(0);
   }
 
-  const formatTimer = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: GuardColors.bg }}>
+      {/* Dynamic Header */}
       <LinearGradient
-        colors={['#1a1a2e', '#16213e']}
-        style={[styles.header, { paddingTop: insets.top }]}
+        colors={[GuardColors.bg, 'transparent']}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={GuardColors.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Guard Mode</Text>
+          <Text style={styles.headerTitle}>TERMINAL</Text>
           <Text style={styles.headerSub}>Green Park Society · Gate 1</Text>
         </View>
         <View style={styles.shiftBadge}>
           <View style={styles.shiftDot} />
-          <Text style={styles.shiftText}>On Duty</Text>
+          <Text style={styles.shiftText}>ACTIVE</Text>
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-
+      <Animated.ScrollView 
+        contentContainerStyle={{ padding: 20, paddingBottom: 60 }} 
+        showsVerticalScrollIndicator={false}
+        style={{ opacity: fadeAnim }}
+      >
         {mode === 'home' && (
           <GuardHome
-            onScan={() => setMode('scan')}
-            onManualSearch={() => setMode('scan')}
+            onScan={() => animateTransition('scan')}
           />
         )}
 
@@ -133,7 +165,8 @@ export default function GuardScreen() {
             plate={plate}
             onPlate={setPlate}
             onSearch={searchVehicle}
-            onBack={() => setMode('home')}
+            onBack={() => animateTransition('home')}
+            loading={loading}
           />
         )}
 
@@ -141,7 +174,7 @@ export default function GuardScreen() {
           <GuardVehicleResult
             vehicle={found}
             onIncident={(type: string) => startContact(type)}
-            onBack={() => setMode('scan')}
+            onBack={() => animateTransition('scan')}
           />
         )}
 
@@ -152,104 +185,147 @@ export default function GuardScreen() {
             timer={timer}
             onResolve={resolveIncident}
             onEscalate={() => {}}
-            onBack={() => setMode('vehicle')}
+            onBack={() => animateTransition('vehicle')}
           />
         )}
 
         {mode === 'done' && (
           <GuardDone vehicle={found} onReset={reset} />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
 
-function GuardHome({ onScan, onManualSearch }: any) {
+// ----------------------------------------------------
+// COMPONENTS
+// ----------------------------------------------------
+
+function GuardHome({ onScan }: { onScan: () => void }) {
+  // Breathing animation for main button
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
   return (
     <View>
       <Text style={styles.modeTitle}>Quick Actions</Text>
 
       {/* Main scan button */}
-      <TouchableOpacity style={styles.bigScanBtn} onPress={onScan} activeOpacity={0.85}>
-        <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.bigScanGradient}>
-          <View style={styles.bigScanIcon}>
-            <Ionicons name="qr-code" size={48} color="#fff" />
-          </View>
-          <Text style={styles.bigScanTitle}>Scan Vehicle Sticker</Text>
-          <Text style={styles.bigScanSub}>Tap to open camera or enter plate</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+        <TouchableOpacity style={styles.bigScanBtn} onPress={onScan} activeOpacity={0.85}>
+          <LinearGradient 
+            colors={[GuardColors.secondary, GuardColors.primary]} 
+            start={{x: 0, y: 0}} end={{x: 1, y: 1}}
+            style={styles.bigScanGradient}
+          >
+            <View style={styles.bigScanIcon}>
+              <Ionicons name="scan" size={48} color="#fff" />
+            </View>
+            <Text style={styles.bigScanTitle}>Scan Vehicle Sticker</Text>
+            <Text style={styles.bigScanSub}>Tap to open camera or enter plate</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Today stats */}
+      {/* Stats row with Glassmorphism */}
       <View style={styles.statsRow}>
-        <StatBox value="7" label1="Incidents" label2="Today" color={Colors.high} />
-        <StatBox value="23" label1="Vehicles" label2="Logged" color={Colors.primary} />
-        <StatBox value="2" label1="Visitors" label2="Active" color={Colors.success} />
+        <StatBox value="7" label1="Incidents" color={GuardColors.warning} />
+        <StatBox value="23" label1="Vehicles" color={GuardColors.primary} />
+        <StatBox value="2" label1="Visitors" color={GuardColors.success} />
       </View>
 
       {/* Recent incidents */}
-      <Text style={styles.sectionTitle}>Recent Incidents</Text>
-      <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-        <Text style={{ color: Colors.textMuted }}>No recent incidents today.</Text>
+      <Text style={styles.sectionTitle}>System Logs</Text>
+      <View style={styles.glassCard}>
+        <Text style={{ color: GuardColors.textSecondary, textAlign: 'center', padding: 20 }}>All systems operational. No recent logs.</Text>
       </View>
     </View>
   );
 }
 
-function GuardScan({ plate, onPlate, onSearch, onBack }: any) {
+function GuardScan({ plate, onPlate, onSearch, onBack, loading }: any) {
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, { toValue: 1, duration: 2000, easing: Easing.linear, useNativeDriver: true }),
+        Animated.timing(scanLineAnim, { toValue: 0, duration: 2000, easing: Easing.linear, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
+  const scanLineTranslateY = scanLineAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-60, 60] // Moves up and down within the box
+  });
+
   return (
     <View>
       <TouchableOpacity onPress={onBack} style={styles.backRow}>
-        <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-        <Text style={styles.backRowText}>Back</Text>
+        <Ionicons name="arrow-back" size={20} color={GuardColors.primary} />
+        <Text style={styles.backRowText}>Return</Text>
       </TouchableOpacity>
 
-      <Text style={styles.modeTitle}>Find Vehicle</Text>
+      <Text style={styles.modeTitle}>Vehicle Query</Text>
 
-      <TouchableOpacity style={styles.cameraScanBox} activeOpacity={0.85}>
-        <Ionicons name="camera" size={36} color={Colors.primary} />
-        <Text style={styles.cameraScanTitle}>Scan QR Sticker</Text>
-        <Text style={styles.cameraScanSub}>Point at vehicle sticker</Text>
-      </TouchableOpacity>
+      {/* Animated Camera Box */}
+      <View style={styles.cameraScanBox}>
+        <Ionicons name="qr-code-outline" size={48} color={GuardColors.textSecondary} />
+        <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineTranslateY }] }]} />
+        <Text style={styles.cameraScanTitle}>Tap to open Scanner</Text>
+      </View>
 
-      <Text style={styles.orText}>— or enter plate number —</Text>
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.orText}>MANUAL ENTRY</Text>
+        <View style={styles.dividerLine} />
+      </View>
 
       <TextInput
         style={styles.plateInput}
-        placeholder="e.g. MH12AB1234"
-        placeholderTextColor={Colors.textMuted}
+        placeholder="ENTER PLATE (E.G. MH12AB1234)"
+        placeholderTextColor={GuardColors.textSecondary}
         value={plate}
         onChangeText={onPlate}
         autoCapitalize="characters"
         autoFocus
       />
 
-      <Button
-        label={loading ? "Searching..." : "Find Vehicle"}
+      <TouchableOpacity 
+        style={[styles.glowButton, (plate.length < 4 || loading) && styles.glowButtonDisabled]} 
         onPress={onSearch}
         disabled={plate.length < 4 || loading}
-        size="lg"
-        style={{ marginTop: 16 }}
-      />
+      >
+        <Text style={styles.glowButtonText}>{loading ? "SEARCHING..." : "QUERY DATABASE"}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-function GuardVehicleResult({ vehicle, onIncident, onBack, loading }: any) {
+function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
   const isRepeat = vehicle.incidents > 1;
 
   return (
     <View>
       <TouchableOpacity onPress={onBack} style={styles.backRow}>
-        <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-        <Text style={styles.backRowText}>Back to Search</Text>
+        <Ionicons name="arrow-back" size={20} color={GuardColors.primary} />
+        <Text style={styles.backRowText}>New Query</Text>
       </TouchableOpacity>
 
-      {/* Vehicle found card */}
-      <Card style={{ borderLeftWidth: 4, borderLeftColor: Colors.primary }}>
+      {/* Vehicle found glass card */}
+      <View style={[styles.glassCard, { borderLeftWidth: 4, borderLeftColor: GuardColors.primary }]}>
         <View style={styles.foundRow}>
           <View style={styles.foundIcon}>
-            <Ionicons name="car" size={28} color={Colors.primary} />
+            <Ionicons name="car-sport" size={28} color={GuardColors.primary} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.foundPlate}>{vehicle.plate}</Text>
@@ -257,31 +333,34 @@ function GuardVehicleResult({ vehicle, onIncident, onBack, loading }: any) {
           </View>
           {isRepeat && (
             <View style={styles.repeatBadge}>
-              <Ionicons name="warning" size={12} color={Colors.high} />
-              <Text style={styles.repeatText}>Repeat</Text>
+              <Text style={styles.repeatText}>REPEAT</Text>
             </View>
           )}
         </View>
         <View style={styles.foundDetails}>
-          <FoundDetail icon="home" label="Flat" value={`${vehicle.flat}, ${vehicle.tower}`} />
-          <FoundDetail icon="person" label="Resident" value={vehicle.resident} />
-          <FoundDetail icon="alert-circle" label="Past Incidents" value={String(vehicle.incidents)} />
+          <FoundDetail icon="home-outline" label="Unit" value={`${vehicle.flat}, ${vehicle.tower}`} />
+          <FoundDetail icon="person-outline" label="Resident" value={vehicle.resident} />
+          <FoundDetail icon="alert-circle-outline" label="History" value={`${vehicle.incidents} Incidents`} />
         </View>
-      </Card>
+      </View>
 
-      {/* Incident type selection */}
-      <Text style={styles.sectionTitle}>Select Incident Type</Text>
+      <Text style={styles.sectionTitle}>Select Action</Text>
       <View style={styles.incidentGrid}>
-        {INCIDENT_TYPES.map(t => (
+        {INCIDENT_TYPES.map((t, index) => (
           <TouchableOpacity
             key={t.id}
-            style={[styles.incCard, { backgroundColor: t.bg }, t.urgent && styles.incCardUrgent]}
+            style={[styles.incCard, { borderColor: t.urgent ? t.color : GuardColors.border }]}
             onPress={() => onIncident(t.id)}
             activeOpacity={0.8}
           >
-            {t.urgent && <View style={styles.urgentDot} />}
-            <Ionicons name={t.icon as any} size={26} color={t.color} />
-            <Text style={[styles.incLabel, { color: t.color }]}>{t.label}</Text>
+            <LinearGradient
+              colors={[GuardColors.surface, GuardColors.surfaceLight]}
+              style={StyleSheet.absoluteFillObject}
+              borderRadius={16}
+            />
+            {t.urgent && <View style={[styles.urgentDot, { backgroundColor: t.color }]} />}
+            <Ionicons name={t.icon as any} size={28} color={t.color} />
+            <Text style={styles.incLabel}>{t.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -289,101 +368,109 @@ function GuardVehicleResult({ vehicle, onIncident, onBack, loading }: any) {
   );
 }
 
-function GuardIncidentActive({ vehicle, incidentType, timer, onResolve, onEscalate, onBack }: any) {
+function GuardIncidentActive({ vehicle, timer, onResolve, onEscalate, onBack }: any) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
   return (
     <View>
       <TouchableOpacity onPress={onBack} style={styles.backRow}>
-        <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-        <Text style={styles.backRowText}>Back</Text>
+        <Ionicons name="arrow-back" size={20} color={GuardColors.primary} />
+        <Text style={styles.backRowText}>Abort</Text>
       </TouchableOpacity>
 
       {/* Active timer */}
-      <View style={styles.timerCard}>
-        <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.timerGradient}>
-          <Text style={styles.timerLabel}>Waiting for Owner</Text>
+      <Animated.View style={[styles.timerCard, { transform: [{ scale: pulseAnim }] }]}>
+        <LinearGradient 
+          colors={['#4C0000', '#1A0000']} 
+          start={{x:0, y:0}} end={{x:1, y:1}}
+          style={styles.timerGradient}
+        >
+          <Text style={styles.timerLabel}>AWAITING OWNER RESPONSE</Text>
           <Text style={styles.timerValue}>{timer > 0 ? '4:52' : '0:00'}</Text>
-          <Text style={styles.timerSub}>Auto-escalate if no response</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="warning" size={14} color={GuardColors.critical} />
+            <Text style={styles.timerSub}>Auto-escalate pending</Text>
+          </View>
         </LinearGradient>
+      </Animated.View>
+
+      <View style={styles.glassCard}>
+        <View style={styles.statusItem}>
+          <Ionicons name="checkmark-done" size={22} color={GuardColors.success} />
+          <Text style={styles.statusText}>Secure notification dispatched</Text>
+        </View>
+        <View style={styles.statusItem}>
+          <Ionicons name="cellular-outline" size={22} color={GuardColors.success} />
+          <Text style={styles.statusText}>SMS Fallback active</Text>
+        </View>
       </View>
-
-      {/* Vehicle info */}
-      <Card>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 6 }}>Incident: {vehicle.plate}</Text>
-        <Text style={{ fontSize: 13, color: Colors.textSecondary }}>{vehicle.flat}, {vehicle.tower} · {vehicle.resident}</Text>
-      </Card>
-
-      {/* Status */}
-      <Card>
-        <View style={styles.statusItem}>
-          <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-          <Text style={styles.statusText}>Owner notified via WhatsApp</Text>
-        </View>
-        <View style={styles.statusItem}>
-          <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
-          <Text style={styles.statusText}>SMS fallback sent</Text>
-        </View>
-        <View style={styles.statusItem}>
-          <Ionicons name="time" size={20} color={Colors.amber} />
-          <Text style={[styles.statusText, { color: Colors.amber }]}>Backup contact alert in 5 min</Text>
-        </View>
-      </Card>
 
       {/* Actions */}
       <View style={styles.actionRow}>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.primaryBg }]}>
-          <Ionicons name="call" size={20} color={Colors.primary} />
-          <Text style={[styles.actionLabel, { color: Colors.primary }]}>Masked Call</Text>
+        <TouchableOpacity style={styles.actionBtn}>
+          <Ionicons name="call" size={20} color={GuardColors.primary} />
+          <Text style={[styles.actionLabel, { color: GuardColors.primary }]}>Proxy Call</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.highBg }]} onPress={onEscalate}>
-          <Ionicons name="arrow-up-circle" size={20} color={Colors.high} />
-          <Text style={[styles.actionLabel, { color: Colors.high }]}>Escalate</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={onEscalate}>
+          <Ionicons name="flame" size={20} color={GuardColors.critical} />
+          <Text style={[styles.actionLabel, { color: GuardColors.critical }]}>Escalate</Text>
         </TouchableOpacity>
       </View>
 
-      <Button
-        label="Mark Incident Resolved"
-        onPress={onResolve}
-        size="lg"
-        icon={<Ionicons name="checkmark-circle" size={18} color="#fff" />}
-        style={{ marginTop: 8 }}
-      />
+      <TouchableOpacity style={styles.glowButton} onPress={onResolve}>
+        <Text style={styles.glowButtonText}>RESOLVE INCIDENT</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 function GuardDone({ vehicle, onReset }: any) {
   return (
-    <View style={{ alignItems: 'center', paddingTop: 24 }}>
-      <View style={styles.doneIcon}>
-        <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+    <View style={{ alignItems: 'center', paddingTop: 40 }}>
+      <View style={styles.doneIconWrap}>
+        <Ionicons name="shield-checkmark" size={80} color={GuardColors.primary} />
       </View>
-      <Text style={styles.doneTitle}>Incident Resolved!</Text>
+      <Text style={styles.doneTitle}>INCIDENT CLOSED</Text>
       <Text style={styles.doneSub}>
-        {vehicle?.plate ?? 'Vehicle'} · {vehicle?.flat} · Logged to shift report
+        Vehicle {vehicle?.plate ?? 'Unknown'} cleared.
       </Text>
 
-      <Card style={{ width: '100%', marginTop: 24 }}>
+      <View style={[styles.glassCard, { width: '100%', marginTop: 30 }]}>
         <View style={styles.logRow}>
-          <Ionicons name="document-text" size={16} color={Colors.primary} />
-          <Text style={{ fontSize: 14, color: Colors.text, flex: 1 }}>Incident logged at {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+          <Text style={styles.logLabel}>TIMESTAP</Text>
+          <Text style={styles.logValue}>{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
         </View>
         <View style={styles.logRow}>
-          <Ionicons name="time" size={16} color={Colors.success} />
-          <Text style={{ fontSize: 14, color: Colors.text, flex: 1 }}>Resolution time: 4m 52s</Text>
+          <Text style={styles.logLabel}>RESOLUTION</Text>
+          <Text style={styles.logValue}>4m 52s</Text>
         </View>
-      </Card>
+        <View style={[styles.logRow, { borderTopWidth: 1, borderTopColor: GuardColors.border, paddingTop: 16, marginTop: 8 }]}>
+          <Text style={styles.logLabel}>KARMA</Text>
+          <Text style={[styles.logValue, { color: GuardColors.success }]}>+50 POINTS</Text>
+        </View>
+      </View>
 
-      <Button label="Handle Next Vehicle" onPress={onReset} size="lg" style={{ marginTop: 20, width: '100%' }} />
+      <TouchableOpacity style={[styles.glowButton, { width: '100%', marginTop: 30 }]} onPress={onReset}>
+        <Text style={styles.glowButtonText}>NEXT VEHICLE</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-function StatBox({ value, label1, label2, color }: any) {
+function StatBox({ value, label1, color }: any) {
   return (
-    <View style={[styles.statBox, { borderTopColor: color }]}>
+    <View style={[styles.glassCard, styles.statBox, { borderTopWidth: 2, borderTopColor: color }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label1}</Text>
-      {label2 ? <Text style={styles.statLabel}>{label2}</Text> : null}
+      <Text style={styles.statLabel}>{label1.toUpperCase()}</Text>
     </View>
   );
 }
@@ -391,71 +478,90 @@ function StatBox({ value, label1, label2, color }: any) {
 function FoundDetail({ icon, label, value }: any) {
   return (
     <View style={styles.foundDetail}>
-      <Ionicons name={icon} size={14} color={Colors.textMuted} />
-      <Text style={styles.foundDetailLabel}>{label}:</Text>
+      <Ionicons name={icon} size={16} color={GuardColors.textSecondary} />
+      <Text style={styles.foundDetailLabel}>{label}</Text>
       <Text style={styles.foundDetailValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingBottom: 20 },
   backBtn: { paddingVertical: 12 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  shiftBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(34,197,94,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  shiftDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.success },
-  shiftText: { fontSize: 12, fontWeight: '700', color: Colors.success },
-  modeTitle: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: 16 },
-  bigScanBtn: { borderRadius: 20, overflow: 'hidden', marginBottom: 16 },
-  bigScanGradient: { padding: 32, alignItems: 'center', gap: 10 },
-  bigScanIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  bigScanTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  bigScanSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  statBox: { flex: 1, backgroundColor: Colors.surface, borderRadius: 14, padding: 14, alignItems: 'center', borderTopWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: Colors.textMuted, textAlign: 'center', lineHeight: 15, marginTop: 2 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: Colors.text, marginBottom: 10 },
-  recentCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.surface, borderRadius: 12, padding: 12, marginBottom: 8 },
-  recentIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.highBg, alignItems: 'center', justifyContent: 'center' },
-  recentPlate: { fontSize: 14, fontWeight: '700', color: Colors.text },
-  recentInfo: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  recentStatus: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  backRowText: { fontSize: 15, fontWeight: '600', color: Colors.primary },
-  cameraScanBox: { height: 160, backgroundColor: Colors.primaryBg, borderRadius: 16, borderWidth: 2, borderColor: Colors.primary, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 },
-  cameraScanTitle: { fontSize: 16, fontWeight: '700', color: Colors.primary },
-  cameraScanSub: { fontSize: 13, color: Colors.primary },
-  orText: { textAlign: 'center', fontSize: 13, color: Colors.textMuted, marginBottom: 16 },
-  plateInput: { height: 56, backgroundColor: Colors.surface, borderRadius: 14, borderWidth: 1.5, borderColor: Colors.divider, paddingHorizontal: 20, fontSize: 22, fontWeight: '700', color: Colors.text, textAlign: 'center', letterSpacing: 2 },
-  foundRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
-  foundIcon: { width: 54, height: 54, borderRadius: 14, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center' },
-  foundPlate: { fontSize: 20, fontWeight: '800', color: Colors.text },
-  foundType: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
-  repeatBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.highBg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4 },
-  repeatText: { fontSize: 11, fontWeight: '700', color: Colors.high },
-  foundDetails: { gap: 8 },
-  foundDetail: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  foundDetailLabel: { fontSize: 13, color: Colors.textMuted, width: 90 },
-  foundDetailValue: { fontSize: 13, fontWeight: '700', color: Colors.text },
-  incidentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  incCard: { width: (width - 52) / 3, alignItems: 'center', borderRadius: 14, paddingVertical: 14, gap: 6, position: 'relative' },
-  incCardUrgent: { borderWidth: 2, borderColor: 'transparent' },
-  urgentDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.critical },
-  incLabel: { fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 16 },
-  timerCard: { borderRadius: 20, overflow: 'hidden', marginBottom: 12 },
-  timerGradient: { padding: 28, alignItems: 'center', gap: 6 },
-  timerLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
-  timerValue: { fontSize: 52, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  timerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
-  statusItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  statusText: { fontSize: 14, color: Colors.text },
-  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14 },
-  actionLabel: { fontSize: 14, fontWeight: '700' },
-  doneIcon: { marginBottom: 12 },
-  doneTitle: { fontSize: 26, fontWeight: '800', color: Colors.text, marginBottom: 8 },
-  doneSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
-  logRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: GuardColors.primary, letterSpacing: 2 },
+  headerSub: { fontSize: 11, color: GuardColors.textSecondary, letterSpacing: 1, marginTop: 2, textTransform: 'uppercase' },
+  shiftBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(16, 185, 129, 0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.3)' },
+  shiftDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: GuardColors.success, shadowColor: GuardColors.success, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
+  shiftText: { fontSize: 10, fontWeight: '800', color: GuardColors.success, letterSpacing: 1 },
+  
+  modeTitle: { fontSize: 16, fontWeight: '800', color: GuardColors.text, marginBottom: 16, letterSpacing: 1, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: GuardColors.textSecondary, marginBottom: 12, marginTop: 24, letterSpacing: 1, textTransform: 'uppercase' },
+  
+  glassCard: { backgroundColor: GuardColors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: GuardColors.border },
+  
+  bigScanBtn: { borderRadius: 24, overflow: 'hidden', marginBottom: 24, shadowColor: GuardColors.primary, shadowOpacity: 0.3, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  bigScanGradient: { padding: 36, alignItems: 'center', gap: 12 },
+  bigScanIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  bigScanTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  bigScanSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', letterSpacing: 0.5 },
+  
+  statsRow: { flexDirection: 'row', gap: 12 },
+  statBox: { flex: 1, alignItems: 'center', paddingVertical: 20, paddingHorizontal: 10 },
+  statValue: { fontSize: 28, fontWeight: '900', marginBottom: 4 },
+  statLabel: { fontSize: 10, color: GuardColors.textSecondary, fontWeight: '700', letterSpacing: 1 },
+  
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
+  backRowText: { fontSize: 13, fontWeight: '800', color: GuardColors.primary, letterSpacing: 1, textTransform: 'uppercase' },
+  
+  cameraScanBox: { height: 180, backgroundColor: 'rgba(0, 240, 255, 0.05)', borderRadius: 20, borderWidth: 2, borderColor: GuardColors.primaryDark, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24, overflow: 'hidden', position: 'relative' },
+  scanLine: { position: 'absolute', width: '100%', height: 2, backgroundColor: GuardColors.primary, shadowColor: GuardColors.primary, shadowOpacity: 1, shadowRadius: 8, elevation: 5 },
+  cameraScanTitle: { fontSize: 12, fontWeight: '800', color: GuardColors.primary, letterSpacing: 1 },
+  
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: GuardColors.border },
+  orText: { fontSize: 11, color: GuardColors.textSecondary, fontWeight: '800', letterSpacing: 2 },
+  
+  plateInput: { height: 60, backgroundColor: GuardColors.surfaceLight, borderRadius: 16, borderWidth: 1, borderColor: GuardColors.border, paddingHorizontal: 20, fontSize: 18, fontWeight: '900', color: GuardColors.text, textAlign: 'center', letterSpacing: 3, marginBottom: 24 },
+  
+  glowButton: { backgroundColor: GuardColors.primary, borderRadius: 16, height: 56, alignItems: 'center', justifyContent: 'center', shadowColor: GuardColors.primary, shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  glowButtonDisabled: { backgroundColor: GuardColors.surfaceLight, shadowOpacity: 0, elevation: 0 },
+  glowButtonText: { color: GuardColors.bg, fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  
+  foundRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
+  foundIcon: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(0, 240, 255, 0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.2)' },
+  foundPlate: { fontSize: 24, fontWeight: '900', color: GuardColors.text, letterSpacing: 2 },
+  foundType: { fontSize: 13, color: GuardColors.textSecondary, marginTop: 4, letterSpacing: 0.5 },
+  repeatBadge: { backgroundColor: 'rgba(255, 42, 85, 0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: GuardColors.critical },
+  repeatText: { fontSize: 10, fontWeight: '900', color: GuardColors.critical, letterSpacing: 1 },
+  
+  foundDetails: { gap: 12, marginTop: 8 },
+  foundDetail: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  foundDetailLabel: { fontSize: 12, color: GuardColors.textSecondary, width: 80, fontWeight: '600', letterSpacing: 0.5 },
+  foundDetailValue: { fontSize: 13, fontWeight: '800', color: GuardColors.text, letterSpacing: 0.5 },
+  
+  incidentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  incCard: { width: (width - 52) / 2, height: 110, alignItems: 'center', justifyContent: 'center', borderRadius: 16, gap: 10, position: 'relative', overflow: 'hidden', borderWidth: 1 },
+  urgentDot: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, shadowOpacity: 0.8, shadowRadius: 4 },
+  incLabel: { fontSize: 11, fontWeight: '800', textAlign: 'center', color: GuardColors.text, letterSpacing: 0.5 },
+  
+  timerCard: { borderRadius: 24, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255, 42, 85, 0.3)' },
+  timerGradient: { padding: 32, alignItems: 'center', gap: 10 },
+  timerLabel: { fontSize: 12, color: GuardColors.critical, fontWeight: '800', letterSpacing: 2 },
+  timerValue: { fontSize: 64, fontWeight: '900', color: '#fff', letterSpacing: 4, textShadowColor: 'rgba(255, 42, 85, 0.8)', textShadowOffset: {width: 0, height: 0}, textShadowRadius: 20 },
+  timerSub: { fontSize: 11, color: GuardColors.textSecondary, letterSpacing: 0.5 },
+  
+  statusItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
+  statusText: { fontSize: 13, color: GuardColors.text, fontWeight: '600', letterSpacing: 0.5 },
+  
+  actionRow: { flexDirection: 'row', gap: 12, marginVertical: 24 },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 16, backgroundColor: GuardColors.surface, borderWidth: 1, borderColor: GuardColors.border },
+  actionLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  
+  doneIconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(0, 240, 255, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 24, shadowColor: GuardColors.primary, shadowOpacity: 0.5, shadowRadius: 30 },
+  doneTitle: { fontSize: 28, fontWeight: '900', color: GuardColors.text, marginBottom: 12, letterSpacing: 2 },
+  doneSub: { fontSize: 14, color: GuardColors.textSecondary, textAlign: 'center', letterSpacing: 0.5 },
+  
+  logRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  logLabel: { fontSize: 10, color: GuardColors.textSecondary, fontWeight: '800', letterSpacing: 1 },
+  logValue: { fontSize: 12, color: GuardColors.text, fontWeight: '800', letterSpacing: 1 },
 });

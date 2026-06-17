@@ -63,6 +63,9 @@ async function authFetch(path: string, init?: RequestInit) {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       ...(cache.token ? { Authorization: `Bearer ${cache.token}` } : {}),
       ...init?.headers,
     },
@@ -91,8 +94,26 @@ export async function createSticker(input: {
   tag_type?: string;
   tag_title?: string;
 }): Promise<Sticker> {
-  const d = await authFetch('/api/stickers', { method: 'POST', body: JSON.stringify(input) });
-  return d.sticker;
+  // The production backend expects plate_number and vehicle_color
+  const payload = {
+    ...input,
+    plate_number: input.registration,
+    vehicle_color: input.color,
+  };
+  const d = await authFetch('/api/stickers', { method: 'POST', body: JSON.stringify(payload) });
+  
+  let resultSticker = d.sticker;
+  if (input.backup_phone) {
+    resultSticker = await updateSticker(d.sticker.id, { backup_phone: input.backup_phone });
+  }
+  
+  if (Array.isArray(cache.stickers)) {
+    cache.stickers = [resultSticker, ...cache.stickers];
+    cache.stickersFetchedAt = 0; // Force network fetch next time
+    notifyStickers();
+  }
+  
+  return resultSticker;
 }
 
 export async function updateSticker(id: string, patch: Partial<Sticker>): Promise<Sticker> {
@@ -102,6 +123,11 @@ export async function updateSticker(id: string, patch: Partial<Sticker>): Promis
 
 export async function deleteSticker(id: string): Promise<void> {
   await authFetch(`/api/stickers/${id}`, { method: 'DELETE' });
+  if (Array.isArray(cache.stickers)) {
+    cache.stickers = cache.stickers.filter((s: any) => s.id !== id);
+    cache.stickersFetchedAt = 0;
+    notifyStickers();
+  }
 }
 
 // ===== Incidents =====

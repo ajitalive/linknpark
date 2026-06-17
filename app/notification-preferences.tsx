@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +33,16 @@ export default function NotificationPreferencesScreen() {
         colors={[Colors.amber, Colors.amberLight]}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          }} 
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -94,6 +103,7 @@ export default function NotificationPreferencesScreen() {
           />
         </Card>
 
+        {/* 
         <Card>
           <Text style={styles.sectionLabel}>Other</Text>
           <PrefRow
@@ -113,6 +123,7 @@ export default function NotificationPreferencesScreen() {
             onToggle={() => toggle('marketing')}
           />
         </Card>
+        */}
 
         <Card style={{ backgroundColor: Colors.surfaceSecondary, shadowOpacity: 0 }}>
           <View style={styles.systemRow}>
@@ -131,9 +142,23 @@ export default function NotificationPreferencesScreen() {
   );
 }
 
+function CustomSwitch({ value }: { value: boolean }) {
+  return (
+    <View 
+      pointerEvents="none"
+      style={[
+        styles.customSwitch,
+        { backgroundColor: value ? Colors.primary : Colors.divider, alignItems: value ? 'flex-end' : 'flex-start' }
+      ]}
+    >
+      <View style={styles.customSwitchThumb} />
+    </View>
+  );
+}
+
 function PrefRow({ icon, color, label, desc, value, onToggle }: any) {
   return (
-    <View style={styles.prefRow}>
+    <TouchableOpacity style={styles.prefRow} onPress={onToggle} activeOpacity={0.7}>
       <View style={[styles.prefIcon, { backgroundColor: `${color}18` }]}>
         <Ionicons name={icon} size={16} color={color} />
       </View>
@@ -141,13 +166,8 @@ function PrefRow({ icon, color, label, desc, value, onToggle }: any) {
         <Text style={styles.prefLabel}>{label}</Text>
         <Text style={styles.prefDesc}>{desc}</Text>
       </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        trackColor={{ true: Colors.primary, false: Colors.divider }}
-        thumbColor="#fff"
-      />
-    </View>
+      <CustomSwitch value={value} />
+    </TouchableOpacity>
   );
 }
 
@@ -168,4 +188,6 @@ const styles = StyleSheet.create({
   systemDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   openBtn: { backgroundColor: Colors.primaryBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   openBtnText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+  customSwitch: { width: 50, height: 30, borderRadius: 15, padding: 2, justifyContent: 'center' },
+  customSwitchThumb: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
 });

@@ -8,11 +8,13 @@ import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../hooks/useAuth';
 import { useStickers, useIncidents } from '../../hooks/useApi';
 import { Alert } from 'react-native';
+import * as Updates from 'expo-updates';
 
 const MENU_SECTIONS = [
   {
     title: 'Safety',
     items: [
+      { icon: 'map', label: 'Safety Radar', color: Colors.primary, badge: 'New', route: '/safety-radar' },
       { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: 'Manage', route: '/emergency-contacts' },
       { icon: 'shield', label: 'Guardian Network', color: Colors.primary, badge: null, route: '/guardian-network' },
       { icon: 'medical', label: 'SOS Settings', color: Colors.critical, badge: null, route: '/sos-settings' },
@@ -21,7 +23,7 @@ const MENU_SECTIONS = [
   {
     title: 'Operations',
     items: [
-      { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: null, route: '/guard' },
+      // { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: null, route: '/guard' },
       { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: '/parking-timer' },
       { icon: 'lock-closed', label: 'Secure Vault', color: Colors.primaryDark, badge: null, route: '/(tabs)/vault' },
     ],
@@ -77,10 +79,7 @@ export default function MoreScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Profile Header */}
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={[styles.profileHeader, { paddingTop: insets.top + 16 }]}
-      >
+      <View style={[styles.profileHeader, { paddingTop: insets.top + 20 }]}>
         <View style={styles.avatarWrap}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
@@ -89,9 +88,9 @@ export default function MoreScreen() {
           <Text style={styles.profilePhone}>{displayHandle}</Text>
         </View>
         <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
-          <Ionicons name="pencil" size={16} color="#fff" />
+          <Ionicons name="pencil" size={16} color={Colors.bg} />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {/* Quick stats */}
       <View style={styles.statsRow}>
@@ -135,7 +134,9 @@ export default function MoreScreen() {
         </View>
       ))}
 
-      <Text style={styles.version}>LinkNPark v1.0.0 · Made in India 🇮🇳</Text>
+      <Text style={styles.version}>
+        LinkNPark v1.0.0{Updates.updateId ? ` (Update: ${Updates.updateId.slice(0, 8)})` : ''} · Made in India 🇮🇳
+      </Text>
     </ScrollView>
   );
 }
@@ -150,12 +151,12 @@ function StatPill({ icon, label, color, bg }: any) {
 }
 
 const styles = StyleSheet.create({
-  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingBottom: 24 },
-  avatarWrap: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
-  profileName: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  profilePhone: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 10, borderRadius: 20 },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.bg },
+  avatarWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: Colors.bg, fontWeight: '900', fontSize: 20 },
+  profileName: { fontSize: 24, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
+  profilePhone: { fontSize: 14, color: Colors.textSecondary, marginTop: 2, fontWeight: '500' },
+  editBtn: { backgroundColor: Colors.primary, padding: 10, borderRadius: 20 },
   planBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   planText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },

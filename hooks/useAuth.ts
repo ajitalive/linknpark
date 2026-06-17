@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { API_BASE } from './usePushNotifications';
 import { clearApiCache } from './apiCache';
 
@@ -9,20 +10,33 @@ const USER_KEY = 'linknpark_auth_user';
 export type AuthUser = { email: string; name?: string; };
 
 export async function getToken(): Promise<string | null> {
+  if (Platform.OS === 'web') return localStorage.getItem(TOKEN_KEY);
   return SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 export async function getStoredUser(): Promise<AuthUser | null> {
-  const raw = await SecureStore.getItemAsync(USER_KEY);
+  const raw = Platform.OS === 'web' 
+    ? localStorage.getItem(USER_KEY) 
+    : await SecureStore.getItemAsync(USER_KEY);
   return raw ? JSON.parse(raw) : null;
 }
 
 export async function saveAuth(token: string, user: AuthUser) {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return;
+  }
   await SecureStore.setItemAsync(TOKEN_KEY, token);
   await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
 }
 
 export async function clearAuth() {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    return;
+  }
   await SecureStore.deleteItemAsync(TOKEN_KEY);
   await SecureStore.deleteItemAsync(USER_KEY);
 }

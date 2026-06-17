@@ -12,12 +12,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) return null;
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('incidents', {
+    await Notifications.setNotificationChannelAsync('incidents_v2', {
       name: 'Incident Alerts',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#2CFF05',
-      sound: 'default',
+      sound: 'alert_sound',
     });
   }
 
@@ -49,10 +49,14 @@ export function usePushToken(userEmail: string | null) {
         const token = await registerForPushNotifications();
         if (!token) return;
 
-        const stored = await SecureStore.getItemAsync(TOKEN_STORE_KEY);
+        const stored = Platform.OS === 'web' 
+          ? localStorage.getItem(TOKEN_STORE_KEY) 
+          : await SecureStore.getItemAsync(TOKEN_STORE_KEY);
         if (stored === token) return;
 
-        const authToken = await SecureStore.getItemAsync('auth_token');
+        const authToken = Platform.OS === 'web'
+          ? localStorage.getItem('linknpark_auth_token')
+          : await SecureStore.getItemAsync('linknpark_auth_token');
         if (!authToken) return;
 
         const res = await fetch(`${API_BASE}/api/push-token`, {
@@ -65,7 +69,11 @@ export function usePushToken(userEmail: string | null) {
         });
 
         if (res.ok) {
-          await SecureStore.setItemAsync(TOKEN_STORE_KEY, token);
+          if (Platform.OS === 'web') {
+            localStorage.setItem(TOKEN_STORE_KEY, token);
+          } else {
+            await SecureStore.setItemAsync(TOKEN_STORE_KEY, token);
+          }
           console.log('[PushToken] Registered:', token.slice(0, 30) + '…');
         }
       } catch (e) {

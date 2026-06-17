@@ -18,12 +18,7 @@
         }
       }
     }
-    // Auto-detect environment: use localhost API when running locally
-    const IS_LOCAL = ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
-                     || window.location.protocol === 'file:';
-    const API_BASE = IS_LOCAL
-      ? 'http://localhost:3001'
-      : 'https://linknpark.onrender.com';
+    const API_BASE = 'https://linknpark.onrender.com';
     // Sticker code from QR URL query param: ?code=STK-2025-AB1234
     const STICKER_CODE = new URLSearchParams(window.location.search).get('code') || null;
   </script>
@@ -56,7 +51,14 @@
       </div>
       <span class="font-semibold text-gray-900 text-sm">LinkNPark</span>
     </div>
-    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Secure Report</span>
+    <div class="flex items-center gap-3">
+      <select id="lang-selector" onchange="changeLanguage(this.value)" class="text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700 rounded-lg px-2 py-1 outline-none">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="kn">ಕನ್ನಡ</option>
+      </select>
+      <span data-i18n="secure_report" class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Secure Report</span>
+    </div>
   </div>
 
   <!-- Main content -->
@@ -67,7 +69,7 @@
       <!-- Loading state -->
       <div id="loading-card" class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-4 flex flex-col items-center py-10">
         <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p class="text-sm text-gray-400">Looking up sticker…</p>
+        <p data-i18n="looking_up" class="text-sm text-gray-400">Looking up sticker…</p>
       </div>
 
       <!-- Vehicle card (hidden until loaded) -->
@@ -78,7 +80,7 @@
               <path d="M2 5l2 2 4-4" stroke="#16A34A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <span class="text-xs font-medium text-green-700">Registered with LinkNPark</span>
+          <span data-i18n="registered_with" class="text-xs font-medium text-green-700">Registered with LinkNPark</span>
         </div>
         <div class="flex items-center gap-4 mb-4">
           <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#EEF2FF">
@@ -94,7 +96,7 @@
             <div id="vehicle-plate" class="text-sm text-gray-500 mt-0.5">—</div>
             <div id="reachable-status" class="flex items-center gap-1.5 mt-1.5">
               <div id="reachable-dot" class="w-2 h-2 rounded-full bg-green-500"></div>
-              <span id="reachable-text" class="text-xs text-gray-500">Owner is reachable</span>
+              <span id="reachable-text" data-i18n="owner_reachable" class="text-xs text-gray-500">Owner is reachable</span>
             </div>
           </div>
         </div>
@@ -103,7 +105,7 @@
             <path d="M7 1l5 2v4c0 3-2.5 5-5 6C4.5 12 2 10 2 7V3l5-2z" stroke="#6B7280" stroke-width="1.2" fill="none"/>
             <path d="M7 5v3M7 9.5v.5" stroke="#6B7280" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
-          <p class="text-xs text-gray-500 leading-relaxed">Owner's phone and personal details are never shared. Your report is delivered securely.</p>
+          <p data-i18n="privacy_note" class="text-xs text-gray-500 leading-relaxed">Owner's phone and personal details are never shared. Your report is delivered securely.</p>
         </div>
       </div>
 
@@ -112,14 +114,14 @@
         <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 7v5M11 14v1" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="9" stroke="#9CA3AF" stroke-width="1.6"/></svg>
         </div>
-        <p class="font-semibold text-gray-700 mb-1">Sticker not activated yet</p>
-        <p class="text-sm text-gray-400">The owner hasn't registered this sticker in the LinkNPark app yet.</p>
+        <p data-i18n="sticker_not_active" class="font-semibold text-gray-700 mb-1">Sticker not activated yet</p>
+        <p data-i18n="not_active_desc" class="text-sm text-gray-400">The owner hasn't registered this sticker in the LinkNPark app yet.</p>
       </div>
 
       <button id="report-btn" onclick="goTo(1)" class="w-full py-4 rounded-2xl font-semibold text-white text-base ripple hidden" style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
-        Report Something →
+        <span data-i18n="report_btn">Report Something →</span>
       </button>
-      <p id="report-hint" class="text-center text-xs text-gray-400 mt-3 hidden">Takes less than 30 seconds. No sign-up needed.</p>
+      <p id="report-hint" data-i18n="report_hint" class="text-center text-xs text-gray-400 mt-3 hidden">Takes less than 30 seconds. No sign-up needed.</p>
     </div>
 
     <!-- STEP 1: Select reason -->
@@ -129,8 +131,8 @@
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Back
         </button>
-        <h2 id="step-1-title" class="text-lg font-bold text-gray-900">What do you need to report?</h2>
-        <p id="step-1-sub" class="text-sm text-gray-500 mt-1">Select the reason — the owner will be notified immediately</p>
+        <h2 id="step-1-title" data-i18n="what_to_report" class="text-lg font-bold text-gray-900">What do you need to report?</h2>
+        <p id="step-1-sub" data-i18n="select_reason" class="text-sm text-gray-500 mt-1">Select the reason — the owner will be notified immediately</p>
       </div>
 
       <div id="reason-grid" class="grid grid-cols-2 gap-3 mb-5">
@@ -140,7 +142,7 @@
       <button onclick="goTo(2)" id="next-btn-1" disabled
         class="w-full py-4 rounded-2xl font-semibold text-white text-base disabled:opacity-40 disabled:cursor-not-allowed transition-opacity ripple"
         style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
-        Continue →
+        <span data-i18n="continue_btn">Continue →</span>
       </button>
     </div>
 
@@ -151,8 +153,8 @@
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Back
         </button>
-        <h2 class="text-lg font-bold text-gray-900">Add details <span class="text-gray-400 font-normal text-base">(optional)</span></h2>
-        <p class="text-sm text-gray-500 mt-1">Help the owner understand the situation faster</p>
+        <h2 class="text-lg font-bold text-gray-900"><span data-i18n="add_details">Add details</span> <span data-i18n="optional" class="text-gray-400 font-normal text-base">(optional)</span></h2>
+        <p data-i18n="help_owner" class="text-sm text-gray-500 mt-1">Help the owner understand the situation faster</p>
       </div>
 
       <!-- Selected reason chip -->
@@ -162,28 +164,28 @@
 
       <!-- Message -->
       <div class="mb-4">
-        <label class="text-xs font-medium text-gray-600 block mb-1.5">Your message</label>
-        <textarea id="msg-input" rows="3" placeholder="e.g. Your car is blocking my driveway gate, please move it…"
+        <label data-i18n="your_message" class="text-xs font-medium text-gray-600 block mb-1.5">Your message</label>
+        <textarea id="msg-input" rows="3" data-i18n-placeholder="msg_placeholder" placeholder="e.g. Your car is blocking my driveway gate, please move it…"
           class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 resize-none transition-all"
           style="background:white"></textarea>
       </div>
 
       <!-- Phone -->
       <div class="mb-5">
-        <label class="text-xs font-medium text-gray-600 block mb-1.5">Your phone (optional — for callback)</label>
+        <label data-i18n="your_phone" class="text-xs font-medium text-gray-600 block mb-1.5">Your phone (optional — for callback)</label>
         <div class="flex gap-2 items-center border border-gray-200 rounded-xl overflow-hidden bg-white transition-all" id="phone-wrap">
           <span class="pl-4 text-sm text-gray-500 shrink-0">+91</span>
           <input id="phone-input" type="tel" maxlength="10" placeholder="98765 43210"
             class="flex-1 py-3 pr-4 text-sm text-gray-900 border-none outline-none bg-transparent"
             oninput="this.closest('#phone-wrap').style.borderColor=this.value?'#3B2FF5':'#E5E7EB'" />
         </div>
-        <p class="text-xs text-gray-400 mt-1.5">Owner can call back through a masked number — your real number stays private</p>
+        <p data-i18n="phone_desc" class="text-xs text-gray-400 mt-1.5">Owner can call back through a masked number — your real number stays private</p>
       </div>
 
       <button onclick="submitReport()" class="w-full py-4 rounded-2xl font-semibold text-white text-base ripple" style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
-        Send Report Securely →
+        <span data-i18n="send_report">Send Report Securely →</span>
       </button>
-      <p class="text-center text-xs text-gray-400 mt-3">Your identity is never shared with the car owner</p>
+      <p data-i18n="privacy_footer" class="text-center text-xs text-gray-400 mt-3">Your identity is never shared with the car owner</p>
     </div>
 
     <!-- STEP 3: Sent! -->
@@ -199,15 +201,39 @@
         <p class="text-sm text-gray-500 text-center">The car owner has been notified securely</p>
       </div>
 
-      <!-- Status card -->
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Live Chat (Anonymous)</div>
-        <div id="chat-messages" class="flex-1 overflow-y-auto max-h-60 space-y-3 mb-3 pr-2">
-          <div class="text-xs text-center text-gray-400">Waiting for owner to join...</div>
+      <!-- Car Connect Chat UI -->
+      <div class="bg-white rounded-[24px] border border-gray-100 shadow-lg overflow-hidden mb-4 mt-2 flex flex-col" style="height: 60vh; min-height: 400px; border: 4px solid #4B334B;">
+        <!-- Header -->
+        <div class="px-4 py-3 flex items-center justify-between" style="background: #15803D;">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#fff"/></svg>
+            </div>
+            <div class="text-white font-bold text-sm" id="chat-header-title">Visitor 5619</div>
+          </div>
+          <div class="flex items-center gap-3 text-white">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .2l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1-.4-1.2-.6-2.4-.6-3.6 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1C3 13.6 10.4 21 19.5 21c.6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1zM19 12h2a9 9 0 00-9-9v2c3.9 0 7.1 3.2 7 7z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1v10c0 .6.4 1 1 1h12c.6 0 1-.4 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <input type="text" id="chat-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Type a message..." />
-          <button onclick="sendChatMessage()" class="bg-primary text-white px-4 py-2 rounded-lg font-semibold text-sm ripple">Send</button>
+        
+        <!-- Registration Bar -->
+        <div class="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700" id="chat-registration">
+          @MH11AQ7154
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
+          <div class="text-xs text-center text-gray-400 my-2">Waiting for owner to join...</div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-3 bg-white border-t border-gray-100 flex gap-2 items-center">
+          <input type="text" id="chat-input" class="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm outline-none" placeholder="Type here...." onkeypress="if(event.key === 'Enter') sendChatMessage()" />
+          <button onclick="sendChatMessage()" class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background: #15803D;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="#fff"/></svg>
+          </button>
         </div>
       </div>
 
@@ -248,6 +274,156 @@
   <div class="h-6"></div>
 
   <script>
+    const DICT = {
+      en: {
+        secure_report: "Secure Report",
+        looking_up: "Looking up sticker…",
+        registered_with: "Registered with LinkNPark",
+        owner_reachable: "Owner is reachable",
+        privacy_note: "Owner's phone and personal details are never shared. Your report is delivered securely.",
+        sticker_not_active: "Sticker not activated yet",
+        not_active_desc: "The owner hasn't registered this sticker in the LinkNPark app yet.",
+        report_btn: "Report Something →",
+        report_hint: "Takes less than 30 seconds. No sign-up needed.",
+        what_to_report: "What do you need to report?",
+        select_reason: "Select the reason — the owner will be notified immediately",
+        continue_btn: "Continue →",
+        add_details: "Add details",
+        optional: "(optional)",
+        help_owner: "Help the owner understand the situation faster",
+        your_message: "Your message",
+        msg_placeholder: "e.g. Your car is blocking my driveway gate, please move it…",
+        your_phone: "Your phone (optional — for callback)",
+        phone_desc: "Owner can call back through a masked number — your real number stays private",
+        send_report: "Send Report Securely →",
+        privacy_footer: "Your identity is never shared with the car owner",
+        reasons: {
+          blocking: "Blocking<br>driveway",
+          lights: "Lights on /<br>door open",
+          accident: "Accident /<br>scratch",
+          suspect: "Suspicious<br>activity",
+          theft: "Theft /<br>break-in",
+          other: "Other",
+          found_item: "I found<br>this item",
+          have_safe: "I have it<br>safe",
+          visitor: "I am at<br>the door",
+          delivery: "Delivery<br>drop-off",
+        }
+      },
+      hi: {
+        secure_report: "सुरक्षित रिपोर्ट",
+        looking_up: "खोजा जा रहा है…",
+        registered_with: "LinkNPark पर पंजीकृत",
+        owner_reachable: "मालिक उपलब्ध है",
+        privacy_note: "मालिक का नंबर साझा नहीं किया जाता है। आपकी रिपोर्ट सुरक्षित रूप से भेजी जाएगी।",
+        sticker_not_active: "स्टिकर अभी तक सक्रिय नहीं है",
+        not_active_desc: "मालिक ने अभी तक इस स्टिकर को ऐप में पंजीकृत नहीं किया है।",
+        report_btn: "रिपोर्ट करें →",
+        report_hint: "30 सेकंड से कम समय लगता है। कोई साइन-अप की आवश्यकता नहीं है।",
+        what_to_report: "आपको क्या रिपोर्ट करना है?",
+        select_reason: "कारण चुनें — मालिक को तुरंत सूचित किया जाएगा",
+        continue_btn: "आगे बढ़ें →",
+        add_details: "विवरण जोड़ें",
+        optional: "(वैकल्पिक)",
+        help_owner: "मालिक को स्थिति जल्दी समझने में मदद करें",
+        your_message: "आपका संदेश",
+        msg_placeholder: "उदा. आपकी कार मेरे गेट को ब्लॉक कर रही है, कृपया इसे हटा लें…",
+        your_phone: "आपका फोन (वैकल्पिक — कॉलबैक के लिए)",
+        phone_desc: "मालिक एक छिपे हुए नंबर से कॉल कर सकता है — आपका असली नंबर गुप्त रहेगा",
+        send_report: "सुरक्षित रूप से भेजें →",
+        privacy_footer: "आपकी पहचान कार के मालिक के साथ कभी साझा नहीं की जाती है",
+        reasons: {
+          blocking: "रास्ता<br>ब्लॉक है",
+          lights: "लाइट ऑन /<br>दरवाजा खुला",
+          accident: "दुर्घटना /<br>स्क्रैच",
+          suspect: "संदिग्ध<br>गतिविधि",
+          theft: "चोरी /<br>तोड़-फोड़",
+          other: "अन्य",
+          found_item: "मुझे यह<br>सामान मिला",
+          have_safe: "मेरे पास<br>सुरक्षित है",
+          visitor: "मैं दरवाजे<br>पर हूँ",
+          delivery: "डिलीवरी<br>देनी है",
+        }
+      },
+      kn: {
+        secure_report: "ಸುರಕ್ಷಿತ ವರದಿ",
+        looking_up: "ಹುಡುಕಲಾಗುತ್ತಿದೆ…",
+        registered_with: "LinkNPark ನಲ್ಲಿ ನೋಂದಾಯಿಸಲಾಗಿದೆ",
+        owner_reachable: "ಮಾಲೀಕರು ಲಭ್ಯವಿದ್ದಾರೆ",
+        privacy_note: "ಮಾಲೀಕರ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಲಾಗುವುದಿಲ್ಲ. ನಿಮ್ಮ ವರದಿಯನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
+        sticker_not_active: "ಸ್ಟಿಕ್ಕರ್ ಇನ್ನೂ ಸಕ್ರಿಯವಾಗಿಲ್ಲ",
+        not_active_desc: "ಮಾಲೀಕರು ಈ ಸ್ಟಿಕ್ಕರ್ ಅನ್ನು ಇನ್ನೂ ಆ್ಯಪ್‌ನಲ್ಲಿ ನೋಂದಾಯಿಸಿಲ್ಲ.",
+        report_btn: "ವರದಿ ಮಾಡಿ →",
+        report_hint: "30 ಸೆಕೆಂಡುಗಳಿಗಿಂತ ಕಡಿಮೆ ಸಮಯ ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ. ಸೈನ್-ಅಪ್ ಅಗತ್ಯವಿಲ್ಲ.",
+        what_to_report: "ನೀವು ಏನು ವರದಿ ಮಾಡಬೇಕು?",
+        select_reason: "ಕಾರಣವನ್ನು ಆಯ್ಕೆಮಾಡಿ — ಮಾಲೀಕರಿಗೆ ತಕ್ಷಣ ತಿಳಿಸಲಾಗುವುದು",
+        continue_btn: "ಮುಂದುವರಿಸಿ →",
+        add_details: "ವಿವರಗಳನ್ನು ಸೇರಿಸಿ",
+        optional: "(ಐಚ್ಛಿಕ)",
+        help_owner: "ಪರಿಸ್ಥಿತಿಯನ್ನು ಬೇಗ ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಮಾಲೀಕರಿಗೆ ಸಹಾಯ ಮಾಡಿ",
+        your_message: "ನಿಮ್ಮ ಸಂದೇಶ",
+        msg_placeholder: "ಉದಾ. ನಿಮ್ಮ ಕಾರು ನನ್ನ ಗೇಟ್ ಅನ್ನು ನಿರ್ಬಂಧಿಸುತ್ತಿದೆ, ದಯವಿಟ್ಟು ಅದನ್ನು ಸರಿಸಿ…",
+        your_phone: "ನಿಮ್ಮ ಫೋನ್ (ಐಚ್ಛಿಕ — ಕಾಲ್ ಬ್ಯಾಕ್ ಗಾಗಿ)",
+        phone_desc: "ಮಾಲೀಕರು ಮರೆಮಾಡಲಾದ ಸಂಖ್ಯೆಯ ಮೂಲಕ ಕರೆ ಮಾಡಬಹುದು — ನಿಮ್ಮ ನೈಜ ಸಂಖ್ಯೆ ಗೌಪ್ಯವಾಗಿರುತ್ತದೆ",
+        send_report: "ಸುರಕ್ಷಿತವಾಗಿ ಕಳುಹಿಸಿ →",
+        privacy_footer: "ನಿಮ್ಮ ಗುರುತನ್ನು ಕಾರಿನ ಮಾಲೀಕರೊಂದಿಗೆ ಎಂದಿಗೂ ಹಂಚಿಕೊಳ್ಳಲಾಗುವುದಿಲ್ಲ",
+        reasons: {
+          blocking: "ದಾರಿಯನ್ನು<br>ತಡೆಯಲಾಗಿದೆ",
+          lights: "ಲೈಟ್ ಆನ್ /<br>ಬಾಗಿಲು ತೆರೆದಿದೆ",
+          accident: "ಅಪಘಾತ /<br>ಗೀರು",
+          suspect: "ಅನುಮಾನಾಸ್ಪದ<br>ಚಟುವಟಿಕೆ",
+          theft: "ಕಳ್ಳತನ",
+          other: "ಇತರೆ",
+          found_item: "ನನಗೆ ಈ<br>ವಸ್ತು ಸಿಕ್ಕಿದೆ",
+          have_safe: "ನನ್ನ ಬಳಿ<br>ಸುರಕ್ಷಿತವಾಗಿದೆ",
+          visitor: "ನಾನು ಬಾಗಿಲ<br>ಬಳಿ ಇದ್ದೇನೆ",
+          delivery: "ಡೆಲಿವರಿ<br>ಡ್ರಾಪ್-ಆಫ್",
+        }
+      }
+    };
+
+    let currentLang = 'en';
+
+    function changeLanguage(lang) {
+      if (!DICT[lang]) return;
+      currentLang = lang;
+      document.getElementById('lang-selector').value = lang;
+      
+      // Update data-i18n elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (DICT[lang][key]) el.innerHTML = DICT[lang][key];
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (DICT[lang][key]) el.setAttribute('placeholder', DICT[lang][key]);
+      });
+
+      // Re-render reason grid if active
+      if (currentReasons.length > 0) {
+        buildReasonGrid(currentReasons);
+        
+        // Update selected chip if any
+        if (selectedReason) {
+          const r = currentReasons.find(x => x.id === selectedReason);
+          const chip = document.getElementById('selected-chip');
+          if (chip) {
+            chip.innerHTML = `<span style="color:${r.color}">${REASON_ICONS[r.id]}</span><span>${DICT[lang].reasons[r.id] || r.label.replace(/\\n|<br>/g,' ')}</span>`;
+          }
+        }
+      }
+    }
+
+    // Auto-detect language
+    window.addEventListener('DOMContentLoaded', () => {
+      const userLang = navigator.language || navigator.userLanguage;
+      if (userLang.startsWith('hi')) changeLanguage('hi');
+      else if (userLang.startsWith('kn')) changeLanguage('kn');
+      else changeLanguage('en');
+    });
+
     let currentReasons = [];
 
     const VEHICLE_REASONS = [
@@ -290,16 +466,18 @@
     function buildReasonGrid(reasons) {
       currentReasons = reasons;
       const grid = document.getElementById('reason-grid');
-      grid.innerHTML = reasons.map(r => `
+      grid.innerHTML = reasons.map(r => {
+        const label = DICT[currentLang].reasons[r.id] || r.label.replace(/\\n|<br>/g, '<br>');
+        return `
         <div id="card-${r.id}" onclick="selectReason('${r.id}')"
           class="card-hover border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center text-center gap-2.5 bg-white"
           style="min-height:96px">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${r.bg};color:${r.color}">
             ${REASON_ICONS[r.id]}
           </div>
-          <span class="text-xs font-semibold text-gray-700 leading-tight">${r.label.replace(/\\n|<br>/g, '<br>')}</span>
+          <span class="text-xs font-semibold text-gray-700 leading-tight">${label}</span>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function selectReason(id) {
@@ -321,23 +499,30 @@
       if (step === 2 && selectedReason) {
         const r = currentReasons.find(x => x.id === selectedReason);
         const chip = document.getElementById('selected-chip');
+        const label = DICT[currentLang].reasons[r.id] || r.label.replace(/\\n|<br>/g,' ');
         chip.style.background = r.bg;
         chip.style.color = r.color;
-        chip.innerHTML = `<span style="color:${r.color}">${REASON_ICONS[r.id]}</span><span>${r.label.replace(/\\n|<br>/g,'')}</span>`;
+        chip.innerHTML = `<span style="color:${r.color}">${REASON_ICONS[r.id]}</span><span>${label}</span>`;
       }
     }
 
     let currentReportId = null;
-    let chatInterval = null;
+    let chatWs = null;
+    let chatSessionId = null;
+    let visitorToken = localStorage.getItem('visitor_token') || Math.random().toString(36).substring(2);
+    localStorage.setItem('visitor_token', visitorToken);
 
     async function submitReport() {
-      const phone = document.getElementById('phone-input').value.trim();
-      const message = document.getElementById('msg-input').value.trim();
+      const msgInput = document.getElementById('msg-input');
+      const phoneInput = document.getElementById('phone-input');
+      const message = msgInput ? msgInput.value.trim() : '';
+      const phone = phoneInput ? phoneInput.value.trim() : '';
 
       // Show confirmation screen immediately for snappy UX
       goTo(3);
-      if (!phone) {
-        document.getElementById('callback-box').classList.remove('hidden');
+      const callbackBox = document.getElementById('callback-box');
+      if (!phone && callbackBox) {
+        callbackBox.classList.remove('hidden');
       }
 
       try {
@@ -354,35 +539,96 @@
         const data = await res.json();
         if (data.ok) {
           currentReportId = data.reportId;
-          chatInterval = setInterval(pollChat, 3000);
-          pollChat(); // initial fetch
+          sessionStorage.setItem('linknpark_report_id', currentReportId);
+          initChat(currentReportId);
         }
       } catch (e) {
         console.error('Failed to send report', e);
       }
     }
 
-    async function pollChat() {
-      if (!currentReportId) return;
+    async function initChat(incidentId) {
       try {
-        const res = await fetch(`${API_BASE}/api/chat/${currentReportId}`);
+        // 1. Initialize chat session via REST
+        const res = await fetch(`${API_BASE}/api/chat/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ incident_id: incidentId, visitor_token: visitorToken })
+        });
         const data = await res.json();
-        const box = document.getElementById('chat-messages');
-        if (data.messages && data.messages.length > 0) {
-          box.innerHTML = data.messages.map(m => `
-            <div class="flex ${m.sender === 'scanner' ? 'justify-end' : 'justify-start'}">
-              <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.sender === 'scanner' ? 'bg-primary text-white rounded-br-none' : 'bg-gray-100 text-gray-800 rounded-bl-none'}">
-                ${m.text.replace(/</g, "&lt;")}
-              </div>
-            </div>
-          `).join('');
-          box.scrollTop = box.scrollHeight;
-        }
-      } catch (e) {}
+        if (!data.session) return;
+        
+        chatSessionId = data.session.id;
+
+        // Update UI
+        document.getElementById('chat-registration').innerText = '@' + STICKER_CODE;
+        document.getElementById('chat-header-title').innerText = 'Visitor ' + visitorToken.substring(0,4).toUpperCase();
+        
+        // 2. Connect WebSocket
+        const wsUrl = API_BASE.replace('http', 'ws');
+        chatWs = new WebSocket(`${wsUrl}?session_id=${chatSessionId}&role=visitor&token=${visitorToken}`);
+        
+        chatWs.onopen = () => {
+          chatWs.send(JSON.stringify({ type: 'auth' }));
+          goTo(3);
+        };
+        
+        chatWs.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'message') {
+            appendMessage('owner', data.content, new Date(data.created_at));
+          }
+        };
+        
+        chatWs.onclose = () => console.log('Chat disconnected');
+
+      } catch(e) { console.error('Chat init failed', e); }
     }
 
-    async function sendChatMessage() {
-      if (!currentReportId) return;
+    function formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function appendMessage(sender, text, date) {
+      const box = document.getElementById('chat-messages');
+      if (box.innerHTML.includes('Waiting')) box.innerHTML = '';
+      
+      const timeStr = date ? formatTime(date) : formatTime(new Date());
+      
+      if (sender === 'visitor') {
+        box.innerHTML += `
+          <div class="flex justify-end">
+            <div class="max-w-[75%]">
+              <div class="rounded-[20px] rounded-br-sm px-4 py-3" style="background: #A7F3D0; color: #064E3B;">
+                <p class="text-[15px] font-medium leading-snug">${text.replace(/</g, "&lt;")}</p>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="text-[10px] text-emerald-700/60">Today</span>
+                  <span class="text-[10px] text-emerald-700/60">${timeStr}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        box.innerHTML += `
+          <div class="flex justify-start">
+            <div class="max-w-[75%]">
+              <div class="rounded-[20px] rounded-bl-sm px-4 py-3 bg-gray-100 text-gray-800">
+                <p class="text-[15px] font-medium leading-snug">${text.replace(/</g, "&lt;")}</p>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="text-[10px] text-gray-400">Today</span>
+                  <span class="text-[10px] text-gray-400">${timeStr}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendChatMessage() {
+      if (!chatWs || chatWs.readyState !== 1) return;
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
       if (!text) return;
@@ -390,29 +636,16 @@
       input.value = '';
       
       // Optimistic UI
-      const box = document.getElementById('chat-messages');
-      if (box.innerHTML.includes('Waiting')) box.innerHTML = '';
-      box.innerHTML += `
-        <div class="flex justify-end opacity-50">
-          <div class="max-w-[85%] rounded-xl px-3 py-2 text-sm bg-primary text-white rounded-br-none">
-            ${text.replace(/</g, "&lt;")}
-          </div>
-        </div>
-      `;
-      box.scrollTop = box.scrollHeight;
+      appendMessage('visitor', text);
 
-      try {
-        await fetch(`${API_BASE}/api/chat/${currentReportId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sender: 'scanner', text }),
-        });
-        pollChat();
-      } catch (e) {}
+      // Send over WS
+      chatWs.send(JSON.stringify({ type: 'message', content: text }));
     }
 
     function resetFlow() {
+      sessionStorage.removeItem('linknpark_report_id');
       selectedReason = null;
+      if (chatWs) chatWs.close();
       document.getElementById('msg-input').value = '';
       document.getElementById('phone-input').value = '';
       document.getElementById('next-btn-1').disabled = true;
@@ -421,6 +654,17 @@
 
     // Load sticker info on page open
     async function loadSticker() {
+      // Check if we already have an active report session
+      const savedReportId = sessionStorage.getItem('linknpark_report_id');
+      if (savedReportId) {
+        currentReportId = savedReportId;
+        initChat(savedReportId);
+        document.getElementById('loading-card').classList.add('hidden');
+        document.getElementById('vehicle-card').classList.add('hidden');
+        goTo(3);
+        return;
+      }
+
       // No ?code= in URL — user visited the bare URL directly
       if (!STICKER_CODE) {
         document.getElementById('loading-card').classList.add('hidden');

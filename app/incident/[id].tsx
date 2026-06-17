@@ -31,36 +31,9 @@ export default function IncidentDetailScreen() {
   const { incidents, loading, refresh, setIncidents } = useIncidents();
   const incident = incidents.find(i => i.id === id);
   const [resolving, setResolving] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatText, setChatText] = useState('');
-
   useEffect(() => {
-    if (!id) return;
-    const fetchChat = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/chat/${id}`);
-        const data = await res.json();
-        if (data.messages) setChatMessages(data.messages);
-      } catch (e) {}
-    };
-    fetchChat();
-    const interval = setInterval(fetchChat, 3000);
-    return () => clearInterval(interval);
+    // Legacy inline chat removed - handled by Car Connect chat screen
   }, [id]);
-
-  async function handleSendChat() {
-    if (!chatText.trim()) return;
-    const text = chatText.trim();
-    setChatText('');
-    setChatMessages(prev => [...prev, { sender: 'owner', text, ts: Date.now() }]);
-    try {
-      await fetch(`${API_URL}/api/chat/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: 'owner', text })
-      });
-    } catch (e) {}
-  }
 
   if (loading && !incident) {
     return (
@@ -86,6 +59,12 @@ export default function IncidentDetailScreen() {
   const color = meta?.color || Colors.high;
   const sticker = incident.stickers;
   const isResolved = incident.status !== 'open';
+  
+  const severityText = color === Colors.critical ? 'CRITICAL' 
+    : color === Colors.high ? 'HIGH' 
+    : color === Colors.medium ? 'MEDIUM' 
+    : color === Colors.low ? 'LOW' 
+    : 'INFO';
 
   async function handleResolve(status: 'resolved' | 'dismissed') {
     setResolving(true);
@@ -117,7 +96,16 @@ export default function IncidentDetailScreen() {
         colors={[color, `${color}CC`]}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/incidents');
+            }
+          }} 
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -128,7 +116,7 @@ export default function IncidentDetailScreen() {
             {sticker?.vehicle_name ? ` · ${sticker.vehicle_name}` : ''}
           </Text>
           <Badge
-            label={isResolved ? incident.status.toUpperCase() : incident.severity.toUpperCase()}
+            label={isResolved ? incident.status.toUpperCase() : severityText}
             color={isResolved ? Colors.success : color}
             bg="rgba(255,255,255,0.25)"
           />
@@ -162,29 +150,18 @@ export default function IncidentDetailScreen() {
 
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.divider }}>
-            <Text style={styles.sectionLabel}>Live Chat (Anonymous)</Text>
+            <Text style={styles.sectionLabel}>Car Connect (Live Chat)</Text>
+            <Text style={{ fontSize: 13, color: Colors.textSecondary, marginTop: 4 }}>
+              Chat securely with the visitor who scanned your vehicle.
+            </Text>
           </View>
-          <View style={{ maxHeight: 250, padding: 16, gap: 10 }}>
-            {chatMessages.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: Colors.textMuted, fontSize: 13 }}>No messages yet</Text>
-            ) : (
-              chatMessages.map((m, i) => (
-                <View key={i} style={{ alignSelf: m.sender === 'owner' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                  <View style={{ backgroundColor: m.sender === 'owner' ? Colors.primary : Colors.surfaceSecondary, padding: 10, borderRadius: 12, borderBottomRightRadius: m.sender === 'owner' ? 0 : 12, borderBottomLeftRadius: m.sender === 'owner' ? 12 : 0 }}>
-                    <Text style={{ color: m.sender === 'owner' ? '#fff' : Colors.text }}>{m.text}</Text>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-          <View style={{ flexDirection: 'row', padding: 12, borderTopWidth: 1, borderTopColor: Colors.divider }}>
-            <TextInput
-              style={{ flex: 1, backgroundColor: Colors.surfaceSecondary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8 }}
-              placeholder="Reply anonymously..."
-              value={chatText}
-              onChangeText={setChatText}
+          <View style={{ padding: 16 }}>
+            <Button 
+              label="Open Live Chat" 
+              icon={<Ionicons name="chatbubbles" size={18} color="#fff" />}
+              onPress={() => router.push(`/chat/${incident.id}` as any)}
+              style={{ backgroundColor: '#15803D' }}
             />
-            <Button label="Send" onPress={handleSendChat} style={{ paddingHorizontal: 16 }} />
           </View>
         </Card>
 

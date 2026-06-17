@@ -152,8 +152,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface, borderRadius: 16,
     padding: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: Colors.divider,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 2,
   },
   btn: {
     height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.5 },
   btnInner: { flexDirection: 'row', alignItems: 'center' },
   btnIcon: { marginRight: 8 },
-  btnText: { fontSize: 15, fontWeight: '600', color: Colors.white },
+  btnText: { fontSize: 15, fontWeight: '700', color: Colors.bg }, // Dark text for primary buttons
   btnTextSecondary: { color: Colors.primary },
   btnTextGhost: { color: Colors.primary },
   btnTextDanger: { color: Colors.critical },

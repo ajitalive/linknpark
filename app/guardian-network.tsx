@@ -94,50 +94,65 @@ export default function GuardianNetworkScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={[styles.header, { paddingTop: insets.top }]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerIcon}>
-            <Ionicons name="shield" size={28} color="#fff" />
+            <Ionicons name="shield" size={28} color={Colors.primary} />
           </View>
-          <Text style={styles.headerTitle}>Guardian Network</Text>
+          <Text style={styles.headerTitle}>Guardian Network <Text style={{color: Colors.primary}}>●</Text></Text>
           <Text style={styles.headerSub}>Community watch for your vehicle</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Card>
-          <View style={styles.masterToggle}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.masterTitle}>Guardian Network</Text>
-              <Text style={styles.masterDesc}>
-                {networkEnabled ? 'Your vehicle is watched by the community' : 'Guardian network is disabled'}
-              </Text>
+        {/* Karma Dashboard */}
+        <LinearGradient
+          colors={[Colors.amber, Colors.high]}
+          style={styles.karmaCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.karmaTitle}>Karma Balance</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text style={styles.karmaValue}>450</Text>
+              <Text style={styles.karmaPoints}>Pts</Text>
             </View>
-            <Switch
-              value={networkEnabled}
-              onValueChange={setNetworkEnabled}
-              trackColor={{ true: Colors.primary, false: Colors.divider }}
-              thumbColor="#fff"
-            />
+            <Text style={styles.karmaDesc}>50 Pts away from a Free Tag!</Text>
           </View>
-        </Card>
+          <View style={styles.karmaIconWrap}>
+            <Ionicons name="star" size={32} color={Colors.amber} />
+          </View>
+        </LinearGradient>
 
-        <Card>
-          <Text style={styles.sectionLabel}>How It Works</Text>
+        <Card style={{ marginTop: 16 }}>
+          <Text style={styles.sectionLabel}>How to Earn Karma</Text>
           <View style={{ gap: 12 }}>
-            <FeatureRow icon="scan" color={Colors.primary} title="Community Watch" desc="Nearby LinkNPark users can report incidents on your vehicle even without scanning your specific sticker." />
-            <FeatureRow icon="notifications" color={Colors.amber} title="Instant Alerts" desc="You get notified the moment any community member flags an issue near your parked vehicle." />
-            <FeatureRow icon="location" color={Colors.success} title="Zone-Based" desc="Join local zones to receive and contribute to neighbourhood watch alerts." />
+            <FeatureRow icon="scan" color={Colors.primary} title="Scan & Report" desc="Spot a car with lights on or windows down? Scan the LinkNPark tag and alert the owner (+50 Pts)." />
+            <FeatureRow icon="shield-checkmark" color={Colors.success} title="Resolve Issues" desc="When the owner acknowledges your alert, you earn bonus points (+20 Pts)." />
+            <FeatureRow icon="gift" color={Colors.amber} title="Redeem Rewards" desc="Use Karma points in our Store to get free tags, keychains, and discounts." />
           </View>
+          <Button
+            label="Go to Store"
+            onPress={() => router.push('/(tabs)/store')}
+            variant="outline"
+            style={{ marginTop: 16 }}
+          />
         </Card>
 
-        <Text style={styles.listLabel}>Your Zones</Text>
+        <Text style={[styles.listLabel, { marginTop: 20 }]}>My Good Deeds</Text>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <DeedRow title="Alerted: Lights On" date="Today, 2:30 PM" points="+50" />
+          <View style={{ height: 1, backgroundColor: Colors.divider }} />
+          <DeedRow title="Alerted: Window Open" date="12 Jun, 9:15 AM" points="+50" />
+          <View style={{ height: 1, backgroundColor: Colors.divider }} />
+          <DeedRow title="Alert Acknowledged" date="12 Jun, 9:20 AM" points="+20" />
+        </Card>
+
+        <Text style={[styles.listLabel, { marginTop: 24 }]}>Your Active Zones</Text>
         {loading ? (
           <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 20 }} />
         ) : (
@@ -170,14 +185,7 @@ export default function GuardianNetworkScreen() {
           style={{ marginTop: 12 }}
         />
 
-        <Card style={{ marginTop: 8 }}>
-          <View style={styles.statRow}>
-            <StatItem value="247" label="Zone Members" color={Colors.primary} />
-            <StatItem value="12" label="Alerts This Week" color={Colors.amber} />
-            <StatItem value="98%" label="Response Rate" color={Colors.success} />
-          </View>
-        </Card>
-      </ScrollView>
+        </ScrollView>
 
       <Modal
         visible={isModalVisible}
@@ -243,22 +251,25 @@ function FeatureRow({ icon, color, title, desc }: any) {
   );
 }
 
-function StatItem({ value, label, color }: any) {
+function DeedRow({ title, date, points }: any) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, justifyContent: 'space-between' }}>
+      <View>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.text }}>{title}</Text>
+        <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 4 }}>{date}</Text>
+      </View>
+      <Text style={{ fontSize: 16, fontWeight: '800', color: Colors.success }}>{points}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 24 },
+  header: { paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.bg },
   backBtn: { paddingVertical: 12 },
   headerContent: { alignItems: 'center', gap: 8 },
-  headerIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  headerIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.divider },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
+  headerSub: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
   masterToggle: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   masterTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
   masterDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
@@ -322,4 +333,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
+  karmaCard: {
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: Colors.high,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  karmaTitle: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: 1 },
+  karmaValue: { fontSize: 42, fontWeight: '900', color: '#fff', marginTop: 4 },
+  karmaPoints: { fontSize: 16, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  karmaDesc: { fontSize: 13, color: '#fff', marginTop: 4, fontWeight: '500' },
+  karmaIconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
 });

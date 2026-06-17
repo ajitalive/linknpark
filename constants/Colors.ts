@@ -1,37 +1,39 @@
 export const Colors = {
-  primary: '#3B2FF5',
-  primaryLight: '#6B5FFF',
-  primaryDark: '#2518C4',
-  primaryBg: '#EEF2FF',
+  // Brand Neon Green
+  primary: '#CCFF00', 
+  primaryLight: '#D9FF33',
+  primaryDark: '#A3CC00',
+  primaryBg: '#1A2000',
 
   amber: '#F59E0B',
   amberLight: '#FCD34D',
-  amberBg: '#FFFBEB',
+  amberBg: '#332305',
 
-  bg: '#F8F9FB',
-  surface: '#FFFFFF',
-  surfaceSecondary: '#F1F3F7',
+  // Dark Theme Fundamentals
+  bg: '#09090B',
+  surface: '#18181B',
+  surfaceSecondary: '#27272A',
 
-  text: '#111827',
-  textSecondary: '#6B7280',
-  textMuted: '#9CA3AF',
-  divider: '#E5E7EB',
+  text: '#FFFFFF',
+  textSecondary: '#A1A1AA',
+  textMuted: '#52525B',
+  divider: '#27272A',
 
   // Severity
-  critical: '#DC2626',
-  criticalBg: '#FEF2F2',
-  high: '#EA580C',
-  highBg: '#FFF7ED',
-  medium: '#D97706',
-  mediumBg: '#FFFBEB',
-  low: '#0891B2',
-  lowBg: '#ECFEFF',
-  success: '#16A34A',
-  successBg: '#F0FDF4',
+  critical: '#EF4444',
+  criticalBg: '#3F1616',
+  high: '#F97316',
+  highBg: '#3D1C08',
+  medium: '#EAB308',
+  mediumBg: '#332704',
+  low: '#06B6D4',
+  lowBg: '#08333B',
+  success: '#22C55E',
+  successBg: '#092B14',
 
   // Status
-  paused: '#9CA3AF',
-  pausedBg: '#F9FAFB',
+  paused: '#71717A',
+  pausedBg: '#27272A',
 
   white: '#FFFFFF',
   black: '#000000',

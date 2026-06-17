@@ -90,11 +90,10 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="vault"
+          name="marketplace"
           options={{
-            title: 'Vault',
-            href: null,
-            tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'lock-closed' : 'lock-closed-outline'} color={color} focused={focused} />,
+            title: 'Parking',
+            tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'map' : 'map-outline'} color={color} focused={focused} />,
           }}
         />
         <Tabs.Screen

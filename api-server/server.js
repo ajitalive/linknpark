@@ -13,6 +13,7 @@ app.use(express.json());
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+const { initChatWebSocket } = require('./chat.js');
 
 // ============ CONFIG ============
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -209,9 +210,9 @@ app.get('/api/stickers', requireAuth, async (req, res) => {
 });
 
 app.post('/api/stickers', requireAuth, async (req, res) => {
-  const { code, vehicle_name, vehicle_type, vehicle_color, plate_number, tag_type, tag_title } = req.body;
-  if (!code || !vehicle_type || !plate_number) {
-    return res.status(400).json({ error: 'code, vehicle_type, plate_number required' });
+  const { code, vehicle_name, vehicle_type, color, registration, backup_phone, tag_type, tag_title } = req.body;
+  if (!code || !vehicle_type || !registration) {
+    return res.status(400).json({ error: 'code, vehicle_type, registration required' });
   }
   
   const normalizedCode = code.toUpperCase();
@@ -237,8 +238,9 @@ app.post('/api/stickers', requireAuth, async (req, res) => {
     owner_email: req.user.email,
     vehicle_type,
     vehicle_name: vehicle_name || null,
-    registration: plate_number.toUpperCase(),
-    color: vehicle_color || null,
+    registration: registration.toUpperCase(),
+    color: color || null,
+    backup_phone: backup_phone || null,
     tag_type: tag_type || 'vehicle',
     tag_title: tag_title || null,
     status: 'active'
@@ -320,7 +322,7 @@ async function sendExpoPush(token, { title, body, data = {} }) {
     const res = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ to: token, title, body, data, sound: 'default', priority: 'high', channelId: 'incidents' }),
+      body: JSON.stringify({ to: token, title, body, data, sound: 'alert_sound.wav', priority: 'high', channelId: 'incidents_v2' }),
     });
     const json = await res.json();
     if (json.data?.status === 'error') console.warn('[PUSH] Expo error:', json.data.message);
@@ -763,7 +765,47 @@ app.get('/', (req, res) => {
   res.redirect('https://linknpark.in');
 });
 
+// ============ CHAT ============
+app.post('/api/chat/init', async (req, res) => {
+  const { incident_id, visitor_token } = req.body;
+  if (!incident_id || !visitor_token) return res.status(400).json({ error: 'Missing incident_id or visitor_token' });
+  
+  let { data: session } = await supabase.from('chat_sessions')
+    .select('*').eq('incident_id', incident_id).eq('visitor_token', visitor_token).eq('status', 'active').single();
+    
+  if (!session) {
+    const { data: newSession, error } = await supabase.from('chat_sessions')
+      .insert({ incident_id, visitor_token }).select().single();
+    if (error) return res.status(500).json({ error: error.message });
+    session = newSession;
+  }
+  
+  res.json({ session });
+});
+
+app.get('/api/chat/:sessionId/messages', async (req, res) => {
+  const { data: messages, error } = await supabase.from('chat_messages')
+    .select('*').eq('session_id', req.params.sessionId).order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ messages });
+});
+
+app.get('/api/incidents/:id/chat', requireAuth, async (req, res) => {
+  // Mobile app (Owner) fetches active chat session for an incident
+  const { data: session, error } = await supabase.from('chat_sessions')
+    .select('*').eq('incident_id', req.params.id).eq('status', 'active')
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ session: session || null });
+});
+
 const PORT = process.env.PORT || 3001;
+
+// Initialize WebSocket Chat Handler
+if (supabase) {
+  initChatWebSocket(wss, supabase, jwt, JWT_SECRET);
+}
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`\nLinkNPark API server → http://0.0.0.0:${PORT}`);
   console.log(`Supabase: ${supabase ? 'connected' : 'NOT configured'}`);

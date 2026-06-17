@@ -5,73 +5,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
 import { Card } from '../../components/ui';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const PRODUCT_WIDTH = (width - 48) / 2;
 
-const PRODUCTS = [
-  {
-    id: 'bike-tag-2',
-    name: 'LinkNPark Bike Tags (Pack of 2)',
-    desc: '1 for Bike, 1 for Helmet. Masked calls & WhatsApp.',
-    price: 499,
-    originalPrice: 549,
-    image: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&q=80',
-    discount: '9%',
-    category: 'Stickers'
-  },
-  {
-    id: 'lost-found-pack',
-    name: 'Lost & Found Tag (1 Ring + 4 Stickers)',
-    desc: 'Use this tag on anything you dont want to lose.',
-    price: 499,
-    originalPrice: 999,
-    image: 'https://images.unsplash.com/photo-1627513759998-6ceec089ab57?w=400&q=80',
-    discount: '50%',
-    category: 'Tags'
-  },
-  {
-    id: 'pet-tag',
-    name: 'Smart Pet Tag (Waterproof)',
-    desc: 'Attach to collar. Stores medical info & owner contact.',
-    price: 349,
-    originalPrice: 499,
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&q=80',
-    discount: '30%',
-    category: 'Tags'
-  },
-  {
-    id: 'medical-sos',
-    name: 'Medical SOS ID Card',
-    desc: 'Critical medical history for paramedics. Instant alerts.',
-    price: 299,
-    originalPrice: 599,
-    image: 'https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?w=400&q=80',
-    discount: '50%',
-    category: 'Cards'
-  }
-];
+import { PRODUCTS } from '../../constants/Products';
 
 export default function StoreScreen() {
   const insets = useSafeAreaInsets();
 
   function handleBuy(product: any) {
-    Alert.alert(
-      'Coming Soon',
-      `You selected ${product.name}.\n\nThe payment gateway is currently being configured and will be available soon!`,
-      [{ text: 'OK', style: 'default' }]
-    );
+    router.push(`/product/${product.id}`);
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={[styles.header, { paddingTop: insets.top + 16 }]}
-      >
-        <Text style={styles.headerTitle}>LinkNPark Store</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <Text style={styles.headerTitle}>LinkNPark Store <Text style={{color: Colors.primary}}>●</Text></Text>
         <Text style={styles.headerSub}>Premium Tags, Cards & Stickers</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.banner}>
@@ -97,7 +50,7 @@ export default function StoreScreen() {
             <TouchableOpacity key={p.id} activeOpacity={0.8} onPress={() => handleBuy(p)}>
               <Card style={styles.productCard}>
                 <View style={styles.imageWrap}>
-                  <Image source={{ uri: p.image }} style={styles.productImage} />
+                  <Image source={typeof p.image === 'string' ? { uri: p.image } : p.image} style={styles.productImage} />
                   {p.discount && (
                     <View style={styles.discountBadge}>
                       <Text style={styles.discountText}>{p.discount} OFF</Text>
@@ -129,9 +82,9 @@ export default function StoreScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 24 },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub: { fontSize: 15, color: 'rgba(255,255,255,0.85)' },
+  header: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: Colors.bg },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
+  headerSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 4, fontWeight: '500' },
   scrollContent: { paddingBottom: 40 },
   banner: { height: 180, marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
   bannerImage: { width: '100%', height: '100%' },

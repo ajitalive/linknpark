@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "341231219844",
+    "project_id": "linknpark-c6f97",
+    "storage_bucket": "linknpark-c6f97.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:341231219844:android:86fc7ee326a3270ce7fed1",
+        "android_client_info": {
+          "package_name": "com.linknpark.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCarV5nYwa_tnSPXHe5RNNH3l6Mi3f-vBQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

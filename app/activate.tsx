@@ -155,7 +155,7 @@ export default function ActivateScreen() {
           style={{ marginTop: 24 }}
         />
         {step === 2 && (
-          <TouchableOpacity style={styles.skipBtn} onPress={() => setStep(3)}>
+          <TouchableOpacity style={styles.skipBtn} onPress={handleNext}>
             <Text style={styles.skipText}>Skip for now</Text>
           </TouchableOpacity>
         )}

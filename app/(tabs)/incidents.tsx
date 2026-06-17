@@ -99,8 +99,15 @@ function IncidentCard({ incident, onResolve }: { incident: Incident; onResolve: 
   const meta = IncidentColors[incident.reason as keyof typeof IncidentColors];
   const label = meta?.label || incident.reason_label || incident.reason;
   const color = meta?.color || Colors.high;
+  const bg = meta?.bg || Colors.highBg;
   const isOpen = incident.status === 'open';
   const sticker = incident.stickers;
+
+  const severityText = color === Colors.critical ? 'CRITICAL' 
+    : color === Colors.high ? 'HIGH' 
+    : color === Colors.medium ? 'MEDIUM' 
+    : color === Colors.low ? 'LOW' 
+    : 'INFO';
 
   return (
     <TouchableOpacity
@@ -114,9 +121,9 @@ function IncidentCard({ incident, onResolve }: { incident: Incident; onResolve: 
           <View style={styles.cardHeader}>
             <Text style={styles.incType}>{label}</Text>
             <Badge
-              label={incident.severity.toUpperCase()}
-              color={(Colors as any)[incident.severity] || Colors.high}
-              bg={(Colors as any)[`${incident.severity}Bg`] || Colors.highBg}
+              label={severityText}
+              color={color}
+              bg={bg}
               size="sm"
             />
           </View>
@@ -179,9 +186,9 @@ function IncidentCard({ incident, onResolve }: { incident: Incident; onResolve: 
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { backgroundColor: Colors.surface, paddingHorizontal: 16, paddingBottom: 0, borderBottomWidth: 1, borderBottomColor: Colors.divider },
+  header: { backgroundColor: Colors.bg, paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.text },
+  title: { fontSize: 28, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 12, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 80 },

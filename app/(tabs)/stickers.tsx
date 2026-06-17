@@ -172,11 +172,10 @@ function StatItem({ icon, label, value, highlight, small }: any) {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
-    backgroundColor: Colors.surface, paddingHorizontal: 16, paddingBottom: 0,
-    borderBottomWidth: 1, borderBottomColor: Colors.divider,
+    backgroundColor: Colors.bg, paddingHorizontal: 20, paddingBottom: 16,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.text },
+  title: { fontSize: 28, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
   addBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center',

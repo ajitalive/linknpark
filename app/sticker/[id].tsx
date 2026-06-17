@@ -106,15 +106,24 @@ export default function StickerDetailScreen() {
         colors={isPaused ? ['#6B7280', '#9CA3AF'] : [Colors.primary, Colors.primaryLight]}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+        <TouchableOpacity 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/stickers');
+            }
+          }} 
+          style={styles.backBtn}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.bg} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <VehicleIcon type={sticker.vehicle_type} size={28} color="#fff" bgColor="rgba(255,255,255,0.2)" />
+          <VehicleIcon type={sticker.vehicle_type} size={28} color={Colors.bg} bgColor="rgba(0,0,0,0.1)" />
           <Text style={styles.vehicleName}>{displayName}</Text>
           <Text style={styles.vehicleReg}>{sticker.registration}</Text>
           <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: isPaused ? '#fff8' : '#4ade80' }]} />
+            <View style={[styles.statusDot, { backgroundColor: isPaused ? 'rgba(0,0,0,0.4)' : '#10B981' }]} />
             <Text style={styles.statusText}>{isPaused ? 'Paused' : 'Active'}</Text>
           </View>
         </View>
@@ -131,7 +140,7 @@ export default function StickerDetailScreen() {
                 <QRCode
                   value={`${SCANNER_BASE}?code=${sticker.code}`}
                   size={120}
-                  color={Colors.primary}
+                  color={Colors.bg}
                   backgroundColor="#fff"
                 />
               </View>
@@ -252,11 +261,11 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 28 },
   backBtn: { paddingVertical: 12 },
   headerContent: { alignItems: 'center', gap: 8 },
-  vehicleName: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  vehicleReg: { fontSize: 15, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+  vehicleName: { fontSize: 22, fontWeight: '800', color: Colors.bg },
+  vehicleReg: { fontSize: 15, color: 'rgba(0,0,0,0.6)', fontWeight: '500' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  statusText: { color: Colors.bg, fontSize: 13, fontWeight: '600' },
   qrRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   qrBox: { alignItems: 'center' },
   qrWrapper: { width: 128, height: 128, backgroundColor: '#fff', borderRadius: 12, padding: 4, borderWidth: 1.5, borderColor: Colors.divider, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },

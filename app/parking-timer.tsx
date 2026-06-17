@@ -57,21 +57,18 @@ export default function ParkingTimerScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.bg }}>
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={[styles.header, { paddingTop: insets.top }]}
-      >
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerIcon}>
-            <Ionicons name="time" size={28} color="#fff" />
+            <Ionicons name="time" size={28} color={Colors.primary} />
           </View>
-          <Text style={styles.headerTitle}>Parking Timer</Text>
+          <Text style={styles.headerTitle}>Parking Timer <Text style={{color: Colors.primary}}>●</Text></Text>
           <Text style={styles.headerSub}>Get alerted before your time runs out</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <Card>
@@ -143,12 +140,12 @@ function InfoRow({ icon, color, label, desc }: any) {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 24 },
+  header: { paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.bg },
   backBtn: { paddingVertical: 12 },
   headerContent: { alignItems: 'center', gap: 8 },
-  headerIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
+  headerIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.divider },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: Colors.text, letterSpacing: -0.5 },
+  headerSub: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
   timerDisplay: { alignItems: 'center', paddingVertical: 16 },
   timerCircle: { width: 160, height: 160, borderRadius: 80, borderWidth: 6, alignItems: 'center', justifyContent: 'center', gap: 4 },
   timerText: { fontSize: 36, fontWeight: '800' },
