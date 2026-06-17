@@ -136,7 +136,7 @@ export default function GuardianNetworkScreen() {
           <Button
             label="Go to Store"
             onPress={() => router.push('/(tabs)/store')}
-            variant="outline"
+            variant="secondary"
             style={{ marginTop: 16 }}
           />
         </Card>

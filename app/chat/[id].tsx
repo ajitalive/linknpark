@@ -11,7 +11,7 @@ type ChatMessage = { id: string; sender_type: string; content: string; created_a
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>(); // incident_id
-  const { session } = useAuth();
+  const { user } = useAuth();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');

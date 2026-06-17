@@ -356,8 +356,7 @@ function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
           >
             <LinearGradient
               colors={[GuardColors.surface, GuardColors.surfaceLight]}
-              style={StyleSheet.absoluteFillObject}
-              borderRadius={16}
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
             />
             {t.urgent && <View style={[styles.urgentDot, { backgroundColor: t.color }]} />}
             <Ionicons name={t.icon as any} size={28} color={t.color} />

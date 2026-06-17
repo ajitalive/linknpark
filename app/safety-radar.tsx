@@ -26,7 +26,7 @@ export default function SafetyRadarScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerIcon}>
-            <Ionicons name="radar" size={28} color={Colors.primary} />
+            <Ionicons name="radio" size={40} color={Colors.primary} />
           </View>
           <Text style={styles.headerTitle}>Safety Radar <Text style={{color: Colors.primary}}>●</Text></Text>
           <Text style={styles.headerSub}>City-wide scan history & heatmaps</Text>
