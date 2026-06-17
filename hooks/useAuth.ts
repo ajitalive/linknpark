@@ -9,6 +9,12 @@ const USER_KEY = 'linknpark_auth_user';
 
 export type AuthUser = { email: string; name?: string; };
 
+const listeners = new Set<(user: AuthUser | null) => void>();
+
+function notifyListeners(user: AuthUser | null) {
+  listeners.forEach(l => l(user));
+}
+
 export async function getToken(): Promise<string | null> {
   if (Platform.OS === 'web') return localStorage.getItem(TOKEN_KEY);
   return SecureStore.getItemAsync(TOKEN_KEY);
@@ -25,20 +31,22 @@ export async function saveAuth(token: string, user: AuthUser) {
   if (Platform.OS === 'web') {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
-    return;
+  } else {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
   }
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  notifyListeners(user);
 }
 
 export async function clearAuth() {
   if (Platform.OS === 'web') {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    return;
+  } else {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(USER_KEY);
   }
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-  await SecureStore.deleteItemAsync(USER_KEY);
+  notifyListeners(null);
 }
 
 export async function sendOTP(email: string): Promise<{ ok: boolean; error?: string; devCode?: string }> {
@@ -122,17 +130,29 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     (async () => {
       const u = await getStoredUser();
-      setUser(u);
-      setLoading(false);
+      if (mounted) {
+        setUser(u);
+        setLoading(false);
+      }
     })();
+
+    const listener = (u: AuthUser | null) => {
+      if (mounted) setUser(u);
+    };
+    listeners.add(listener);
+
+    return () => {
+      mounted = false;
+      listeners.delete(listener);
+    };
   }, []);
 
   const signOut = useCallback(async () => {
     await clearAuth();
     clearApiCache();
-    setUser(null);
   }, []);
 
   return { user, loading, signOut, setUser };

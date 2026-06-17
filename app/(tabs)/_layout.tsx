@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Tabs } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { View, StyleSheet, Platform } from 'react-native';
@@ -42,21 +43,32 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: Colors.surface,
-            borderTopColor: Colors.divider,
-            borderTopWidth: 1,
-            height: tabBarHeight,
-            paddingBottom: tabBarBottomPad,
-            paddingTop: 8,
+            position: 'absolute',
+            bottom: tabBarBottomPad,
+            left: 16,
+            right: 16,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: 'rgba(18, 20, 26, 0.75)', // Colors.surface with transparency
+            borderTopWidth: 0,
+            borderWidth: 1,
+            borderColor: 'rgba(215, 255, 0, 0.1)', // Subtle neon green border
+            paddingBottom: 0,
+            paddingTop: 0,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.06,
-            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.3,
+            shadowRadius: 16,
             elevation: 10,
           },
+          tabBarBackground: () => (
+            <BlurView tint="dark" intensity={80} style={{ ...StyleSheet.absoluteFillObject, borderRadius: 32, overflow: 'hidden' }} />
+          ),
+          tabBarShowLabel: true,
           tabBarActiveTintColor: Colors.primary,
-          tabBarInactiveTintColor: Colors.textMuted,
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+          tabBarInactiveTintColor: Colors.textSecondary,
+          tabBarLabelStyle: { fontSize: 9, fontWeight: '700', marginBottom: 6 },
+          tabBarItemStyle: { justifyContent: 'center', alignItems: 'center', paddingTop: 6 },
         }}
       >
         <Tabs.Screen
@@ -101,6 +113,12 @@ export default function TabsLayout() {
           options={{
             title: 'More',
             tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'grid' : 'grid-outline'} color={color} focused={focused} />,
+          }}
+        />
+        <Tabs.Screen
+          name="vault"
+          options={{
+            href: null,
           }}
         />
       </Tabs>

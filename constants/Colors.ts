@@ -1,23 +1,23 @@
 export const Colors = {
   // Brand Neon Green
-  primary: '#CCFF00', 
-  primaryLight: '#D9FF33',
-  primaryDark: '#A3CC00',
+  primary: '#D7FF00', 
+  primaryLight: '#E5FF4D',
+  primaryDark: '#B2D600',
   primaryBg: '#1A2000',
 
   amber: '#F59E0B',
   amberLight: '#FCD34D',
   amberBg: '#332305',
 
-  // Dark Theme Fundamentals
-  bg: '#09090B',
-  surface: '#18181B',
-  surfaceSecondary: '#27272A',
+  // Dark Theme Fundamentals (Deep Charcoal)
+  bg: '#0B0D12',
+  surface: '#12141A',
+  surfaceSecondary: '#1C1F26',
 
   text: '#FFFFFF',
   textSecondary: '#A1A1AA',
   textMuted: '#52525B',
-  divider: '#27272A',
+  divider: '#1C1F26',
 
   // Severity
   critical: '#EF4444',
@@ -33,7 +33,7 @@ export const Colors = {
 
   // Status
   paused: '#71717A',
-  pausedBg: '#27272A',
+  pausedBg: '#1C1F26',
 
   white: '#FFFFFF',
   black: '#000000',

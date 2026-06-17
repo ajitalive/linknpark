@@ -6,10 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
-import Constants from 'expo-constants';
+import { API_BASE as API_URL } from '../hooks/usePushNotifications';
 import { getToken } from '../hooks/useAuth';
-
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 type Guardian = { id: string; name: string; zone: string; active: boolean };
 

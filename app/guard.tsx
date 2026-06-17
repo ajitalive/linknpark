@@ -9,9 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+import { API_BASE as API_URL } from '../hooks/usePushNotifications';
 import { getToken } from '../hooks/useAuth';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
 const { width } = Dimensions.get('window');
 
 // Dark theme specific colors

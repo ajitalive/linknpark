@@ -12,8 +12,7 @@ import { Card, Button, Badge } from '../../components/ui';
 import { IncidentIcon } from '../../components/IncidentIcon';
 import { useIncidents, resolveIncident } from '../../hooks/useApi';
 import Constants from 'expo-constants';
-
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
+import { API_BASE as API_URL } from '../../hooks/usePushNotifications';
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -247,21 +246,21 @@ const styles = StyleSheet.create({
   notFoundSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 8, textAlign: 'center' },
   header: { paddingHorizontal: 20, paddingBottom: 24 },
   backBtn: { paddingVertical: 12 },
-  headerContent: { alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerVehicle: { fontSize: 14, color: 'rgba(255,255,255,0.85)' },
-  scannerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  scannerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center' },
-  scannerName: { fontSize: 14, fontWeight: '700', color: Colors.text },
-  scannerTime: { fontSize: 12, color: Colors.textMuted },
-  scannerMsg: { fontSize: 14, color: Colors.text, lineHeight: 22 },
-  quickActions: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  quickAction: { flex: 1, alignItems: 'center', borderRadius: 12, paddingVertical: 14, gap: 4 },
-  quickLabel: { fontSize: 12, fontWeight: '600' },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 10 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
-  infoLabel: { fontSize: 14, color: Colors.textSecondary },
-  infoValue: { fontSize: 14, fontWeight: '600', color: Colors.text },
+  headerContent: { alignItems: 'center', gap: 12 },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  headerVehicle: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  scannerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  scannerAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center' },
+  scannerName: { fontSize: 16, fontWeight: '800', color: Colors.text },
+  scannerTime: { fontSize: 13, color: Colors.textMuted },
+  scannerMsg: { fontSize: 15, color: Colors.text, lineHeight: 24 },
+  quickActions: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  quickAction: { flex: 1, alignItems: 'center', borderRadius: 16, paddingVertical: 16, gap: 6 },
+  quickLabel: { fontSize: 13, fontWeight: '700' },
+  sectionLabel: { fontSize: 14, fontWeight: '800', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  infoLabel: { fontSize: 15, color: Colors.textSecondary, fontWeight: '500' },
+  infoValue: { fontSize: 15, fontWeight: '700', color: Colors.text },
   dismissBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
   dismissText: { fontSize: 13, color: Colors.textMuted, textDecorationLine: 'underline' },
   resolvedCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },

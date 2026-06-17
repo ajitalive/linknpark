@@ -13,6 +13,7 @@ export default function EditProfileScreen() {
   const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   async function handleSave() {
     if (!name.trim()) {
@@ -50,7 +51,16 @@ export default function EditProfileScreen() {
 
       await saveAuth(data.token, data.user);
       setUser(data.user);
-      router.back();
+      
+      setSaved(true);
+      setTimeout(() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/more');
+        }
+      }, 1000);
+
     } catch (e: any) {
       setLoading(false);
       Alert.alert('Error', e.message || 'Network error');
@@ -60,7 +70,13 @@ export default function EditProfileScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/more');
+          }
+        }} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -82,11 +98,11 @@ export default function EditProfileScreen() {
         </View>
 
         <Button
-          label="Save Changes"
+          label={saved ? "Saved!" : "Save Changes"}
           onPress={handleSave}
-          loading={loading}
+          loading={loading && !saved}
           size="lg"
-          style={{ marginTop: 32 }}
+          style={[{ marginTop: 32 }, saved && { backgroundColor: Colors.success }]}
         />
       </View>
     </KeyboardAvoidingView>

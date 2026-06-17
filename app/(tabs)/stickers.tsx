@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,13 +49,17 @@ export default function StickersScreen() {
             style={styles.addBtn}
             onPress={() => router.push('/activate' as any)}
           >
-            <Ionicons name="add" size={22} color={Colors.primary} />
+            <LinearGradient
+              colors={['rgba(215, 255, 0, 0.1)', 'rgba(215, 255, 0, 0.05)']}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <Ionicons name="add" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Search */}
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <Ionicons name="search" size={20} color={Colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name or plate..."
@@ -64,13 +69,13 @@ export default function StickersScreen() {
           />
           {search ? (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+              <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
           ) : null}
         </View>
 
         {/* Filter chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingRight: 20 }}>
           {FILTERS.map(f => (
             <Chip key={f} label={f} active={filter === f} onPress={() => setFilter(f)} />
           ))}
@@ -79,7 +84,7 @@ export default function StickersScreen() {
 
       <ScrollView
         style={styles.list}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={Colors.primary} />}
       >

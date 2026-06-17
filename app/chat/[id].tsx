@@ -5,8 +5,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../hooks/useAuth';
-
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
+import { API_BASE as API_URL } from '../../hooks/usePushNotifications';
 
 type ChatMessage = { id: string; sender_type: string; content: string; created_at: string };
 

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import Constants from 'expo-constants';
 
-export const API_BASE: string =
-  Constants.expoConfig?.extra?.apiUrl ?? 'https://linknpark.onrender.com';
+export const API_BASE: string = 'https://linknpark.onrender.com';
 
 const WS_URL = API_BASE.replace(/^http/, 'ws');
 
