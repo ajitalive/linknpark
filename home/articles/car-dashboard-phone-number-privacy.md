@@ -20,7 +20,7 @@ However, we are no longer living in the early 2000s. We live in an era of hyper-
 
 By leaving your phone number on your dashboard, you are effectively taping your digital master key to the window for anyone passing by to copy. In this comprehensive guide, we break down exactly why this practice is dangerously obsolete and how modern technology provides a much safer alternative.
 
-![Dashboard Phone Number Risk](/placeholder-dashboard-phone.jpg)
+![Dashboard Phone Number Risk](/img/dashboard_phone.png)
 *Caption: A handwritten phone number is an open invitation for data harvesting.*
 
 ---
@@ -76,7 +76,7 @@ Because they know exactly what car you drive and your phone number, the scam sou
 ### Scam Tactic 3: Targeted Phishing
 Scammers send SMS messages appearing to be from your car's manufacturer or your insurance company: *"Your policy for [Vehicle Model] expires today. Click here to renew."* Because the message contains specific, accurate details about your vehicle, the click-through rate on these malicious links is astronomically high.
 
-![UPI Scam Illustration](/placeholder-upi-scam.jpg)
+![UPI Scam Illustration](/img/upi_scam.png)
 *Caption: Scammers use vehicle details to craft highly believable, targeted phishing attacks.*
 
 ---
@@ -122,7 +122,7 @@ The cloud server receives the request and instantly routes it to your phone via 
 
 At no point does the reporter see your name, your phone number, or your social media. And at no point do you see theirs. Total communication, zero privacy compromise.
 
-![LinkNPark QR Sticker](/placeholder-qr-sticker.jpg)
+![LinkNPark QR Sticker](/img/qr_sticker.png)
 *Caption: Smart QR stickers facilitate instant communication without exposing a single piece of personal data.*
 
 ---

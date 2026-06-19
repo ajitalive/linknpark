@@ -18,7 +18,7 @@ But what happens when frustration boils over? The psychological toll of being la
 
 In this comprehensive 4,000-word guide, we will explore the root causes of parking disputes, the dangers of traditional confrontation, the legal landscape surrounding unauthorized parking, and—most importantly—how modern smart technology is providing a frictionless, confrontation-free solution.
 
-![Urban Traffic and Parking Chaos](/placeholder-urban-parking.jpg)
+![Urban Traffic and Parking Chaos](/img/urban_parking.png)
 *Caption: The density of urban environments makes parking management a critical daily challenge.*
 
 ---
@@ -78,7 +78,7 @@ Many well-meaning drivers leave a piece of paper with their mobile number on the
 ### 4. Vandalism (Keying, Deflating Tires)
 * **The Flaw:** This is a criminal offense. Damaging someone else's property, regardless of how badly they are parked, opens you up to severe legal and financial liability. Moreover, a car with deflated tires is now permanently stuck in your way!
 
-![Dashboard Phone Number Risk](/placeholder-dashboard-phone.jpg)
+![Dashboard Phone Number Risk](/img/dashboard_phone.png)
 *Caption: Leaving a personal phone number exposed on a dashboard is a major privacy vulnerability in the digital age.*
 
 ---
@@ -127,7 +127,7 @@ You can also attach the photo you took in Step 1. This provides the owner with u
 ### Step 5: Secure Messaging
 You can opt to leave a custom message. The system will then route your message to the owner via their app or push notifications. Your phone number is never revealed, ensuring complete privacy.
 
-![License Plate Search Interface](/placeholder-plate-search-ui.jpg)
+![License Plate Search Interface](/img/plate_search_ui.png)
 *Caption: Modern tools allow you to search a license plate and securely ping the owner in under 30 seconds.*
 
 ---
