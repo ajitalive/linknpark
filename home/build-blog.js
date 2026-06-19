@@ -9,7 +9,7 @@ const baseUrl = 'https://linknpark.in';
 
 // The HTML template with advanced SEO
 const template = (title, description, content, slug) => {
-  const canonicalUrl = `${baseUrl}/articles/${slug}.html`;
+  const canonicalUrl = `${baseUrl}/articles/${slug}`;
   // Fallback placeholder image for Open Graph if none exists
   const ogImage = `${baseUrl}/logo.png`; 
 
@@ -183,8 +183,8 @@ function build() {
     fs.writeFileSync(path.join(articlesDir, outputFilename), finalHtml);
     console.log(`Built ${outputFilename}`);
 
-    // Add to sitemap
-    sitemapUrls.push(`${baseUrl}/articles/${outputFilename}`);
+    // Add to sitemap (clean URL without .html)
+    sitemapUrls.push(`${baseUrl}/articles/${slug}`);
   });
 
   // Generate XML Sitemap
