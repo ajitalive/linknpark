@@ -1,11 +1,19 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const path = require('path');
+const { marked } = require('marked');
+const yaml = require('js-yaml');
+
+const articlesDir = path.join(__dirname, 'articles');
+
+// The HTML template
+const template = (title, description, content) => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LinkNPark — Article</title>
+  <title>${title} — LinkNPark Blog</title>
+  <meta name="description" content="${description}"/>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --primary: #2CFF05;
@@ -73,7 +81,7 @@
   <nav class="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5">
     <div class="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 sm:gap-2.5">
-        <img src="./logo.png" class="w-8 h-8 rounded-lg" alt="LinkNPark Logo" />
+        <img src="../logo.png" class="w-8 h-8 rounded-lg" alt="LinkNPark Logo" />
         <span class="font-black text-white tracking-tight text-base">LinkNPark</span>
       </a>
       <div class="flex items-center gap-6 font-medium">
@@ -87,72 +95,62 @@
   <main class="flex-1 relative z-10 pt-32 pb-20 px-4 sm:px-6">
     <div class="max-w-3xl mx-auto">
       <div id="content" class="markdown-body">
-        <div class="animate-pulse flex space-x-4">
-          <div class="flex-1 space-y-6 py-1">
-            <div class="h-8 bg-gray-800 rounded w-3/4"></div>
-            <div class="space-y-3">
-              <div class="h-4 bg-gray-800 rounded"></div>
-              <div class="h-4 bg-gray-800 rounded"></div>
-              <div class="h-4 bg-gray-800 rounded w-5/6"></div>
-            </div>
-          </div>
-        </div>
+        ${content}
       </div>
     </div>
   </main>
+</body>
+</html>`;
 
-  <script>
-    async function loadArticle() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const articleId = urlParams.get('id');
-      const contentDiv = document.getElementById('content');
+function build() {
+  const files = fs.readdirSync(articlesDir);
+  let blogIndexItems = [];
 
-      if (!articleId) {
-        contentDiv.innerHTML = '<h1>Article not found</h1><p>Please return to the <a href="/blog.html">blog</a>.</p>';
-        return;
-      }
+  files.forEach(file => {
+    if (path.extname(file) !== '.md') return;
 
-      try {
-        const response = await fetch(`/articles/${articleId}.md`);
-        if (!response.ok) throw new Error('Failed to load');
-        let markdown = await response.text();
-        
-        // Parse YAML Frontmatter
-        const frontmatterMatch = markdown.match(/^---\n([\s\S]*?)\n---/);
-        if (frontmatterMatch) {
-          const yaml = frontmatterMatch[1];
-          // Extract title
-          const titleMatch = yaml.match(/title:\s*"(.*?)"/);
-          if (titleMatch) {
-            document.title = titleMatch[1] + ' — LinkNPark Blog';
-          }
-          // Extract description
-          const descMatch = yaml.match(/description:\s*"(.*?)"/);
-          if (descMatch) {
-            let metaDesc = document.querySelector('meta[name="description"]');
-            if (!metaDesc) {
-              metaDesc = document.createElement('meta');
-              metaDesc.name = "description";
-              document.head.appendChild(metaDesc);
-            }
-            metaDesc.content = descMatch[1];
-          }
-          // Remove frontmatter from markdown
-          markdown = markdown.replace(/^---\n[\s\S]*?\n---\n/, '');
-        }
+    const filePath = path.join(articlesDir, file);
+    let markdown = fs.readFileSync(filePath, 'utf8');
 
-        // Remove markdown alerts like > [!NOTE]
-        markdown = markdown.replace(/> \[\!(NOTE|WARNING|IMPORTANT)\]\n(> .*\n?)+/g, (match) => {
-          return match.replace(/> \[\!(NOTE|WARNING|IMPORTANT)\]\n/, '').replace(/> /g, '');
-        });
-
-        contentDiv.innerHTML = marked.parse(markdown);
-      } catch (e) {
-        contentDiv.innerHTML = '<h1>Article not found</h1><p>We could not find the requested article. Please return to the <a href="/blog.html">blog</a>.</p>';
-      }
+    // Parse Frontmatter
+    const frontmatterMatch = markdown.match(/^---\n([\s\S]*?)\n---/);
+    if (!frontmatterMatch) {
+      console.warn(`Skipping ${file} - no YAML frontmatter found.`);
+      return;
     }
 
-    loadArticle();
-  </script>
-</body>
-</html>
+    const frontmatter = yaml.load(frontmatterMatch[1]);
+    markdown = markdown.replace(/^---\n[\s\S]*?\n---\n/, '');
+
+    // Remove GitHub alerts (NOTE, WARNING, etc.)
+    markdown = markdown.replace(/> \[\!(NOTE|WARNING|IMPORTANT|CAUTION|TIP)\]\n(> .*\n?)+/g, (match) => {
+      return match.replace(/> \[\!(NOTE|WARNING|IMPORTANT|CAUTION|TIP)\]\n/, '').replace(/> /g, '');
+    });
+
+    // Render HTML
+    let htmlContent = marked.parse(markdown);
+
+    // Auto-inject UTM parameters to all internal links and transform plain text domains to links
+    // First, convert bold text like **[Get... LinkNPark.in]** to actual links if they aren't markdown links
+    htmlContent = htmlContent.replace(/\*\*\[(.*?)\]\*\*/g, '<strong><a href="https://linknpark.in">$1</a></strong>');
+
+    // Add UTM parameters to any link pointing to linknpark.in or relative paths
+    htmlContent = htmlContent.replace(/href="(https:\/\/linknpark\.in|\/|https:\/\/scan\.linknpark\.in)([^"]*)"/g, (match, domain, path) => {
+      const urlBase = domain === '/' ? 'https://linknpark.in/' : domain;
+      const utmString = `utm_source=seo_blog&utm_medium=organic&utm_campaign=${file.replace('.md', '')}`;
+      const separator = path.includes('?') ? '&' : '?';
+      // Don't add if already has utm_source
+      if (path.includes('utm_source')) return match;
+      return `href="${urlBase}${path}${separator}${utmString}"`;
+    });
+
+    const finalHtml = template(frontmatter.title, frontmatter.description, htmlContent);
+
+    // Write to HTML file
+    const outputFilename = file.replace('.md', '.html');
+    fs.writeFileSync(path.join(articlesDir, outputFilename), finalHtml);
+    console.log(`Built ${outputFilename}`);
+  });
+}
+
+build();
