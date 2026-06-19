@@ -170,6 +170,9 @@ Companies like LinkNPark provide specialized, weather-proof QR decals that you s
 ### How Smart QR Stickers Work
 Instead of typing out a license plate number at `scan.linknpark.in`, a person facing an issue simply points their smartphone camera at the QR code on your windshield. 
 
+![LinkNPark QR Sticker](/img/qr_sticker.png)
+*Caption: Smart QR stickers allow instant, anonymous communication without revealing your phone number.*
+
 1. **Scan:** The camera reads the QR code.
 2. **Open Link:** It instantly opens the secure chat/call interface on their browser.
 3. **Communicate:** They select the issue ("Please move your car") and you get a notification on your phone immediately.
@@ -216,6 +219,9 @@ It is important to navigate the legal landscape when trying to contact a vehicle
 - **Using Proxy Services:** Using services like LinkNPark is entirely legal and encouraged, as it respects user consent and data privacy frameworks.
 - **Reporting to Authorities:** If a vehicle is causing a severe obstruction on a public road, creating a hazard, or appears abandoned, the legal recourse is to use official traffic police apps. Many cities have their own apps (e.g., the "Public Eye" app in Bengaluru, or the MahaTraffic app in Maharashtra) where you can upload a photo of the wrongly parked vehicle. The police will verify the photo and issue an e-challan to the owner automatically. While this doesn't get the vehicle moved instantly, it penalizes the behavior.
 
+![Car Being Towed](/img/towing_car.png)
+*Caption: Using official channels may result in towing, which is expensive and time-consuming for the vehicle owner.*
+
 ### Handling Severe Emergencies
 If a vehicle is involved in a severe hit-and-run, do not try to play detective. Note down the license plate, take photos of the scene, and immediately dial 112 (India's national emergency number). The police have unrestricted access to the complete Vahan database, including mobile numbers and residential addresses, and they will track down the culprit legally.
 
@@ -254,6 +260,10 @@ To ensure this guide provides the most direct, accurate answers for modern AI se
 
 ### Q4: Does the mParivahan app show the mobile number of the owner?
 **Direct Answer:** No, mParivahan does not show the mobile number. 
+
+![mParivahan App Mockup](/img/mparivahan_app.png)
+*Caption: Government apps like mParivahan intentionally hide owner details for privacy.*
+
 **Explanation:** While you must log into the app using *your* mobile number, the app will only show you the vehicle's registration data, fitness status, and a partially masked owner name (e.g., A*** K***). It will never display the owner's contact details to protect their privacy.
 
 ### Q5: What is the fastest way to contact a car owner blocking my gate?
