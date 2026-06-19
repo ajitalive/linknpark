@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkNPark — Blog & Articles</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary: #2CFF05;
+      --primary-dim: rgba(44,255,5,0.12);
+      --primary-glow: rgba(44,255,5,0.35);
+      --bg: #000000;
+      --surface: #0A0A0A;
+      --card: #111111;
+      --border: rgba(255,255,255,0.07);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    html, body {
+      background: var(--bg);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+      width: 100%;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 20px var(--primary-glow);
+      transform: translateY(-2px);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      border-color: rgba(44,255,5,0.3);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      transform: translateY(-4px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#000000]/80 backdrop-blur-xl border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 sm:gap-2.5">
+        <img src="./logo.png" class="w-8 h-8 rounded-lg" alt="LinkNPark Logo" />
+        <span class="font-black text-white tracking-tight text-base">LinkNPark</span>
+      </a>
+      <div class="flex items-center gap-6 font-medium">
+        <a href="/" class="text-sm text-gray-400 hover:text-white transition-colors">Home</a>
+        <a href="/blog.html" class="text-sm text-[var(--primary)] font-bold transition-colors">Blog</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-1 relative z-10 pt-32 pb-20 px-4 sm:px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-12">
+        <h1 class="text-4xl sm:text-5xl font-black mb-4 tracking-tight">Resources & <span class="text-[var(--primary)]">Articles</span></h1>
+        <p class="text-gray-400 text-lg">Guides on solving parking disputes, ensuring privacy, and modern urban mobility.</p>
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2" id="article-list">
+        <!-- Article Card 1 -->
+        <a href="/article.html?id=pillar_1_parking_disputes" class="card rounded-2xl p-6 block">
+          <div class="text-[10px] font-bold text-[var(--primary)] tracking-wider uppercase mb-3 bg-[var(--primary-dim)] inline-block px-2 py-1 rounded">Guide</div>
+          <h2 class="text-xl font-bold mb-3 leading-tight text-white">The Ultimate Guide to Solving Parking Disputes Without Confrontation</h2>
+          <p class="text-gray-400 text-sm mb-5 line-clamp-3">Trapped by a badly parked car? Learn how to deal with parking disputes safely, avoid road rage, and use smart tools like license plate lookups to resolve issues peacefully.</p>
+          <div class="flex items-center text-[var(--primary)] text-sm font-bold">
+            Read Article <span class="ml-1 text-lg leading-none">→</span>
+          </div>
+        </a>
+
+        <!-- Article Card 2 -->
+        <a href="/article.html?id=pillar_2_dashboard_privacy" class="card rounded-2xl p-6 block">
+          <div class="text-[10px] font-bold text-[var(--primary)] tracking-wider uppercase mb-3 bg-[var(--primary-dim)] inline-block px-2 py-1 rounded">Privacy</div>
+          <h2 class="text-xl font-bold mb-3 leading-tight text-white">Why You Should Never Leave Your Phone Number on Your Car Dashboard</h2>
+          <p class="text-gray-400 text-sm mb-5 line-clamp-3">Leaving your phone number on your dashboard? Discover why this practice is a massive privacy risk exposing you to scams and identity theft, and learn about secure alternatives.</p>
+          <div class="flex items-center text-[var(--primary)] text-sm font-bold">
+            Read Article <span class="ml-1 text-lg leading-none">→</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

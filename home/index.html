@@ -13,13 +13,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --green: #2CFF05;
-      --green-dim: rgba(44,255,5,0.12);
-      --green-glow: rgba(44,255,5,0.35);
-      --indigo: #3B2FF5;
-      --bg: #06090F;
-      --surface: #0C1322;
-      --card: #0F1929;
+      --primary: #2CFF05;
+      --primary-dim: rgba(44,255,5,0.12);
+      --primary-glow: rgba(44,255,5,0.35);
+      --bg: #000000;
+      --surface: #0A0A0A;
+      --card: #111111;
       --border: rgba(255,255,255,0.07);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; }
@@ -56,8 +55,8 @@
       50%      { transform: translateY(-10px); }
     }
     @keyframes glow-pulse {
-      0%,100% { box-shadow: 0 0 24px var(--green-glow); }
-      50%      { box-shadow: 0 0 48px var(--green-glow), 0 0 80px rgba(44,255,5,0.15); }
+      0%,100% { box-shadow: 0 0 24px var(--primary-glow); }
+      50%      { box-shadow: 0 0 48px var(--primary-glow), 0 0 80px rgba(44,255,5,0.15); }
     }
     @keyframes scan-line {
       0%   { top: 6%; opacity: 1; }
@@ -99,7 +98,7 @@
 
     /* ── Utility ── */
     .gradient-text {
-      background: linear-gradient(135deg, var(--green) 0%, #00E5FF 60%, var(--green) 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, #00E5FF 60%, var(--primary) 100%);
       background-size: 200% 200%;
       animation: shimmer 4s ease infinite;
       -webkit-background-clip: text;
@@ -117,7 +116,7 @@
       backdrop-filter: blur(14px);
     }
     .btn-primary {
-      background: var(--green);
+      background: var(--primary);
       color: #000;
       font-weight: 800;
       letter-spacing: -0.2px;
@@ -136,7 +135,7 @@
     }
     .btn-outline:hover {
       border-color: rgba(44,255,5,0.4);
-      color: var(--green);
+      color: var(--primary);
     }
 
     /* ── Nav ── */
@@ -150,15 +149,15 @@
     .scan-wrap { position: relative; overflow: hidden; }
     .scan-beam {
       position: absolute; left: 4%; width: 92%; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--green), transparent);
-      box-shadow: 0 0 10px var(--green), 0 0 24px rgba(44,255,5,0.3);
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      box-shadow: 0 0 10px var(--primary), 0 0 24px rgba(44,255,5,0.3);
       animation: scan-line 2s ease-in-out infinite;
       z-index: 5;
     }
 
     /* ── Sticker CSS ── */
     .sticker-css {
-      background: var(--green);
+      background: var(--primary);
       border: 2px solid #111;
       border-radius: 6px;
       animation: float 3.5s ease-in-out infinite, glow-pulse 3s ease-in-out infinite;
@@ -212,7 +211,7 @@
 
     /* ── Progress bar ── */
     .prog { height: 2px; border-radius: 1px; background: rgba(255,255,255,0.07); overflow: hidden; }
-    .prog-fill { height: 100%; background: var(--green); }
+    .prog-fill { height: 100%; background: var(--primary); }
 
     /* ── Real photo cards ── */
     .photo-card {
@@ -245,7 +244,7 @@
       padding: 5px 10px; border-radius: 999px;
       background: rgba(44,255,5,0.12);
       border: 1px solid rgba(44,255,5,0.3);
-      color: var(--green);
+      color: var(--primary);
       font-size: 11px; font-weight: 700;
       margin-bottom: 10px;
       backdrop-filter: blur(6px);
@@ -281,7 +280,7 @@
     }
     .hero-sticker-mini {
       width: 38px; height: 38px;
-      background: var(--green);
+      background: var(--primary);
       border-radius: 8px;
       display: grid; place-items: center;
       flex-shrink: 0;
@@ -296,7 +295,7 @@
 <!-- ── Background blobs ── -->
 <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
   <div class="blob" style="width:700px;height:700px;top:-200px;right:-200px;background:radial-gradient(circle,rgba(44,255,5,0.09),transparent 70%);"></div>
-  <div class="blob" style="width:600px;height:600px;top:400px;left:-300px;background:radial-gradient(circle,rgba(59,47,245,0.12),transparent 70%);"></div>
+  <div class="blob" style="width:600px;height:600px;top:400px;left:-300px;background:radial-gradient(circle,rgba(44,255,5,0.12),transparent 70%);"></div>
   <div class="blob" style="width:500px;height:500px;bottom:0;right:0;background:radial-gradient(circle,rgba(44,255,5,0.06),transparent 70%);"></div>
 </div>
 
@@ -311,6 +310,7 @@
     <div class="flex items-center gap-4 sm:gap-6 md:gap-8 font-medium">
       <a href="#how-it-works" class="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">How it works</a>
       <a href="#features" class="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">Features</a>
+      <a href="/blog.html" class="hidden md:block text-sm text-gray-400 hover:text-[var(--primary)] transition-colors">Blog</a>
       <a href="/app.apk" download class="hidden md:flex text-gray-300 hover:text-[var(--green)] transition-colors items-center gap-1.5" title="Download Android App">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         <span class="text-sm whitespace-nowrap">Download App</span>
@@ -378,15 +378,15 @@
       <!-- Trust badges -->
       <div class="flex flex-wrap gap-5">
         <div class="flex items-center gap-1.5 text-sm text-gray-500">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="var(--primary)"/></svg>
           No app to download for reporter
         </div>
         <div class="flex items-center gap-1.5 text-sm text-gray-500">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="var(--primary)"/></svg>
           Your number stays private
         </div>
         <div class="flex items-center gap-1.5 text-sm text-gray-500">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="#2CFF05"/></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L8.5 4.7l3.5.5-2.5 2.4.6 3.4L7 9.5l-3.1 1.5.6-3.4L2 5.2l3.5-.5z" fill="var(--primary)"/></svg>
           Works on any Android or iPhone
         </div>
       </div>
@@ -405,11 +405,11 @@
           <div style="font-size:4.5px;color:#222;margin-bottom:3px">linknpark.in</div>
           <!-- Mini QR -->
           <div style="width:32px;height:32px;background:#000;border-radius:3px;margin:0 auto 3px;padding:3px;display:grid;grid-template-columns:repeat(5,1fr);gap:1.5px;">
-            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
-            <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b>
-            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
-            <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
-            <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b>
+            <b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b>
+            <b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b>
+            <b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b>
+            <b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
+            <b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b>
           </div>
           <div style="font-size:3.5px;font-weight:800;color:#111;font-family:monospace;text-align:center">STK-2025-AA0001</div>
         </div>
@@ -427,7 +427,7 @@
           <div class="flex items-start gap-2.5">
             <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(44,255,5,0.18)">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M2 7l3.5 3.5L12 3" stroke="#2CFF05" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 7l3.5 3.5L12 3" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <div>
@@ -474,7 +474,7 @@
 
     <div class="text-center mb-16 reveal">
       <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4"
-           style="background:rgba(59,47,245,0.14);border:1px solid rgba(59,47,245,0.28);color:#818CF8">
+           style="background:rgba(44,255,5,0.14);border:1px solid rgba(44,255,5,0.28);color:#00E5FF">
         Simple · Fast · Effective
       </div>
       <h2 class="text-4xl font-black text-white mb-4">From sticker to solved<br/>in under 60 seconds</h2>
@@ -496,11 +496,11 @@
             <div style="font-size:8px;font-weight:900;color:#000;font-family:Arial Black,Arial,sans-serif">LinkNPark</div>
             <div style="font-size:5px;color:#222;margin-bottom:4px">linknpark.in</div>
             <div style="width:38px;height:38px;background:#000;border-radius:3px;margin:0 auto 4px;padding:3px;display:grid;grid-template-columns:repeat(5,1fr);gap:1.5px;">
-              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
-              <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b>
-              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b>
-              <b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
-              <b style="background:#2CFF05;border-radius:1px"></b><b style="background:#2CFF05;border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#2CFF05;border-radius:1px"></b>
+              <b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b>
+              <b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b>
+              <b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b>
+              <b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b>
+              <b style="background:var(--primary);border-radius:1px"></b><b style="background:var(--primary);border-radius:1px"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:var(--primary);border-radius:1px"></b>
             </div>
             <div style="font-size:4px;font-weight:800;color:#111;font-family:monospace;text-align:center">STK-2025-AA0001</div>
           </div>
@@ -509,14 +509,14 @@
       </div>
 
       <!-- Step 2 -->
-      <div class="step-card p-6 reveal" style="border-color:rgba(59,47,245,0.25);transition-delay:0.15s">
+      <div class="step-card p-6 reveal" style="border-color:rgba(44,255,5,0.25);transition-delay:0.15s">
         <div class="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl" style="background:linear-gradient(90deg,var(--indigo),transparent)"></div>
         <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 font-black text-white text-sm" style="background:var(--indigo)">02</div>
         <h3 class="text-base font-bold text-white mb-2">Anyone scans — no app needed</h3>
         <p class="text-xs text-gray-400 leading-relaxed mb-5">Your neighbour, security guard, or anyone nearby scans the QR with their phone camera. A form opens instantly in the browser.</p>
         <!-- Scanner visual -->
         <div class="flex justify-center">
-          <div class="scan-wrap rounded-xl overflow-hidden" style="width:90px;height:90px;background:#111;border:1.5px solid rgba(59,47,245,0.35);">
+          <div class="scan-wrap rounded-xl overflow-hidden" style="width:90px;height:90px;background:#111;border:1.5px solid rgba(44,255,5,0.35);">
             <div class="scan-beam" style="animation-duration:1.6s;"></div>
             <!-- Corner guides -->
             <div style="position:absolute;top:7px;left:7px;width:16px;height:16px;border-top:2px solid var(--green);border-left:2px solid var(--green);border-radius:2px 0 0 0;z-index:6"></div>
@@ -546,7 +546,7 @@
         <div class="glass-green rounded-xl p-3" style="animation:notif-in 0.5s ease 1.5s both;">
           <div class="flex items-center gap-2 mb-2">
             <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background:rgba(44,255,5,0.2)">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 6l3 3 6-6" stroke="#2CFF05" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1.5 6l3 3 6-6" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div>
               <div class="text-xs font-bold text-white">New Report</div>
@@ -588,7 +588,7 @@
              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=900&q=80&auto=format&fit=crop'"/>
         <!-- Overlay sticker on the windshield -->
         <div class="overlay-sticker" style="position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-2deg);z-index:3;">
-          <div class="sticker-css p-2 rounded-lg flex items-center gap-2" style="background:#2CFF05;border:1.5px solid #111;width:110px;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+          <div class="sticker-css p-2 rounded-lg flex items-center gap-2" style="background:var(--primary);border:1.5px solid #111;width:110px;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
             <div style="flex:1;min-width:0">
               <div style="font-size:8px;font-weight:900;color:#000;line-height:1;letter-spacing:-0.3px">LinkNPark</div>
               <div style="font-size:5px;color:#222;margin-top:1px">linknpark.in</div>
@@ -605,7 +605,7 @@
         </div>
         <div class="photo-caption">
           <span class="photo-tag">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#2CFF05"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="var(--primary)"/></svg>
             On the windshield
           </span>
           <div class="photo-title">Always visible</div>
@@ -619,8 +619,8 @@
              alt="Person scanning a QR code with smartphone" loading="lazy"
              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1535303311164-664fc9ec6532?w=900&q=80&auto=format&fit=crop'"/>
         <div class="photo-caption">
-          <span class="photo-tag" style="background:rgba(59,47,245,0.18);border-color:rgba(59,47,245,0.36);color:#818CF8">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#818CF8"/></svg>
+          <span class="photo-tag" style="background:rgba(44,255,5,0.18);border-color:rgba(44,255,5,0.36);color:#00E5FF">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="3" fill="#00E5FF"/></svg>
             Anyone can scan
           </span>
           <div class="photo-title">No app needed</div>
@@ -653,7 +653,7 @@
              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1800&q=85&auto=format&fit=crop'"/>
         <!-- Floating sticker overlay -->
         <div style="position:absolute;top:50%;right:8%;transform:translateY(-50%);z-index:3;animation:float 3.5s ease-in-out infinite;">
-          <div class="sticker-css p-3 rounded-xl flex items-center gap-2.5" style="background:#2CFF05;border:1.5px solid #111;width:170px;box-shadow:0 16px 48px rgba(0,0,0,0.5),0 0 32px rgba(44,255,5,0.35);">
+          <div class="sticker-css p-3 rounded-xl flex items-center gap-2.5" style="background:var(--primary);border:1.5px solid #111;width:170px;box-shadow:0 16px 48px rgba(0,0,0,0.5),0 0 32px rgba(44,255,5,0.35);">
             <div style="flex:1;min-width:0">
               <div style="font-size:11px;font-weight:900;color:#000;line-height:1;letter-spacing:-0.4px">LinkNPark</div>
               <div style="font-size:6.5px;color:#222;margin-top:1.5px">linknpark.in</div>
@@ -726,15 +726,15 @@
 
       <div class="step-card p-5 reveal" style="transition-delay:0.05s">
         <div class="feat-icon mb-4" style="background:rgba(44,255,5,0.1)">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 00-6-6zm0 8a2 2 0 110-4 2 2 0 010 4z" fill="#2CFF05"/></svg>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6c0 4 6 10 6 10s6-6 6-10a6 6 0 00-6-6zm0 8a2 2 0 110-4 2 2 0 010 4z" fill="var(--primary)"/></svg>
         </div>
         <h3 class="font-bold text-white text-sm mb-1.5">Your number stays private</h3>
         <p class="text-xs text-gray-400 leading-relaxed">Reporters never see your phone number. All communication is anonymous and secure through the app.</p>
       </div>
 
       <div class="step-card p-5 reveal" style="transition-delay:0.1s">
-        <div class="feat-icon mb-4" style="background:rgba(59,47,245,0.12)">
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" stroke="#818CF8" stroke-width="1.5"/><path d="M7 6h6M7 9h6M7 12h4" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <div class="feat-icon mb-4" style="background:rgba(44,255,5,0.12)">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="4" y="2" width="12" height="16" rx="2" stroke="#00E5FF" stroke-width="1.5"/><path d="M7 6h6M7 9h6M7 12h4" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
         <h3 class="font-bold text-white text-sm mb-1.5">No app to install for reporter</h3>
         <p class="text-xs text-gray-400 leading-relaxed">The reporting form opens directly in the browser. Any phone, any camera app, zero friction.</p>
@@ -782,7 +782,7 @@
 <section id="get-sticker" class="py-24 px-5">
   <div class="max-w-2xl mx-auto">
     <div class="relative rounded-3xl p-10 overflow-hidden text-center reveal"
-         style="background:linear-gradient(135deg,rgba(44,255,5,0.07),rgba(59,47,245,0.1));border:1px solid rgba(44,255,5,0.18);">
+         style="background:linear-gradient(135deg,rgba(44,255,5,0.07),rgba(44,255,5,0.1));border:1px solid rgba(44,255,5,0.18);">
       <!-- Glow -->
       <div class="blob" style="width:300px;height:300px;top:-80px;right:-80px;background:radial-gradient(circle,rgba(44,255,5,0.12),transparent);filter:blur(40px);"></div>
       <div class="relative">
@@ -848,10 +848,10 @@
       </div>
       <div class="scan-wrap" style="flex:1;background:#0a0a0a;border-radius:12px;border:1px solid rgba(255,255,255,0.08);min-height:120px">
         <div class="scan-beam"></div>
-        <div style="position:absolute;top:8px;left:8px;width:18px;height:18px;border-top:2px solid #2CFF05;border-left:2px solid #2CFF05;border-radius:2px 0 0 0;z-index:6"></div>
-        <div style="position:absolute;top:8px;right:8px;width:18px;height:18px;border-top:2px solid #2CFF05;border-right:2px solid #2CFF05;border-radius:0 2px 0 0;z-index:6"></div>
-        <div style="position:absolute;bottom:8px;left:8px;width:18px;height:18px;border-bottom:2px solid #2CFF05;border-left:2px solid #2CFF05;border-radius:0 0 0 2px;z-index:6"></div>
-        <div style="position:absolute;bottom:8px;right:8px;width:18px;height:18px;border-bottom:2px solid #2CFF05;border-right:2px solid #2CFF05;border-radius:0 0 2px 0;z-index:6"></div>
+        <div style="position:absolute;top:8px;left:8px;width:18px;height:18px;border-top:2px solid var(--primary);border-left:2px solid var(--primary);border-radius:2px 0 0 0;z-index:6"></div>
+        <div style="position:absolute;top:8px;right:8px;width:18px;height:18px;border-top:2px solid var(--primary);border-right:2px solid var(--primary);border-radius:0 2px 0 0;z-index:6"></div>
+        <div style="position:absolute;bottom:8px;left:8px;width:18px;height:18px;border-bottom:2px solid var(--primary);border-left:2px solid var(--primary);border-radius:0 0 0 2px;z-index:6"></div>
+        <div style="position:absolute;bottom:8px;right:8px;width:18px;height:18px;border-bottom:2px solid var(--primary);border-right:2px solid var(--primary);border-radius:0 0 2px 0;z-index:6"></div>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;background:#fff;border-radius:4px;padding:4px;display:grid;grid-template-columns:repeat(5,1fr);gap:1px">
           <b style="background:#000"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b>
           <b style="background:#000"></b><b style="background:#fff"></b><b style="background:#000"></b><b style="background:#000"></b><b style="background:#fff"></b>
@@ -866,14 +866,14 @@
     `<div style="padding:14px 12px;display:flex;flex-direction:column;height:100%;gap:10px">
       <div style="text-align:center;padding-top:8px">
         <div style="width:40px;height:40px;border-radius:50%;background:rgba(44,255,5,0.15);margin:0 auto 8px;display:flex;align-items:center;justify-content:center">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="#2CFF05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div style="font-size:11px;font-weight:800;color:#2CFF05;margin-bottom:2px">Vehicle Found!</div>
+        <div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:2px">Vehicle Found!</div>
         <div style="font-size:9px;color:#555">Registered with LinkNPark</div>
       </div>
       <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px">
         <div style="font-size:9px;color:#888;margin-bottom:4px">STICKER CODE</div>
-        <div style="font-size:10px;font-weight:800;color:#2CFF05;font-family:monospace">STK-2025-AA0001</div>
+        <div style="font-size:10px;font-weight:800;color:var(--primary);font-family:monospace">STK-2025-AA0001</div>
       </div>
       <div style="font-size:9px;color:#666;text-align:center">Why are you reporting?</div>
       <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px;display:flex;align-items:center;gap:6px">
@@ -885,9 +885,9 @@
     // State 2: report sent
     `<div style="padding:14px 12px;display:flex;flex-direction:column;height:100%;gap:8px;align-items:center;justify-content:center;text-align:center">
       <div style="width:48px;height:48px;border-radius:50%;background:rgba(44,255,5,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:4px;animation:glow-pulse 2s ease-in-out infinite">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="#2CFF05" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4 10-10" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div style="font-size:12px;font-weight:800;color:#2CFF05">Report Sent!</div>
+      <div style="font-size:12px;font-weight:800;color:var(--primary)">Report Sent!</div>
       <div style="font-size:9px;color:#666;line-height:1.5;max-width:140px">The owner will be notified instantly on their phone</div>
       <div style="font-size:8px;color:#444;margin-top:4px">Powered by LinkNPark</div>
     </div>`
