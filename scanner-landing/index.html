@@ -10,30 +10,33 @@
       theme: {
         extend: {
           colors: {
-            primary: '#3B2FF5',
-            primaryLight: '#6B5FFF',
+            primary: '#2CFF05',
+            primaryLight: '#45FF22',
             primaryBg: '#EEF2FF',
             amber: '#F59E0B',
           }
         }
       }
     }
-    const API_BASE = 'https://linknpark.onrender.com';
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3001' : 'https://linknpark.onrender.com';
     // Sticker code from QR URL query param: ?code=STK-2025-AB1234
     const STICKER_CODE = new URLSearchParams(window.location.search).get('code') || null;
   </script>
   <style>
-    body { background: #F8F9FB; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    body { background: #F8F9FB; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .fade-in { animation: fadeIn 0.35s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    .card-hover { transition: all 0.15s ease; cursor: pointer; }
-    .card-hover:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,47,245,0.12); }
+    .card-hover { transition: all 0.2s ease; cursor: pointer; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(44,255,5,0.1); border-color: #EEF2FF; }
     .card-hover:active { transform: scale(0.98); }
-    .selected-card { border-color: #3B2FF5 !important; background: #EEF2FF !important; }
+    .btn-spring { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease; }
+    .btn-spring:hover { transform: scale(1.02); box-shadow: 0 12px 24px -6px rgba(44,255,5,0.3); }
+    .btn-spring:active { transform: scale(0.96); transition: transform 0.1s; }
+    .selected-card { border-color: #2CFF05 !important; background: #EEF2FF !important; }
     .ripple { position: relative; overflow: hidden; }
-    .ripple:after { content:''; position:absolute; inset:0; background:rgba(59,47,245,0.08); opacity:0; transition:opacity 0.2s; }
+    .ripple:after { content:''; position:absolute; inset:0; background:rgba(44,255,5,0.08); opacity:0; transition:opacity 0.2s; }
     .ripple:active:after { opacity:1; }
-    textarea:focus, input:focus { outline: none; border-color: #3B2FF5 !important; box-shadow: 0 0 0 3px rgba(59,47,245,0.12); }
+    textarea:focus, input:focus { outline: none; border-color: #2CFF05 !important; box-shadow: 0 0 0 4px rgba(44,255,5,0.1); }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -41,7 +44,7 @@
   <!-- Top brand bar -->
   <div class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#3B2FF5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#2CFF05">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <rect x="1" y="1" width="6" height="6" rx="1" fill="white"/>
           <rect x="9" y="1" width="6" height="6" rx="1" fill="white" opacity="0.6"/>
@@ -85,10 +88,10 @@
         <div class="flex items-center gap-4 mb-4">
           <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:#EEF2FF">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M6 20h20M8 20l2-6h12l2 6" stroke="#3B2FF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M10 14l1.5-4h9l1.5 4" stroke="#3B2FF5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="10" cy="22" r="2" fill="#3B2FF5"/><circle cx="22" cy="22" r="2" fill="#3B2FF5"/>
-              <rect x="12" y="11" width="8" height="4" rx="1" fill="#3B2FF5" opacity="0.3"/>
+              <path d="M6 20h20M8 20l2-6h12l2 6" stroke="#2CFF05" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 14l1.5-4h9l1.5 4" stroke="#2CFF05" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="10" cy="22" r="2" fill="#2CFF05"/><circle cx="22" cy="22" r="2" fill="#2CFF05"/>
+              <rect x="12" y="11" width="8" height="4" rx="1" fill="#2CFF05" opacity="0.3"/>
             </svg>
           </div>
           <div>
@@ -118,7 +121,7 @@
         <p data-i18n="not_active_desc" class="text-sm text-gray-400">The owner hasn't registered this sticker in the LinkNPark app yet.</p>
       </div>
 
-      <button id="report-btn" onclick="goTo(1)" class="w-full py-4 rounded-2xl font-semibold text-white text-base ripple hidden" style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+      <button id="report-btn" onclick="goTo(1)" class="w-full py-3.5 rounded-xl font-semibold text-black text-base btn-spring hidden" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
         <span data-i18n="report_btn">Report Something →</span>
       </button>
       <p id="report-hint" data-i18n="report_hint" class="text-center text-xs text-gray-400 mt-3 hidden">Takes less than 30 seconds. No sign-up needed.</p>
@@ -140,8 +143,8 @@
       </div>
 
       <button onclick="goTo(2)" id="next-btn-1" disabled
-        class="w-full py-4 rounded-2xl font-semibold text-white text-base disabled:opacity-40 disabled:cursor-not-allowed transition-opacity ripple"
-        style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+        class="w-full py-3.5 rounded-xl font-semibold text-white text-base disabled:opacity-40 disabled:cursor-not-allowed transition-opacity btn-spring"
+        style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
         <span data-i18n="continue_btn">Continue →</span>
       </button>
     </div>
@@ -158,8 +161,24 @@
       </div>
 
       <!-- Selected reason chip -->
-      <div id="selected-chip" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-4" style="background:#EEF2FF;color:#3B2FF5">
+      <div id="selected-chip" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium mb-4" style="background:#EEF2FF;color:#2CFF05">
         <!-- filled by JS -->
+      </div>
+
+      <!-- Photo Upload -->
+      <div class="mb-4">
+        <label class="text-xs font-medium text-gray-600 block mb-1.5">Attach Photo Evidence (optional)</label>
+        <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="previewPhoto(event)" />
+        <div id="photo-preview-container" class="hidden relative w-full h-32 rounded-xl overflow-hidden mb-2 border border-gray-200">
+          <img id="photo-preview-img" class="w-full h-full object-cover" />
+          <button onclick="removePhoto()" class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <button id="add-photo-btn" onclick="document.getElementById('photo-input').click()" class="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors flex justify-center items-center gap-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          Take or Upload Photo
+        </button>
       </div>
 
       <!-- Message -->
@@ -177,12 +196,12 @@
           <span class="pl-4 text-sm text-gray-500 shrink-0">+91</span>
           <input id="phone-input" type="tel" maxlength="10" placeholder="98765 43210"
             class="flex-1 py-3 pr-4 text-sm text-gray-900 border-none outline-none bg-transparent"
-            oninput="this.closest('#phone-wrap').style.borderColor=this.value?'#3B2FF5':'#E5E7EB'" />
+            oninput="this.closest('#phone-wrap').style.borderColor=this.value?'#2CFF05':'#E5E7EB'" />
         </div>
         <p data-i18n="phone_desc" class="text-xs text-gray-400 mt-1.5">Owner can call back through a masked number — your real number stays private</p>
       </div>
 
-      <button onclick="submitReport()" class="w-full py-4 rounded-2xl font-semibold text-white text-base ripple" style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+      <button onclick="submitReport()" class="w-full py-3.5 rounded-xl font-semibold text-black text-base btn-spring" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
         <span data-i18n="send_report">Send Report Securely →</span>
       </button>
       <p data-i18n="privacy_footer" class="text-center text-xs text-gray-400 mt-3">Your identity is never shared with the car owner</p>
@@ -192,7 +211,7 @@
     <div id="step-3" class="fade-in hidden">
       <!-- Success animation -->
       <div class="flex flex-col items-center pt-6 pb-4">
-        <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#3B2FF5,#6B5FFF)">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <path d="M8 18l7 7 13-13" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -433,17 +452,17 @@
       { id: 'accident', icon: '⚠️', label: 'Accident /\nscratch',    color: '#EA580C', bg: '#FFF7ED' },
       { id: 'suspect',  icon: '🔐', label: 'Suspicious\nactivity',   color: '#7C3AED', bg: '#F5F3FF' },
       { id: 'theft',    icon: '🚨', label: 'Theft /<br>break-in',    color: '#DC2626', bg: '#FEF2F2' },
-      { id: 'other',    icon: '💬', label: 'Other',                  color: '#3B2FF5', bg: '#EEF2FF' },
+      { id: 'other',    icon: '💬', label: 'Other',                  color: '#2CFF05', bg: '#EEF2FF' },
     ];
 
     const LOST_FOUND_REASONS = [
       { id: 'found_item', icon: '🔍', label: 'I found\nthis item', color: '#16A34A', bg: '#F0FDF4' },
-      { id: 'have_safe',  icon: '🛡️', label: 'I have it\nsafe',   color: '#3B2FF5', bg: '#EEF2FF' },
+      { id: 'have_safe',  icon: '🛡️', label: 'I have it\nsafe',   color: '#2CFF05', bg: '#EEF2FF' },
       { id: 'other',      icon: '💬', label: 'Other',            color: '#D97706', bg: '#FFFBEB' },
     ];
 
     const VISITOR_REASONS = [
-      { id: 'visitor',  icon: '👋', label: 'I am at\nthe door', color: '#3B2FF5', bg: '#EEF2FF' },
+      { id: 'visitor',  icon: '👋', label: 'I am at\nthe door', color: '#2CFF05', bg: '#EEF2FF' },
       { id: 'delivery', icon: '📦', label: 'Delivery\ndrop-off', color: '#16A34A', bg: '#F0FDF4' },
       { id: 'other',    icon: '💬', label: 'Other',             color: '#D97706', bg: '#FFFBEB' },
     ];
@@ -540,10 +559,27 @@
         if (data.ok) {
           currentReportId = data.reportId;
           sessionStorage.setItem('linknpark_report_id', currentReportId);
+          
+          if (selectedPhotoFile) {
+            const formData = new FormData();
+            formData.append('photo', selectedPhotoFile);
+            try {
+              await fetch(`${API_BASE}/api/report/${currentReportId}/photo`, {
+                method: 'POST',
+                body: formData
+              });
+            } catch (err) { console.error("Photo upload failed", err); }
+          }
+          
           initChat(currentReportId);
+        } else {
+          alert(data.error || 'Failed to submit report. Please try again.');
+          goTo(2);
         }
       } catch (e) {
         console.error('Failed to send report', e);
+        alert('An error occurred while submitting the report. Please try again.');
+        goTo(2);
       }
     }
 
@@ -580,7 +616,12 @@
           }
         };
         
-        chatWs.onclose = () => console.log('Chat disconnected');
+        chatWs.onclose = () => {
+          console.log('Chat disconnected');
+          if (sessionStorage.getItem('linknpark_report_id') === incidentId) {
+            setTimeout(() => initChat(incidentId), 3000);
+          }
+        };
 
       } catch(e) { console.error('Chat init failed', e); }
     }
@@ -628,10 +669,16 @@
     }
 
     function sendChatMessage() {
-      if (!chatWs || chatWs.readyState !== 1) return;
+      if (!chatWs || chatWs.readyState !== 1) {
+        alert('Chat is not connected. Please wait.');
+        return;
+      }
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
-      if (!text) return;
+      if (!text) {
+        alert('Message cannot be empty');
+        return;
+      }
       
       input.value = '';
       
@@ -650,6 +697,60 @@
       document.getElementById('phone-input').value = '';
       document.getElementById('next-btn-1').disabled = true;
       goTo(0);
+    }
+
+    let selectedPhotoFile = null;
+    function previewPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      selectedPhotoFile = file;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('photo-preview-img').src = e.target.result;
+        document.getElementById('photo-preview-container').classList.remove('hidden');
+        document.getElementById('add-photo-btn').classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+    function removePhoto() {
+      selectedPhotoFile = null;
+      document.getElementById('photo-input').value = '';
+      document.getElementById('photo-preview-container').classList.add('hidden');
+      document.getElementById('add-photo-btn').classList.remove('hidden');
+    }
+
+    async function searchPlate() {
+      const input = document.getElementById('plate-search-input');
+      const err = document.getElementById('plate-search-error');
+      const plate = input.value.trim().replace(/\s/g, '').toUpperCase();
+      
+      if (!plate || plate.length < 4) {
+        err.textContent = "Please enter a valid license plate";
+        err.classList.remove('hidden');
+        return;
+      }
+      
+      err.classList.add('hidden');
+      const btn = input.nextElementSibling;
+      btn.textContent = "...";
+      
+      try {
+        const res = await fetch(`${API_BASE}/api/sticker/by-plate/${plate}`);
+        const data = await res.json();
+        btn.textContent = "Search";
+        
+        if (!res.ok || !data.found) {
+          err.textContent = "This vehicle is not registered on LinkNPark yet.";
+          err.classList.remove('hidden');
+          return;
+        }
+        
+        window.location.search = '?code=' + data.sticker_code;
+      } catch (e) {
+        btn.textContent = "Search";
+        err.textContent = "Error connecting to server. Try again.";
+        err.classList.remove('hidden');
+      }
     }
 
     // Load sticker info on page open
@@ -674,14 +775,16 @@
         noCode.innerHTML = `
           <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:#EEF2FF">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect x="3" y="3" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
-              <rect x="17" y="3" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
-              <rect x="3" y="17" width="8" height="8" rx="2" stroke="#3B2FF5" stroke-width="2"/>
-              <rect x="19" y="19" width="4" height="4" rx="1" fill="#3B2FF5"/>
+              <path d="M4 8h20M4 16h20M8 4v20M16 4v20" stroke="#2CFF05" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
-          <p class="font-semibold text-gray-900 text-base mb-1">Scan a LinkNPark sticker</p>
-          <p class="text-sm text-gray-500 leading-relaxed">Point your phone camera at the QR code on a vehicle's windshield to report a parking issue.</p>
+          <p class="font-semibold text-gray-900 text-base mb-1">Search by License Plate</p>
+          <p class="text-sm text-gray-500 leading-relaxed mb-4">Enter a vehicle registration number to report an issue instantly.</p>
+          <div class="w-full flex gap-2">
+            <input type="text" id="plate-search-input" placeholder="MH 12 AB 1234" class="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 font-bold uppercase outline-none" style="background:white" />
+            <button onclick="searchPlate()" class="px-5 rounded-xl font-semibold text-black text-sm btn-spring" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">Search</button>
+          </div>
+          <p id="plate-search-error" class="text-xs text-red-500 mt-2 hidden text-left w-full pl-1"></p>
           <div class="mt-4 w-full bg-gray-50 rounded-xl p-3">
             <p class="text-xs text-gray-400">No app needed · Takes 30 seconds · Owner stays anonymous</p>
           </div>

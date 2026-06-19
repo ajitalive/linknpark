@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -10,7 +10,7 @@ import { API_BASE as API_URL } from '../../hooks/usePushNotifications';
 type ChatMessage = { id: string; sender_type: string; content: string; created_at: string };
 
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>(); // incident_id
+  const { id, visitor } = useLocalSearchParams<{ id: string, visitor?: string }>(); // incident_id
   const { user } = useAuth();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -18,27 +18,49 @@ export default function ChatScreen() {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const isVisitor = visitor === 'true';
 
   useEffect(() => {
     async function initChat() {
       try {
-        const token = await SecureStore.getItemAsync('lnp_jwt');
-        if (!token) return;
+        let authRole = 'owner';
+        let authToken = '';
+        let activeSessionId = null;
 
-        // Fetch active session for this incident
-        const res = await fetch(`${API_URL}/api/incidents/${id}/chat`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        if (!data.session) {
-          return; // No active session yet
+        if (isVisitor) {
+          authRole = 'visitor';
+          let visitorToken = await SecureStore.getItemAsync('lnp_visitor_token');
+          if (!visitorToken) {
+            visitorToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            await SecureStore.setItemAsync('lnp_visitor_token', visitorToken);
+          }
+          authToken = visitorToken;
+
+          const res = await fetch(`${API_URL}/api/chat/init`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ incident_id: id, visitor_token: authToken })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.session) throw new Error(data.error || 'Failed to initialize chat');
+          activeSessionId = data.session?.id;
+        } else {
+          authToken = await SecureStore.getItemAsync('lnp_jwt') || '';
+          if (!authToken) throw new Error('You are not logged in');
+
+          const res = await fetch(`${API_URL}/api/incidents/${id}/chat`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const data = await res.json();
+          if (!res.ok || !data.session) throw new Error(data.error || 'Failed to initialize chat');
+          activeSessionId = data.session.id;
         }
         
-        setSessionId(data.session.id);
+        if (!activeSessionId) throw new Error('No session ID returned');
+        setSessionId(activeSessionId);
 
         // Fetch history
-        const histRes = await fetch(`${API_URL}/api/chat/${data.session.id}/messages`);
+        const histRes = await fetch(`${API_URL}/api/chat/${activeSessionId}/messages`);
         const histData = await histRes.json();
         if (histData.messages) {
           setMessages(histData.messages);
@@ -46,7 +68,7 @@ export default function ChatScreen() {
 
         // Connect WebSocket
         const wsUrl = API_URL?.replace('http', 'ws');
-        const socket = new WebSocket(`${wsUrl}?session_id=${data.session.id}&role=owner&token=${token}`);
+        const socket = new WebSocket(`${wsUrl}?session_id=${activeSessionId}&role=${authRole}&token=${authToken}`);
         
         socket.onopen = () => {
           socket.send(JSON.stringify({ type: 'auth' }));
@@ -65,8 +87,9 @@ export default function ChatScreen() {
         };
 
         setWs(socket);
-      } catch (e) {
+      } catch (e: any) {
         console.error('Chat init error', e);
+        Alert.alert('Connection Error', e.message || 'Could not connect to chat. Please try again.');
       }
     }
     
@@ -75,17 +98,21 @@ export default function ChatScreen() {
     return () => {
       if (ws) ws.close();
     };
-  }, [id]);
+  }, [id, isVisitor]);
 
   function handleSend() {
-    if (!text.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!text.trim()) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      Alert.alert('Disconnected', 'The chat connection was lost. Please go back and reopen the chat.');
+      return;
+    }
     
     const msg = text.trim();
     setText('');
     
     setMessages(prev => [...prev, {
       id: Math.random().toString(),
-      sender_type: 'owner',
+      sender_type: isVisitor ? 'visitor' : 'owner',
       content: msg,
       created_at: new Date().toISOString()
     }]);
@@ -109,7 +136,7 @@ export default function ChatScreen() {
           <View style={styles.avatar}>
             <Ionicons name="person" size={20} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>Visitor</Text>
+          <Text style={styles.headerTitle}>{isVisitor ? 'Owner' : 'Visitor'}</Text>
           <View style={{ flex: 1 }} />
           <Ionicons name="call" size={20} color="#fff" style={{ marginHorizontal: 12 }} />
           <Ionicons name="videocam" size={22} color="#fff" style={{ marginHorizontal: 12 }} />
@@ -128,15 +155,15 @@ export default function ChatScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           {messages.map(msg => {
-            const isOwner = msg.sender_type === 'owner';
+            const isMe = msg.sender_type === (isVisitor ? 'visitor' : 'owner');
             return (
-              <View key={msg.id} style={[styles.bubbleWrap, isOwner ? styles.bubbleWrapRight : styles.bubbleWrapLeft]}>
-                <View style={[styles.bubble, isOwner ? styles.bubbleRight : styles.bubbleLeft]}>
-                  <Text style={isOwner ? styles.bubbleTextRight : styles.bubbleTextLeft}>
+              <View key={msg.id} style={[styles.bubbleWrap, isMe ? styles.bubbleWrapRight : styles.bubbleWrapLeft]}>
+                <View style={[styles.bubble, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
+                  <Text style={isMe ? styles.bubbleTextRight : styles.bubbleTextLeft}>
                     {msg.content}
                   </Text>
                 </View>
-                <View style={[styles.timeRow, isOwner ? { justifyContent: 'flex-end' } : {}]}>
+                <View style={[styles.timeRow, isMe ? { justifyContent: 'flex-end' } : {}]}>
                   <Text style={styles.timeText}>Today</Text>
                   <Text style={styles.timeText}>{formatTime(msg.created_at)}</Text>
                 </View>

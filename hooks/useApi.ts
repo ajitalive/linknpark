@@ -46,6 +46,7 @@ export type Incident = {
   message: string | null;
   reporter_phone: string | null;
   has_photo: boolean;
+  photo_url: string | null;
   severity: string;
   status: string;
   reported_at: string;

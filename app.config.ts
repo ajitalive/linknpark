@@ -77,6 +77,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       { cameraPermission: 'LinkNPark needs camera access to scan sticker QR codes' },
     ],
     [
+      'expo-image-picker',
+      {
+        photosPermission: 'LinkNPark needs access to your photos so you can attach photo evidence to reports.',
+        cameraPermission: 'LinkNPark needs camera access so you can take photo evidence for reports.',
+      },
+    ],
+    [
       'expo-notifications',
       {
         icon: IS_PROD ? './assets/icon.png' : './assets/icon-dev.png',

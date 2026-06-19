@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
-  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform
+  ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -144,6 +144,15 @@ export default function IncidentDetailScreen() {
             <Text style={[styles.scannerMsg, { color: Colors.textMuted, fontStyle: 'italic' }]}>
               No message provided
             </Text>
+          )}
+
+          {incident.has_photo && incident.photo_url && (
+            <View style={{ marginTop: 16, borderRadius: 12, overflow: 'hidden' }}>
+              <Image 
+                source={{ uri: incident.photo_url }} 
+                style={{ width: '100%', height: 200, resizeMode: 'cover' }} 
+              />
+            </View>
           )}
         </Card>
 

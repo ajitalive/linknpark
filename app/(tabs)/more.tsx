@@ -23,7 +23,8 @@ const MENU_SECTIONS = [
   {
     title: 'Operations',
     items: [
-      // { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: null, route: '/guard' },
+      { icon: 'qr-code', label: 'My Free eTag', color: Colors.primary, badge: 'Free', route: '/etag' },
+      { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: 'B2B', route: '/guard' },
       { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: '/parking-timer' },
       { icon: 'lock-closed', label: 'Secure Vault', color: Colors.primaryDark, badge: null, route: '/(tabs)/vault' },
     ],

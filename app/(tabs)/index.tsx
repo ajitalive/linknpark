@@ -28,10 +28,10 @@ function timeAgo(iso: string | null): string {
 const { width } = Dimensions.get('window');
 
 const QUICK_ACTIONS = [
-  { icon: 'scan', label: 'Scan QR', route: '/scan', color: Colors.primary, bg: Colors.primaryBg },
-  { icon: 'qr-code', label: 'Activate', route: '/activate', color: Colors.text, bg: Colors.surfaceSecondary },
+  { icon: 'car-sport', label: 'Report', route: '/report-vehicle', color: Colors.primary, bg: Colors.primaryBg },
+  { icon: 'qr-code', label: 'Free eTag', route: '/etag', color: Colors.text, bg: Colors.surfaceSecondary },
+  { icon: 'scan', label: 'Scan QR', route: '/scan', color: Colors.text, bg: Colors.surfaceSecondary },
   { icon: 'medical', label: 'SOS Alert', route: '/sos-settings', color: Colors.text, bg: Colors.surfaceSecondary },
-  { icon: 'shield', label: 'Guardian', route: '/guardian-network', color: Colors.text, bg: Colors.surfaceSecondary },
 ];
 
 export default function HomeScreen() {
@@ -104,9 +104,9 @@ export default function HomeScreen() {
                 style={styles.heroGradient}
               >
                 <View style={styles.heroContent}>
-                  <Badge label="PREMIUM PARKING" color={Colors.primary} bg={Colors.primaryBg} size="sm" />
-                  <Text style={styles.heroTitle}>Smart Mobility</Text>
-                  <Text style={styles.heroSubtitle}>Manage your vehicles and parking effortlessly.</Text>
+                  <Badge label="PRIVACY PROTECTED" color={'#111111'} bg={Colors.primary} size="sm" />
+                  <Text style={styles.heroTitle}>Your vehicle,{`\n`}safely connected.</Text>
+                  <Text style={styles.heroSubtitle}>Anonymous alerts. Real-time chat. Zero number sharing.</Text>
                 </View>
               </LinearGradient>
             </ImageBackground>
@@ -165,8 +165,8 @@ export default function HomeScreen() {
                     <Text style={styles.incidentActionText}>Call</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.incidentActionBtn, styles.resolveBtn]}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.bg} />
-                    <Text style={[styles.incidentActionText, { color: Colors.bg }]}>Resolve</Text>
+                    <Ionicons name="checkmark-circle" size={16} color="#111111" />
+                    <Text style={[styles.incidentActionText, { color: '#111111' }]}>Resolve</Text>
                   </TouchableOpacity>
                 </View>
               </Card>

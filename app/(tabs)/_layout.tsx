@@ -14,7 +14,7 @@ import { usePushToken } from '../../hooks/usePushToken';
 function TabIcon({ name, color, focused }: { name: any; color: string; focused: boolean }) {
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Ionicons name={name} size={22} color={focused ? Colors.primary : color} />
+      <Ionicons name={name} size={20} color={focused ? '#111111' : color} />
     </View>
   );
 }
@@ -104,8 +104,8 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="marketplace"
           options={{
-            title: 'Parking',
-            tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'map' : 'map-outline'} color={color} focused={focused} />,
+            // CEO directive: Hidden from nav — dummy data, no backend. Preserved for v2.0.
+            href: null,
           }}
         />
         <Tabs.Screen
@@ -132,6 +132,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  iconWrap: { alignItems: 'center', justifyContent: 'center', width: 32, height: 32 },
-  iconWrapActive: {},
+  iconWrap: { alignItems: 'center', justifyContent: 'center', width: 44, height: 32, borderRadius: 16 },
+  iconWrapActive: { backgroundColor: Colors.primary },
 });

@@ -1,39 +1,39 @@
 export const Colors = {
   // Brand Neon Green
-  primary: '#D7FF00', 
-  primaryLight: '#E5FF4D',
-  primaryDark: '#B2D600',
-  primaryBg: '#1A2000',
+  primary: '#2CFF05', 
+  primaryLight: '#8BFF6B',
+  primaryDark: '#1EAB04',
+  primaryBg: '#E9FFDF',
 
   amber: '#F59E0B',
   amberLight: '#FCD34D',
-  amberBg: '#332305',
+  amberBg: '#FEF3C7',
 
-  // Dark Theme Fundamentals (Deep Charcoal)
-  bg: '#0B0D12',
-  surface: '#12141A',
-  surfaceSecondary: '#1C1F26',
+  // Clean Light Theme Fundamentals
+  bg: '#FAFAFA',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#F3F4F6',
 
-  text: '#FFFFFF',
-  textSecondary: '#A1A1AA',
-  textMuted: '#52525B',
-  divider: '#1C1F26',
+  text: '#111827',
+  textSecondary: '#4B5563',
+  textMuted: '#9CA3AF',
+  divider: '#E5E7EB',
 
   // Severity
   critical: '#EF4444',
-  criticalBg: '#3F1616',
+  criticalBg: '#FEE2E2',
   high: '#F97316',
-  highBg: '#3D1C08',
+  highBg: '#FFEDD5',
   medium: '#EAB308',
-  mediumBg: '#332704',
-  low: '#06B6D4',
-  lowBg: '#08333B',
-  success: '#22C55E',
-  successBg: '#092B14',
+  mediumBg: '#FEF9C3',
+  low: '#0EA5E9',
+  lowBg: '#E0F2FE',
+  success: '#10B981',
+  successBg: '#D1FAE5',
 
   // Status
-  paused: '#71717A',
-  pausedBg: '#1C1F26',
+  paused: '#6B7280',
+  pausedBg: '#F3F4F6',
 
   white: '#FFFFFF',
   black: '#000000',
