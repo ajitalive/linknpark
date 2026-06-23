@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
 
 const PRESETS = [15, 30, 60, 90, 120];
 const NOTIF_ID_KEY = 'parking_timer_notif';
 const WARN_NOTIF_ID_KEY = 'parking_timer_warn_notif';
+const STORAGE_KEY = 'parking_timer_end';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -19,6 +21,30 @@ if (Platform.OS !== 'web') {
       shouldSetBadge: false,
     }),
   });
+}
+
+async function saveEndTime(endMs: number | null) {
+  const val = endMs ? String(endMs) : '';
+  if (Platform.OS === 'web') {
+    if (val) localStorage.setItem(STORAGE_KEY, val);
+    else localStorage.removeItem(STORAGE_KEY);
+  } else {
+    if (val) await SecureStore.setItemAsync(STORAGE_KEY, val);
+    else await SecureStore.deleteItemAsync(STORAGE_KEY).catch(() => {});
+  }
+}
+
+async function loadEndTime(): Promise<number | null> {
+  try {
+    const raw = Platform.OS === 'web'
+      ? localStorage.getItem(STORAGE_KEY)
+      : await SecureStore.getItemAsync(STORAGE_KEY);
+    if (!raw) return null;
+    const ms = parseInt(raw, 10);
+    return ms > Date.now() ? ms : null; // expired — ignore
+  } catch {
+    return null;
+  }
 }
 
 async function requestNotifPermission() {
@@ -33,8 +59,7 @@ async function scheduleAlerts(endMs: number, totalMinutes: number) {
   await Notifications.cancelScheduledNotificationAsync(NOTIF_ID_KEY).catch(() => {});
   await Notifications.cancelScheduledNotificationAsync(WARN_NOTIF_ID_KEY).catch(() => {});
 
-  const nowMs = Date.now();
-  const secondsUntilEnd = Math.round((endMs - nowMs) / 1000);
+  const secondsUntilEnd = Math.round((endMs - Date.now()) / 1000);
 
   if (totalMinutes > 6) {
     const warnSeconds = secondsUntilEnd - 300;
@@ -73,18 +98,21 @@ async function cancelAlerts() {
 export default function ParkingTimerScreen() {
   const insets = useSafeAreaInsets();
   const [selectedMinutes, setSelectedMinutes] = useState(30);
-  const [endTime, setEndTime] = useState<number | null>(null); // wall-clock deadline ms
+  const [endTime, setEndTime] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appState = useRef(AppState.currentState);
 
   const running = endTime !== null && remaining > 0;
 
-  // Recalculate remaining from wall clock — works correctly after app resume
   function tick(deadline: number) {
     const secs = Math.round((deadline - Date.now()) / 1000);
     if (secs <= 0) {
-      stopTimer();
+      clearInterval(intervalRef.current!);
+      intervalRef.current = null;
+      setEndTime(null);
+      setRemaining(0);
+      saveEndTime(null);
     } else {
       setRemaining(secs);
     }
@@ -95,7 +123,27 @@ export default function ParkingTimerScreen() {
     intervalRef.current = setInterval(() => tick(deadline), 1000);
   }
 
-  // When app comes back to foreground, resync remaining from wall clock
+  // Restore timer if screen is re-mounted (user navigated away and back)
+  useEffect(() => {
+    loadEndTime().then(saved => {
+      if (saved) {
+        const secs = Math.round((saved - Date.now()) / 1000);
+        if (secs > 0) {
+          setEndTime(saved);
+          setRemaining(secs);
+          startInterval(saved);
+        } else {
+          saveEndTime(null);
+        }
+      }
+    });
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  // Resync from wall clock when app comes back to foreground
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active' && appState.current !== 'active' && endTime) {
@@ -107,31 +155,23 @@ export default function ParkingTimerScreen() {
     return () => sub.remove();
   }, [endTime]);
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
   async function startTimer() {
-    const granted = await requestNotifPermission();
-    if (!granted && Platform.OS !== 'web') {
-      // Proceed anyway — on-screen display still works; just warn
-    }
-
+    await requestNotifPermission();
     const deadline = Date.now() + selectedMinutes * 60 * 1000;
     setEndTime(deadline);
     setRemaining(selectedMinutes * 60);
     startInterval(deadline);
+    await saveEndTime(deadline);
     await scheduleAlerts(deadline, selectedMinutes);
   }
 
-  function stopTimer() {
+  async function stopTimer() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
     setEndTime(null);
     setRemaining(0);
-    cancelAlerts();
+    await saveEndTime(null);
+    await cancelAlerts();
   }
 
   function formatTime(secs: number) {
@@ -142,7 +182,6 @@ export default function ParkingTimerScreen() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
-  const totalSecs = selectedMinutes * 60;
   const isLow = running && remaining < 300;
   const timerColor = isLow ? Colors.critical : Colors.primary;
 
@@ -202,7 +241,7 @@ export default function ParkingTimerScreen() {
           <Text style={styles.sectionLabel}>Alert Settings</Text>
           <InfoRow icon="notifications" color={Colors.amber} label="5-minute warning" desc="System notification when 5 minutes remain" />
           <InfoRow icon="notifications" color={Colors.critical} label="Time's up alert" desc="System notification + sound when timer ends" />
-          <InfoRow icon="vibrate" color={Colors.primary} label="Works in background" desc="Notifications fire even if app is minimized" />
+          <InfoRow icon="phone-portrait" color={Colors.primary} label="Works in background" desc="Notifications fire even if app is minimized" />
         </Card>
 
         <Card>
