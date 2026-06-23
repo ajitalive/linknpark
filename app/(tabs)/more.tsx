@@ -89,7 +89,7 @@ export default function MoreScreen() {
           <Text style={styles.profilePhone}>{displayHandle}</Text>
         </View>
         <TouchableOpacity style={styles.editBtn} onPress={() => router.push('/edit-profile')}>
-          <Ionicons name="pencil" size={16} color={Colors.bg} />
+          <Ionicons name="pencil" size={16} color={Colors.text} />
         </TouchableOpacity>
       </View>
 

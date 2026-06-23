@@ -260,9 +260,21 @@ module.exports = function createAuthRouter({
     res.json({ user: req.user });
   });
 
-  router.post('/api/auth/update', requireAuth, (req, res) => {
+  router.post('/api/auth/update', requireAuth, async (req, res) => {
     const { name } = req.body;
-    const updatedUser = { ...req.user, name };
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+
+    const trimmedName = name.trim();
+
+    if (supabase) {
+      const { error } = await supabase
+        .from('users')
+        .update({ name: trimmedName })
+        .eq('id', req.user.id);
+      if (error) return res.status(500).json({ error: 'Failed to save name' });
+    }
+
+    const updatedUser = { ...req.user, name: trimmedName };
     delete updatedUser.iat;
     delete updatedUser.exp;
     const token = jwt.sign(updatedUser, JWT_SECRET_RESOLVED, { expiresIn: '90d' });
