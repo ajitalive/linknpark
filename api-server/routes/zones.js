@@ -58,6 +58,7 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
     const { data: newZone, error: zErr } = await supabase.from('zones').insert({
       name: name.trim(),
       area: zone.trim(),
+      created_by: email,
     }).select().single();
     if (zErr) return res.status(500).json({ error: zErr.message });
 
