@@ -9,8 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../constants/Colors';
-
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_BASE } from '../hooks/usePushNotifications';
 
 const INCIDENT_TYPES = [
   { id: 'blocking_exit',   icon: 'car',             label: 'Blocking Exit',    desc: 'Vehicle is blocking the exit' },
@@ -278,7 +277,7 @@ export default function ReportVehicleScreen() {
                 <View style={styles.photoPreviewContainer}>
                   <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
                   <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => setPhoto(null)}>
-                    <Ionicons name="close-circle" size={24} color={Colors.danger} />
+                    <Ionicons name="close-circle" size={24} color={Colors.critical} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -501,7 +500,7 @@ const styles = StyleSheet.create({
   },
   photoBtn: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.divider,
     borderStyle: 'dashed',
     borderRadius: 12,
     padding: 20,

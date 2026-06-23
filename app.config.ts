@@ -1,27 +1,15 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
-const APP_ENV = process.env.APP_ENV || 'local';
-const IS_PROD = APP_ENV === 'production';
-const IS_LOCAL = APP_ENV === 'local';
-
-// When running locally, the app needs your machine's LAN IP to reach localhost:3001
-// Find it with: ipconfig (Windows) or ifconfig (Mac/Linux)
-// Or set LOCAL_API_IP env var before running: set LOCAL_API_IP=192.168.1.5
-const LOCAL_IP = process.env.LOCAL_API_IP || 'localhost';
-
-const API_URLS: Record<string, string> = {
-  local: `http://${LOCAL_IP}:3001`,
-  staging: 'https://linknpark-staging.onrender.com',
-  production: 'https://linknpark.onrender.com',
-};
+const APP_ENV = process.env.APP_ENV || 'production';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://linknpark.onrender.com';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_PROD ? 'LinkNPark' : IS_LOCAL ? 'LinkNPark (Dev)' : 'LinkNPark (Test)',
+  name: 'LinkNPark',
   slug: 'StickerOS',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: IS_PROD ? './assets/icon.png' : './assets/icon-dev.png',
+  icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
   newArchEnabled: true,
   scheme: 'linknpark',
@@ -36,15 +24,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   runtimeVersion: '1.0.0',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
+    bundleIdentifier: 'com.linknpark.app',
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: IS_PROD ? './assets/adaptive-icon.png' : './assets/adaptive-icon-dev.png',
-      backgroundColor: IS_PROD ? '#06090F' : '#2A2A35',
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#06090F',
     },
-    package: IS_PROD ? 'com.linknpark.app' : 'com.linknpark.app.staging',
-    googleServicesFile: IS_PROD ? './google-services.json' : undefined,
+    package: 'com.linknpark.app',
+    googleServicesFile: './google-services.json',
     config: {
       googleMaps: {
         apiKey: 'AIzaSyAw668SqSxSTsYwZ8vwYmm_oWfbPEpyebs'
@@ -86,10 +74,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        icon: IS_PROD ? './assets/icon.png' : './assets/icon-dev.png',
+        icon: './assets/icon.png',
         color: '#2CFF05',
         androidMode: 'default',
-        androidCollapsedTitle: IS_PROD ? 'LinkNPark Alert' : 'LinkNPark (Dev)',
+        androidCollapsedTitle: 'LinkNPark Alert',
         sounds: ['./assets/alert_sound.wav'],
       },
     ],
@@ -109,8 +97,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ]
   ],
   extra: {
-    // Read in app via Constants.expoConfig.extra.apiUrl
-    apiUrl: API_URLS[APP_ENV] || API_URLS.local,
+    apiUrl: API_URL,
     appEnv: APP_ENV,
     eas: {
       projectId: 'e0f55a41-94cf-42a2-99f1-de78d8298f8f',

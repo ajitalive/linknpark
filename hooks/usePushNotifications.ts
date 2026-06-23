@@ -1,13 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import Constants from 'expo-constants';
 
-import { Platform } from 'react-native';
-
 const getApiBase = () => {
   if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-  if (__DEV__) {
-    if (Platform.OS === 'android') return 'http://10.0.2.2:3001';
-    return 'http://localhost:3001';
+  const configuredUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (typeof configuredUrl === 'string' && configuredUrl.length > 0) {
+    return configuredUrl;
   }
   return 'https://linknpark.onrender.com';
 };

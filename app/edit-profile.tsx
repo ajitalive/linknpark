@@ -41,7 +41,15 @@ export default function EditProfileScreen() {
       });
       clearTimeout(id);
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        setLoading(false);
+        Alert.alert('Server Error', 'The profile update feature is not available on your current API server. If testing locally, make sure EXPO_PUBLIC_API_URL points to localhost.');
+        return;
+      }
+      
       setLoading(false);
 
       if (!res.ok) {

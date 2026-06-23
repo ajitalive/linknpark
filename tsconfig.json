@@ -2,5 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "api-server",
+    "scanner-landing",
+    "sticker-generator",
+    "001-lost-found-tag",
+    "home"
+  ]
 }
