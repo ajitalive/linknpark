@@ -1,216 +1,258 @@
-import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/Colors';
-import { Button } from '../../components/ui';
-import { sendOTP, truecallerLogin, warmUpServer } from '../../hooks/useAuth';
-import { API_BASE } from '../../hooks/usePushNotifications';
-import { initializeAsync, verifyUserAsync, TruecallerErrorCodes } from "expo-truecaller";
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Alert } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+import { useAuth } from '../../hooks/useAuth';
+import { API_BASE as API_URL } from '../../hooks/usePushNotifications';
 
-export default function EmailScreen() {
-  const insets = useSafeAreaInsets();
-  const [truecallerUsable, setTruecallerUsable] = useState(false);
-  const [truecallerLoading, setTruecallerLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
+type ChatMessage = { id: string; sender_type: string; content: string; created_at: string };
 
-  React.useEffect(() => {
-    // Pre-warm the Render server so it's ready when user taps login
-    warmUpServer();
+export default function ChatScreen() {
+  const { id, visitor } = useLocalSearchParams<{ id: string, visitor?: string }>(); // incident_id
+  const { user } = useAuth();
+  
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [text, setText] = useState('');
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const isVisitor = visitor === 'true';
 
-    (async () => {
+  useEffect(() => {
+    async function initChat() {
       try {
-        const { isUsable } = await initializeAsync({
-          consentMode: "bottomsheet",
-          heading: "logInTo",
-          theme: "dark",
-        });
-        setTruecallerUsable(isUsable);
-      } catch (e) {
-        console.log('Truecaller init error:', e);
-      }
-    })();
-  }, []);
+        let authRole = 'owner';
+        let authToken = '';
+        let activeSessionId = null;
 
-  async function handleTruecaller() {
-    try {
-      setTruecallerLoading(true);
-      const { authorizationCode, codeVerifier } = await verifyUserAsync();
-      
-      const result = await truecallerLogin(authorizationCode, codeVerifier);
-      setTruecallerLoading(false);
-      
-      if (!result.ok) {
-        Alert.alert('Truecaller Error', `${result.error}\n\nEndpoint: ${API_BASE}`);
-        return;
-      }
-      
-      router.replace('/(tabs)');
-    } catch (e: any) {
-      setTruecallerLoading(false);
-      if (e.code !== TruecallerErrorCodes.USER_CANCELLED) {
-        Alert.alert('Error', `${e.message || 'Truecaller login failed'}\n\nEndpoint: ${API_BASE}`);
+        if (isVisitor) {
+          authRole = 'visitor';
+          let visitorToken = await SecureStore.getItemAsync('lnp_visitor_token');
+          if (!visitorToken) {
+            visitorToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            await SecureStore.setItemAsync('lnp_visitor_token', visitorToken);
+          }
+          authToken = visitorToken;
+
+          const res = await fetch(`${API_URL}/api/chat/init`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ incident_id: id, visitor_token: authToken })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.session) throw new Error(data.error || 'Failed to initialize chat');
+          activeSessionId = data.session?.id;
+        } else {
+          authToken = await SecureStore.getItemAsync('lnp_jwt') || '';
+          if (!authToken) throw new Error('You are not logged in');
+
+          const res = await fetch(`${API_URL}/api/incidents/${id}/chat`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          const data = await res.json();
+          if (!res.ok || !data.session) throw new Error(data.error || 'Failed to initialize chat');
+          activeSessionId = data.session.id;
+        }
+        
+        if (!activeSessionId) throw new Error('No session ID returned');
+        setSessionId(activeSessionId);
+
+        // Fetch history
+        const histRes = await fetch(`${API_URL}/api/chat/${activeSessionId}/messages`);
+        const histData = await histRes.json();
+        if (histData.messages) {
+          setMessages(histData.messages);
+        }
+
+        // Connect WebSocket
+        const wsUrl = API_URL?.replace('http', 'ws');
+        const socket = new WebSocket(`${wsUrl}?session_id=${activeSessionId}&role=${authRole}&token=${authToken}`);
+        
+        socket.onopen = () => {
+          socket.send(JSON.stringify({ type: 'auth' }));
+        };
+
+        socket.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'message') {
+            setMessages(prev => [...prev, {
+              id: Math.random().toString(),
+              sender_type: msg.sender_type,
+              content: msg.content,
+              created_at: msg.created_at
+            }]);
+          }
+        };
+
+        setWs(socket);
+      } catch (e: any) {
+        console.error('Chat init error', e);
+        Alert.alert('Connection Error', e.message || 'Could not connect to chat. Please try again.');
       }
     }
-  }
+    
+    initChat();
+    
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [id, isVisitor]);
 
-  async function handleSendOTP() {
-    if (!email || !email.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+  function handleSend() {
+    if (!text.trim()) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      Alert.alert('Disconnected', 'The chat connection was lost. Please go back and reopen the chat.');
       return;
     }
-    try {
-      setOtpLoading(true);
-      const result = await sendOTP(email);
-      setOtpLoading(false);
-      if (!result.ok) {
-        Alert.alert('Error', result.error || 'Failed to send OTP');
-        return;
-      }
-      if (result.devCode) {
-        Alert.alert('Dev Mode', `Use verification code: ${result.devCode}`);
-      }
-      router.push({ pathname: '/(auth)/otp', params: { email } });
-    } catch (e: any) {
-      setOtpLoading(false);
-      Alert.alert('Error', e.message || 'Network error');
-    }
+    
+    const msg = text.trim();
+    setText('');
+    
+    setMessages(prev => [...prev, {
+      id: Math.random().toString(),
+      sender_type: isVisitor ? 'visitor' : 'owner',
+      content: msg,
+      created_at: new Date().toISOString()
+    }]);
+
+    ws.send(JSON.stringify({ type: 'message', content: msg }));
+  }
+
+  function formatTime(iso: string) {
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        style={{ flex: 1, backgroundColor: Colors.bg }}
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <LinearGradient
-          colors={[Colors.primary, Colors.primaryLight]}
-          style={[styles.header, { paddingTop: insets.top + 16 }]}
-        >
-          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        
+        {/* Header matching 'Car Connect' design */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={{ marginRight: 10 }}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.logoWrap}>
-            <Ionicons name="qr-code" size={36} color="#fff" />
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={20} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>LinkNPark</Text>
-          <Text style={styles.headerSub}>Smart Vehicle Identity</Text>
-        </LinearGradient>
-
-        <View style={styles.form}>
-          {truecallerUsable && !showEmailLogin ? (
-            <View style={styles.truecallerContainer}>
-              <Text style={styles.formTitle}>Welcome to LinkNPark</Text>
-              <Text style={styles.formSub}>Fast, secure 1-Tap Login</Text>
-              <Button
-                label="1-Tap Login with Truecaller"
-                onPress={handleTruecaller}
-                loading={truecallerLoading}
-                size="lg"
-                style={{ backgroundColor: '#0087FF', marginTop: 12 }}
-              />
-              <TouchableOpacity
-                onPress={() => setShowEmailLogin(true)}
-                style={{ marginTop: 24, alignItems: 'center' }}
-              >
-                <Text style={{ color: Colors.primary, fontWeight: '600', fontSize: 15 }}>
-                  Or sign in with Email OTP
-                </Text>
-              </TouchableOpacity>
-              <Text style={styles.terms}>
-                By continuing you agree to our{' '}
-                <Text style={styles.link}>Terms of Service</Text>
-                {' '}and{' '}
-                <Text style={styles.link}>Privacy Policy</Text>
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.truecallerContainer}>
-              <Text style={styles.formTitle}>Sign In</Text>
-              <Text style={styles.formSub}>Enter your email to receive an OTP code</Text>
-              
-              <View style={styles.emailRow}>
-                <TextInput
-                  style={styles.emailInput}
-                  placeholder="Enter your email"
-                  placeholderTextColor={Colors.textSecondary}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <Button
-                label="Send Verification Code"
-                onPress={handleSendOTP}
-                loading={otpLoading}
-                size="lg"
-                style={{ marginTop: 20 }}
-              />
-
-              {truecallerUsable && (
-                <TouchableOpacity
-                  onPress={() => setShowEmailLogin(false)}
-                  style={{ marginTop: 24, alignItems: 'center' }}
-                >
-                  <Text style={{ color: Colors.textSecondary, fontWeight: '600', fontSize: 15 }}>
-                    Back to Truecaller Login
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          <Text style={styles.headerTitle}>{isVisitor ? 'Owner' : 'Visitor'}</Text>
+          <View style={{ flex: 1 }} />
+          <Ionicons name="call" size={20} color="#fff" style={{ marginHorizontal: 12 }} />
+          <Ionicons name="videocam" size={22} color="#fff" style={{ marginHorizontal: 12 }} />
+          <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        {/* Registration Bar */}
+        <View style={styles.registrationBar}>
+          <Text style={styles.registrationText}>@Incident {id.substring(0,6)}</Text>
+        </View>
+
+        {/* Messages List */}
+        <ScrollView 
+          ref={scrollViewRef}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {messages.map(msg => {
+            const isMe = msg.sender_type === (isVisitor ? 'visitor' : 'owner');
+            return (
+              <View key={msg.id} style={[styles.bubbleWrap, isMe ? styles.bubbleWrapRight : styles.bubbleWrapLeft]}>
+                <View style={[styles.bubble, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
+                  <Text style={isMe ? styles.bubbleTextRight : styles.bubbleTextLeft}>
+                    {msg.content}
+                  </Text>
+                </View>
+                <View style={[styles.timeRow, isMe ? { justifyContent: 'flex-end' } : {}]}>
+                  <Text style={styles.timeText}>Today</Text>
+                  <Text style={styles.timeText}>{formatTime(msg.created_at)}</Text>
+                </View>
+              </View>
+            );
+          })}
+          {!sessionId && (
+            <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 40 }}>Waiting for visitor to connect...</Text>
+          )}
+        </ScrollView>
+
+        {/* Input Area */}
+        <View style={styles.inputArea}>
+          <TextInput
+            style={styles.input}
+            placeholder="Type here...."
+            placeholderTextColor="#9CA3AF"
+            value={text}
+            onChangeText={setText}
+            onSubmitEditing={handleSend}
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+            <Ionicons name="send" size={18} color="#fff" style={{ marginLeft: 3 }} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 24, paddingBottom: 40, alignItems: 'center' },
-  backBtn: { alignSelf: 'flex-start', marginBottom: 24 },
-  logoWrap: {
-    width: 72, height: 72, borderRadius: 36,
+  safeArea: { flex: 1, backgroundColor: '#15803D' },
+  root: { flex: 1, backgroundColor: '#FAFAFA' },
+  header: {
+    backgroundColor: '#15803D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  avatar: {
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
+    marginRight: 12
   },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  form: { flex: 1, padding: 28 },
-  truecallerContainer: {
-    width: '100%',
+  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  registrationBar: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16, paddingVertical: 8,
   },
-  formTitle: { fontSize: 24, fontWeight: '700', color: Colors.text, marginBottom: 8 },
-  formSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 28 },
-  emailRow: {
+  registrationText: { color: '#4B5563', fontSize: 13, fontWeight: '700' },
+  scrollContent: { padding: 16, paddingBottom: 30 },
+  bubbleWrap: { maxWidth: '80%', marginBottom: 16 },
+  bubbleWrapLeft: { alignSelf: 'flex-start' },
+  bubbleWrapRight: { alignSelf: 'flex-end' },
+  bubble: {
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderRadius: 20,
+  },
+  bubbleLeft: {
+    backgroundColor: '#F3F4F6',
+    borderBottomLeftRadius: 4,
+  },
+  bubbleRight: {
+    backgroundColor: '#A7F3D0',
+    borderBottomRightRadius: 4,
+  },
+  bubbleTextLeft: { color: '#1F2937', fontSize: 15, fontWeight: '500' },
+  bubbleTextRight: { color: '#064E3B', fontSize: 15, fontWeight: '500' },
+  timeRow: {
+    flexDirection: 'row', gap: 12,
+    marginTop: 4, paddingHorizontal: 4
+  },
+  timeText: { color: '#9CA3AF', fontSize: 10 },
+  inputArea: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.divider,
-    paddingHorizontal: 16, height: 56,
+    padding: 12, paddingBottom: 24,
+    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F3F4F6'
   },
-  emailInput: {
-    flex: 1, height: '100%',
-    fontSize: 16, fontWeight: '500', color: Colors.text,
+  input: {
+    flex: 1, backgroundColor: '#F3F4F6',
+    borderRadius: 24, paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 15, color: '#1F2937'
   },
-  terms: {
-    fontSize: 12, color: Colors.textMuted,
-    textAlign: 'center', marginTop: 16, lineHeight: 18,
-  },
-  link: { color: Colors.primary, fontWeight: '600' },
-  hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24 },
-  hintText: { fontSize: 12, color: Colors.textMuted },
+  sendBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#15803D',
+    alignItems: 'center', justifyContent: 'center',
+    marginLeft: 12
+  }
 });
