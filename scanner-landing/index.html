@@ -594,7 +594,10 @@
           body: JSON.stringify({ incident_id: incidentId, visitor_token: visitorToken })
         });
         const data = await res.json();
-        if (!data.session) return;
+        if (!res.ok || !data.session) {
+          document.getElementById('chat-messages').innerHTML = '<div class="text-xs text-center text-red-400 my-4">Chat unavailable — ' + (data.error || 'server error') + '</div>';
+          return;
+        }
         
         chatSessionId = data.session.id;
 

@@ -57,10 +57,15 @@ export default function EditProfileScreen() {
         return;
       }
 
-      await saveAuth(data.token, data.user);
-      setUser(data.user);
-      
-      setSaved(true);
+      // Debug: confirm what the API returned
+      Alert.alert('Debug', `API returned:\nname: ${data.user?.name}\nemail: ${data.user?.email}\ntoken ok: ${!!data.token}`, [
+        { text: 'OK', onPress: async () => {
+          await saveAuth(data.token, data.user);
+          setUser(data.user);
+          setSaved(true);
+        }}
+      ]);
+      return;
       setTimeout(() => {
         if (router.canGoBack()) {
           router.back();
