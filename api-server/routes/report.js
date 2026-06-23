@@ -1,4 +1,5 @@
 'use strict';
+const { isR2Configured, uploadToR2 } = require('../r2');
 /**
  * routes/report.js
  * Public scanner endpoints — no auth required.
@@ -261,26 +262,32 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
     if (!req.file) return res.status(400).json({ error: 'photo file required' });
 
     try {
-      if (!supabase) throw new Error('Supabase not configured');
-
-      const fileExt = req.file.originalname.split('.').pop();
+      const fileExt = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
       const fileName = `${id}-${Date.now()}.${fileExt}`;
       const filePath = `photos/${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('incident-photos')
-        .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: true
-        });
+      let photoUrl;
 
-      if (error) throw error;
+      if (isR2Configured()) {
+        // Cloudflare R2 (free egress, 10 GB free tier)
+        photoUrl = await uploadToR2(filePath, req.file.buffer, req.file.mimetype);
+      } else {
+        // Fallback: Supabase Storage
+        if (!supabase) throw new Error('No photo storage configured (neither R2 nor Supabase)');
 
-      const { data: publicUrlData } = supabase.storage
-        .from('incident-photos')
-        .getPublicUrl(filePath);
+        const { error } = await supabase.storage
+          .from('incident-photos')
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: true
+          });
+        if (error) throw error;
 
-      const photoUrl = publicUrlData.publicUrl;
+        const { data: publicUrlData } = supabase.storage
+          .from('incident-photos')
+          .getPublicUrl(filePath);
+        photoUrl = publicUrlData.publicUrl;
+      }
 
       const { error: updateError } = await supabase
         .from('incidents')
