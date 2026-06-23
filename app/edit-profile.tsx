@@ -50,29 +50,26 @@ export default function EditProfileScreen() {
         return;
       }
       
-      setLoading(false);
-
       if (!res.ok) {
+        setLoading(false);
         Alert.alert('Error', data.error || 'Failed to update profile');
         return;
       }
 
-      // Debug: confirm what the API returned
-      Alert.alert('Debug', `API returned:\nname: ${data.user?.name}\nemail: ${data.user?.email}\ntoken ok: ${!!data.token}`, [
-        { text: 'OK', onPress: async () => {
-          await saveAuth(data.token, data.user);
-          setUser(data.user);
-          setSaved(true);
-        }}
-      ]);
-      return;
+      // Persist the new token+user and notify all useAuth consumers
+      // (saveAuth calls notifyListeners, which updates the profile screen)
+      await saveAuth(data.token, data.user);
+      setUser(data.user);
+      setLoading(false);
+      setSaved(true);
+
       setTimeout(() => {
         if (router.canGoBack()) {
           router.back();
         } else {
           router.replace('/(tabs)/more');
         }
-      }, 1000);
+      }, 800);
 
     } catch (e: any) {
       setLoading(false);
