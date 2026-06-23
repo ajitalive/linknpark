@@ -177,6 +177,19 @@ app.use(karmaRouter);
 // ── Health + root redirect ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));
 
+// DB-touching health check — point your uptime monitor here so the ping keeps
+// BOTH the API host and Supabase warm (prevents free-tier inactivity pause).
+app.get('/api/health', async (req, res) => {
+  if (!supabase) return res.status(503).json({ status: 'no-db' });
+  try {
+    const { error } = await supabase.from('stickers').select('code', { count: 'exact', head: true });
+    if (error) throw error;
+    res.json({ status: 'ok', db: 'up', ts: new Date().toISOString() });
+  } catch (e) {
+    res.status(503).json({ status: 'error', db: 'down', error: e.message });
+  }
+});
+
 app.get('/', (req, res) => {
   const code = req.query.code;
   if (code) return res.redirect(`https://scan.linknpark.in?code=${encodeURIComponent(code)}`);
