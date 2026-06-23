@@ -48,6 +48,20 @@ const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY
 
 if (!supabase) console.warn('[BOOT] Supabase not configured — DB calls will fail');
 
+// Verify the otps table exists so OTPs survive server restarts.
+// Run api-server/migrations/001_create_otps_table.sql in Supabase if this fails.
+if (supabase) {
+  supabase.from('otps').select('id').limit(1).then(({ error }) => {
+    if (error && error.code === '42P01') {
+      console.error('[BOOT] FATAL: "otps" table not found in Supabase.');
+      console.error('[BOOT] Run api-server/migrations/001_create_otps_table.sql in your Supabase SQL editor.');
+      if (IS_PRODUCTION) process.exit(1);
+    } else if (!error) {
+      console.log('[BOOT] otps table: OK (OTPs are Supabase-persistent)');
+    }
+  }).catch(() => {});
+}
+
 // ============ MULTER ============
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -61,11 +75,6 @@ const app = express();
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5500',
-      'http://localhost:8081',
-      'http://127.0.0.1:5500',
       'https://scan.linknpark.in',
       'https://linknpark.in',
       'https://www.linknpark.in',
@@ -73,8 +82,17 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
+    
+    // Allow any localhost origin during development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    
+    // Check against allowed production origins
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    
     console.warn(`[CORS] Blocked request from origin: ${origin}`);
     return callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
@@ -197,7 +215,12 @@ if (require.main === module) {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`\nLinkNPark API server → http://0.0.0.0:${PORT}`);
     console.log(`Supabase: ${supabase ? 'connected' : 'NOT configured'}`);
-    console.log(`Resend:   ${resend ? 'configured' : 'NOT configured'}\n`);
+    console.log(`Resend:   ${resend ? 'configured' : 'NOT configured'}`);
+    console.log(`Redis:    ${process.env.REDIS_URL ? 'enabled (chat Pub/Sub)' : 'not set — single-instance mode (set REDIS_URL for multi-instance)'}`);
+    if (IS_PRODUCTION && !process.env.REDIS_URL) {
+      console.warn('[BOOT] WARNING: REDIS_URL not set. Incident WebSocket push (stickerClients) and chat are single-instance only. Safe for one Render dyno.');
+    }
+    console.log('');
   });
 }
 

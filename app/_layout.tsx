@@ -42,9 +42,15 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="sticker/[id]" options={{ presentation: 'card' }} />
           <Stack.Screen name="incident/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="checkout/[id]" options={{ presentation: 'card' }} />
           <Stack.Screen name="activate" options={{ presentation: 'modal' }} />
           <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="guard" options={{ presentation: 'card' }} />
+          <Stack.Screen name="etag" options={{ presentation: 'card' }} />
+          <Stack.Screen name="report-vehicle" options={{ presentation: 'card' }} />
+          <Stack.Screen name="safety-radar" options={{ presentation: 'card' }} />
+          <Stack.Screen name="edit-profile" options={{ presentation: 'card' }} />
           <Stack.Screen name="sos-settings" options={{ presentation: 'card' }} />
           <Stack.Screen name="emergency-contacts" options={{ presentation: 'card' }} />
           <Stack.Screen name="guardian-network" options={{ presentation: 'card' }} />

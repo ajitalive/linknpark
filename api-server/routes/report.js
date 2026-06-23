@@ -148,7 +148,7 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
           reason_label: reasonLabel,
           message: message || null,
           reporter_phone: reporterPhone || null,
-          status: 'pending',
+          status: 'open',
         })
         .select()
         .single();
@@ -167,7 +167,7 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
         reason_label: reasonLabel,
         message,
         reporter_phone: reporterPhone,
-        status: 'pending',
+        status: 'open',
       };
       insertError = null;
     }

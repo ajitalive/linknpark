@@ -22,32 +22,25 @@ export default function CheckoutScreen() {
     pincode: ''
   });
 
-  const [loading, setLoading] = useState(false);
-
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
   const handlePlaceOrder = () => {
-    // Basic validation
-    if (!form.name || !form.phone || !form.address || !form.pincode) {
-      Alert.alert('Missing Details', 'Please fill in all required fields (Name, Phone, Address, Pincode).');
-      return;
-    }
-
-    setLoading(true);
-    // Simulate network request
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert(
-        'Order Placed Successfully! 🎉',
-        'Your LinkNPark tags will be shipped shortly. You will receive an SMS with tracking details.',
-        [{ 
-          text: 'Back to Store', 
-          onPress: () => router.replace('/(tabs)/store') 
-        }]
-      );
-    }, 1500);
+    Alert.alert(
+      'Online Payments Coming Soon',
+      'Our payment system is being set up. To order now, please contact us on WhatsApp and we will process your order manually.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'WhatsApp Us',
+          onPress: () => {
+            const msg = encodeURIComponent(`Hi! I'd like to order: ${product.name} (₹${product.price})`);
+            require('react-native').Linking.openURL(`https://wa.me/919999999999?text=${msg}`);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -66,12 +59,12 @@ export default function CheckoutScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* Cart Reminder Banner */}
-        <View style={styles.reminderBanner}>
-          <Ionicons name="time" size={20} color={Colors.amber} />
+        {/* Payment coming soon banner */}
+        <View style={[styles.reminderBanner, { borderColor: Colors.primary, backgroundColor: Colors.primaryBg }]}>
+          <Ionicons name="construct" size={20} color={Colors.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.reminderTitle}>High Demand Item</Text>
-            <Text style={styles.reminderText}>You're 1 step away! Complete your order before stock runs out.</Text>
+            <Text style={[styles.reminderTitle, { color: Colors.primary }]}>Online Payments Coming Soon</Text>
+            <Text style={styles.reminderText}>Tap "Place Order" to reach us on WhatsApp and we'll process your order personally.</Text>
           </View>
         </View>
 
@@ -174,11 +167,10 @@ export default function CheckoutScreen() {
       {/* Place Order Button */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity 
-          style={[styles.placeOrderBtn, loading && { opacity: 0.7 }]} 
+          style={styles.placeOrderBtn}
           onPress={handlePlaceOrder}
-          disabled={loading}
         >
-          <Text style={styles.placeOrderText}>{loading ? 'Processing...' : 'Place Order'}</Text>
+          <Text style={styles.placeOrderText}>Order via WhatsApp</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

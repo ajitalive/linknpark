@@ -7,18 +7,12 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "APP_ENV": "staging"
-      }
-    },
-    "local-apk": {
-      "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "local",
-        "LOCAL_API_IP": "192.168.1.6"
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_API_URL": "http://localhost:3001"
       }
     },
     "staging": {
@@ -26,8 +20,11 @@
       "android": {
         "buildType": "apk"
       },
+      "channel": "staging",
+      "autoIncrement": true,
       "env": {
-        "APP_ENV": "staging"
+        "APP_ENV": "staging",
+        "EXPO_PUBLIC_API_URL": "https://linknpark.onrender.com"
       }
     },
     "production": {
@@ -35,9 +32,11 @@
       "android": {
         "buildType": "app-bundle"
       },
+      "channel": "production",
       "autoIncrement": true,
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://linknpark.onrender.com"
       }
     },
     "production-apk": {
@@ -46,8 +45,10 @@
         "buildType": "apk"
       },
       "channel": "production",
+      "autoIncrement": true,
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://linknpark.onrender.com"
       }
     }
   },
