@@ -9,7 +9,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth, getToken } from '../hooks/useAuth';
+import { API_BASE } from '../hooks/usePushNotifications';
 
 const SCAN_BASE = 'https://scan.linknpark.in';
 
@@ -32,20 +33,42 @@ export default function ETagScreen() {
   const [vehicleType, setVehicleType] = useState('car');
   const [ownerName, setOwnerName] = useState(user?.name || '');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // The QR code encodes the scan URL with the plate number as a query
   // so even without a physical sticker, anyone can scan and find the owner
   const qrValue = `${SCAN_BASE}/plate?p=${plate.replace(/\s/g, '').toUpperCase()}`;
 
-  function handleGenerate() {
+  async function handleGenerate() {
     const cleaned = plate.replace(/\s/g, '').toUpperCase();
     if (!cleaned || cleaned.length < 4) {
       setError('Please enter a valid plate number (e.g. KA01AB1234)');
       return;
     }
     setError('');
-    setPlate(cleaned);
-    setStep('preview');
+    setLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/api/etag`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ registration: cleaned, vehicle_type: vehicleType, owner_name: ownerName || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Could not create your eTag. Please try again.');
+        return;
+      }
+      setPlate(cleaned);
+      setStep('preview');
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleShare() {
@@ -176,9 +199,15 @@ export default function ETagScreen() {
                 maxLength={40}
               />
 
-              <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} activeOpacity={0.85}>
-                <Ionicons name="qr-code" size={20} color={Colors.bg} />
-                <Text style={styles.generateBtnText}>Generate My Free eTag</Text>
+              <TouchableOpacity style={[styles.generateBtn, loading && { opacity: 0.6 }]} onPress={handleGenerate} activeOpacity={0.85} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator size="small" color={Colors.bg} />
+                ) : (
+                  <>
+                    <Ionicons name="qr-code" size={20} color={Colors.bg} />
+                    <Text style={styles.generateBtnText}>Generate My Free eTag</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
 

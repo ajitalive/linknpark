@@ -7,8 +7,52 @@
  *   supabase      – Supabase client
  *   requireAuth   – auth middleware from routes/auth.js
  */
+const crypto = require('crypto');
+
 module.exports = function createStickersRouter({ supabase, requireAuth }) {
   const router = require('express').Router();
+
+  // POST /api/etag — register a free virtual eTag (no physical sticker)
+  // Creates a sticker row keyed by a synthetic code so the plate becomes
+  // scannable/notifiable and shows up in the owner's vehicle list.
+  router.post('/api/etag', requireAuth, async (req, res) => {
+    const { registration, vehicle_type, owner_name } = req.body;
+    if (!registration || registration.replace(/\s+/g, '').length < 4) {
+      return res.status(400).json({ error: 'A valid registration number is required.' });
+    }
+    const plate = registration.toUpperCase().replace(/\s+/g, '');
+
+    // Dedupe on plate across all active stickers (physical or eTag)
+    const { data: existing } = await supabase
+      .from('stickers')
+      .select('code, owner_email, tag_type, registration, vehicle_type, vehicle_name')
+      .eq('registration', plate)
+      .neq('status', 'unclaimed')
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.owner_email === req.user.email) {
+        // Already registered to this user — return the existing one (idempotent)
+        return res.json({ ok: true, duplicate: true, etag: existing });
+      }
+      return res.status(409).json({ error: 'This plate is already registered on LinkNPark.' });
+    }
+
+    const code = 'ETAG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const { data, error } = await supabase.from('stickers').insert({
+      code,
+      owner_email: req.user.email,
+      registration: plate,
+      vehicle_type: vehicle_type || 'car',
+      vehicle_name: owner_name || null,
+      tag_type: 'etag',
+      status: 'active',
+    }).select().single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, etag: data });
+  });
 
   // GET /api/stickers — list stickers owned by the authenticated user
   router.get('/api/stickers', requireAuth, async (req, res) => {
