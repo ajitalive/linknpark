@@ -48,6 +48,7 @@ export default function ActivateScreen() {
   const [vehicleType, setVehicleType] = useState('');
   const [regNo, setRegNo] = useState('');
   const [color, setColor] = useState('');
+  const [parkingSlot, setParkingSlot] = useState('');
   const [backupPhone, setBackupPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -80,6 +81,7 @@ export default function ActivateScreen() {
           vehicle_type: tagType === 'vehicle' ? vehicleType : 'other',
           registration: tagType === 'vehicle' ? regNo.toUpperCase().replace(/\s+/g, '') : 'N/A',
           color: color || undefined,
+          parking_slot: tagType === 'vehicle' && parkingSlot ? parkingSlot.toUpperCase().replace(/\s+/g, '') : undefined,
           backup_phone: backupPhone || undefined,
           vehicle_name: undefined,
           tag_type: tagType,
@@ -141,6 +143,7 @@ export default function ActivateScreen() {
             vehicleType={vehicleType} onType={setVehicleType}
             regNo={regNo} onReg={setRegNo}
             color={color} onColor={setColor}
+            parkingSlot={parkingSlot} onParkingSlot={setParkingSlot}
           />
         )}
         {step === 2 && <StepBackup phone={backupPhone} onPhone={setBackupPhone} />}
@@ -206,7 +209,7 @@ function StepScan({ code, onCode }: any) {
   );
 }
 
-function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, onType, regNo, onReg, color, onColor }: any) {
+function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, onType, regNo, onReg, color, onColor, parkingSlot, onParkingSlot }: any) {
   return (
     <View>
       <Text style={styles.stepTitle}>Tell us about your tag</Text>
@@ -260,6 +263,17 @@ function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, on
             value={color}
             onChangeText={onColor}
           />
+
+          <Text style={styles.fieldLabel}>Parking Slot <Text style={{ fontWeight: '400', color: Colors.textMuted }}>(optional)</Text></Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. B2-17"
+            placeholderTextColor={Colors.textMuted}
+            value={parkingSlot}
+            onChangeText={onParkingSlot}
+            autoCapitalize="characters"
+          />
+          <Text style={styles.fieldHint}>Helps your society's guard identify and protect your spot</Text>
         </View>
       ) : (
         <View>
@@ -380,6 +394,7 @@ const styles = StyleSheet.create({
   foundCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(52, 199, 89, 0.1)', borderRadius: 16, padding: 16, marginTop: 16 },
   foundText: { fontSize: 15, fontWeight: '700', color: Colors.success },
   fieldLabel: { fontSize: 13, fontWeight: '800', color: Colors.textMuted, marginBottom: 12, marginTop: 24, textTransform: 'uppercase', letterSpacing: 1 },
+  fieldHint: { fontSize: 12, color: Colors.textMuted, marginTop: 8, lineHeight: 16 },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   typeCard: { width: '31%', paddingVertical: 16, borderRadius: 16, backgroundColor: Colors.surface, alignItems: 'center', gap: 6, borderWidth: 2, borderColor: 'transparent' },
   typeCardActive: { borderColor: Colors.primary, backgroundColor: 'rgba(215, 255, 0, 0.05)' },

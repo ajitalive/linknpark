@@ -103,8 +103,8 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
 
     const { data, error } = await supabase
       .from('stickers')
-      .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color, tag_type, tag_title')
-      .or(`code.eq."${search}",registration.eq."${search}"`)
+      .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color, tag_type, tag_title, parking_slot')
+      .or(`code.eq."${search}",registration.eq."${search}",parking_slot.eq."${search}"`)
       .not('owner_email', 'is', 'null')
       .neq('status', 'unclaimed')
       .limit(1)
@@ -115,9 +115,9 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
     }
 
     const { count } = await supabase
-      .from('reports')
+      .from('incidents')
       .select('*', { count: 'exact', head: true })
-      .eq('stickerCode', data.code);
+      .eq('sticker_code', data.code);
 
     res.json({
       vehicle: {
@@ -126,10 +126,56 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
         color: data.color || 'Unknown',
         type: data.vehicle_type,
         resident: data.vehicle_name || 'Resident',
-        flat: 'N/A',
-        tower: 'N/A',
+        parkingSlot: data.parking_slot || null,
         incidents: count || 0,
       },
+    });
+  });
+
+  // GET /api/guard/stats — live counters + recent activity for Guard Mode
+  router.get('/api/guard/stats', requireAuth, async (req, res) => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Registered vehicles
+    const { count: vehicles } = await supabase
+      .from('stickers')
+      .select('*', { count: 'exact', head: true })
+      .not('owner_email', 'is', 'null')
+      .neq('status', 'unclaimed');
+
+    // Incidents today
+    const { count: incidentsToday } = await supabase
+      .from('incidents')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startOfDay.toISOString());
+
+    // Open (unresolved) incidents
+    const { count: openIncidents } = await supabase
+      .from('incidents')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'resolved');
+
+    // Recent activity (last 10 incidents with vehicle info)
+    const { data: recent } = await supabase
+      .from('incidents')
+      .select('id, reason, status, created_at, sticker_code, stickers(registration, vehicle_name)')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    res.json({
+      stats: {
+        incidentsToday: incidentsToday || 0,
+        vehicles: vehicles || 0,
+        openIncidents: openIncidents || 0,
+      },
+      recent: (recent || []).map(r => ({
+        id: r.id,
+        reason: r.reason,
+        status: r.status,
+        created_at: r.created_at,
+        plate: r.stickers?.registration || r.sticker_code,
+      })),
     });
   });
 

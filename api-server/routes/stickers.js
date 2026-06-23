@@ -23,7 +23,7 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
 
   // POST /api/stickers — claim a pre-registered sticker code
   router.post('/api/stickers', requireAuth, async (req, res) => {
-    const { code, vehicle_name, vehicle_type, color, registration, backup_phone, tag_type, tag_title } = req.body;
+    const { code, vehicle_name, vehicle_type, color, registration, backup_phone, tag_type, tag_title, parking_slot } = req.body;
     if (!code || !vehicle_type || !registration) {
       return res.status(400).json({ error: 'code, vehicle_type, registration required' });
     }
@@ -57,6 +57,7 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
       backup_phone: backup_phone || null,
       tag_type: tag_type || 'vehicle',
       tag_title: tag_title || null,
+      parking_slot: parking_slot ? parking_slot.toUpperCase() : null,
       status: 'active',
     }).eq('code', normalizedCode).select().single();
 
@@ -68,7 +69,7 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
   // PATCH /api/stickers/:id — update a sticker (owner only)
   router.patch('/api/stickers/:id', requireAuth, async (req, res) => {
     const updates = {};
-    ['vehicle_name', 'registration', 'color', 'status', 'backup_phone', 'tag_type', 'tag_title'].forEach(k => {
+    ['vehicle_name', 'registration', 'color', 'status', 'backup_phone', 'tag_type', 'tag_title', 'parking_slot'].forEach(k => {
       if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
     const { data, error } = await supabase

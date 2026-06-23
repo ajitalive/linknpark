@@ -69,6 +69,25 @@ export default function GuardScreen() {
   const [elapsedSec, setElapsedSec] = useState(0);
   const incidentStartRef = useRef<number | null>(null);
 
+  const [stats, setStats] = useState<{ incidentsToday: number; vehicles: number; openIncidents: number } | null>(null);
+  const [recent, setRecent] = useState<any[]>([]);
+
+  async function fetchStats() {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/guard/stats`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) {
+        setStats(data.stats);
+        setRecent(data.recent || []);
+      }
+    } catch (e) {
+      console.error('guard stats error', e);
+    }
+  }
+
+  useEffect(() => { fetchStats(); }, []);
+
   // Count the response timer down once per second while an incident is active
   useEffect(() => {
     if (!timerActive) return;
@@ -208,6 +227,7 @@ export default function GuardScreen() {
     setTimer(0);
     setElapsedSec(0);
     incidentStartRef.current = null;
+    fetchStats();
   }
 
   return (
@@ -238,6 +258,8 @@ export default function GuardScreen() {
         {mode === 'home' && (
           <GuardHome
             onScan={() => animateTransition('scan')}
+            stats={stats}
+            recent={recent}
           />
         )}
 
@@ -283,7 +305,7 @@ export default function GuardScreen() {
 // COMPONENTS
 // ----------------------------------------------------
 
-function GuardHome({ onScan }: { onScan: () => void }) {
+function GuardHome({ onScan, stats, recent }: { onScan: () => void; stats: any; recent: any[] }) {
   // Breathing animation for main button
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -319,18 +341,48 @@ function GuardHome({ onScan }: { onScan: () => void }) {
 
       {/* Stats row with Glassmorphism */}
       <View style={styles.statsRow}>
-        <StatBox value="7" label1="Incidents" color={GuardColors.warning} />
-        <StatBox value="23" label1="Vehicles" color={GuardColors.primary} />
-        <StatBox value="2" label1="Visitors" color={GuardColors.success} />
+        <StatBox value={stats ? String(stats.incidentsToday) : '—'} label1="Today" color={GuardColors.warning} />
+        <StatBox value={stats ? String(stats.vehicles) : '—'} label1="Vehicles" color={GuardColors.primary} />
+        <StatBox value={stats ? String(stats.openIncidents) : '—'} label1="Open" color={GuardColors.success} />
       </View>
 
-      {/* Recent incidents */}
-      <Text style={styles.sectionTitle}>System Logs</Text>
-      <View style={styles.glassCard}>
-        <Text style={{ color: GuardColors.textSecondary, textAlign: 'center', padding: 20 }}>All systems operational. No recent logs.</Text>
-      </View>
+      {/* Recent activity */}
+      <Text style={styles.sectionTitle}>Recent Activity</Text>
+      {recent && recent.length > 0 ? (
+        <View style={styles.glassCard}>
+          {recent.map((r, i) => (
+            <View key={r.id} style={[styles.logRow, i > 0 && { borderTopWidth: 1, borderTopColor: GuardColors.border, paddingTop: 12, marginTop: 12 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: GuardColors.text, fontWeight: '700', fontSize: 14 }}>{r.plate}</Text>
+                <Text style={{ color: GuardColors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {String(r.reason || '').replace(/_/g, ' ')}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: r.status === 'resolved' ? GuardColors.success : GuardColors.warning, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>
+                  {r.status || 'open'}
+                </Text>
+                <Text style={{ color: GuardColors.textSecondary, fontSize: 11, marginTop: 2 }}>{guardTimeAgo(r.created_at)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.glassCard}>
+          <Text style={{ color: GuardColors.textSecondary, textAlign: 'center', padding: 20 }}>No activity yet. Scanned vehicles and alerts will appear here.</Text>
+        </View>
+      )}
     </View>
   );
+}
+
+function guardTimeAgo(iso: string): string {
+  if (!iso) return '';
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
 }
 
 function GuardScan({ plate, onPlate, onSearch, onOpenScanner, onBack, loading }: any) {
@@ -374,7 +426,7 @@ function GuardScan({ plate, onPlate, onSearch, onOpenScanner, onBack, loading }:
 
       <TextInput
         style={styles.plateInput}
-        placeholder="ENTER PLATE (E.G. MH12AB1234)"
+        placeholder="PLATE, SLOT (B2-17) OR CODE"
         placeholderTextColor={GuardColors.textSecondary}
         value={plate}
         onChangeText={onPlate}
@@ -420,8 +472,8 @@ function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
           )}
         </View>
         <View style={styles.foundDetails}>
-          {vehicle.flat && vehicle.flat !== 'N/A' && (
-            <FoundDetail icon="home-outline" label="Unit" value={`${vehicle.flat}, ${vehicle.tower}`} />
+          {vehicle.parkingSlot && (
+            <FoundDetail icon="grid-outline" label="Assigned Slot" value={vehicle.parkingSlot} />
           )}
           <FoundDetail icon="person-outline" label="Resident" value={vehicle.resident} />
           <FoundDetail icon="alert-circle-outline" label="History" value={`${vehicle.incidents} ${vehicle.incidents === 1 ? 'Incident' : 'Incidents'}`} />
