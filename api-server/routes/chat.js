@@ -105,6 +105,45 @@ module.exports = function createChatRouter({ supabase, requireAuth, sendExpoPush
     }
   });
 
+  // POST /api/chat/message — async REST send (used for non-live reasons)
+  router.post('/api/chat/message', async (req, res) => {
+    const { session_id, content, visitor_token } = req.body;
+    if (!session_id || !content) return res.status(400).json({ error: 'Missing session_id or content' });
+
+    // Persist message (best-effort)
+    try {
+      await supabase.from('chat_messages').insert({ session_id, sender_type: 'visitor', content });
+    } catch(e) {
+      console.warn('[Chat] Could not persist async message:', e.message);
+    }
+
+    // Push-notify owner via incident → sticker → owner_email → push token
+    try {
+      const { data: session } = await supabase.from('chat_sessions').select('incident_id').eq('id', session_id).single();
+      if (session?.incident_id) {
+        const { data: incident } = await supabase.from('incidents').select('sticker_code').eq('id', session.incident_id).single();
+        if (incident?.sticker_code) {
+          const { data: sticker } = await supabase.from('stickers').select('owner_email, registration').eq('code', incident.sticker_code).single();
+          if (sticker?.owner_email) {
+            const { data: tokens } = await supabase.from('push_tokens').select('token').eq('email', sticker.owner_email);
+            const plate = sticker.registration || incident.sticker_code;
+            for (const { token } of (tokens || [])) {
+              await sendExpoPush(token, {
+                title: `💬 Message about ${plate}`,
+                body: content,
+                data: { reportId: session.incident_id },
+              });
+            }
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('[Chat] Push notify failed:', e.message);
+    }
+
+    res.json({ ok: true });
+  });
+
   // GET /api/chat/:sessionId/messages — fetch messages for a session
   router.get('/api/chat/:sessionId/messages', async (req, res) => {
     try {

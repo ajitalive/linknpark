@@ -513,6 +513,10 @@
     let currentReportId = null;
     let chatWs = null;
     let chatSessionId = null;
+    let chatPollInterval = null;
+    let chatMode = 'async'; // 'async' | 'live'
+    let chatMsgCount = 0;
+    const LIVE_REASONS = ['visitor', 'delivery'];
     let visitorToken = localStorage.getItem('visitor_token') || Math.random().toString(36).substring(2);
     localStorage.setItem('visitor_token', visitorToken);
 
@@ -574,50 +578,73 @@
         });
         const data = await res.json();
         if (!res.ok || !data.session) {
-          document.getElementById('chat-messages').innerHTML = '<div class="text-xs text-center text-red-400 my-4">Chat unavailable — ' + (data.error || 'server error') + '</div>';
+          document.getElementById('chat-messages').innerHTML = '<div class="text-xs text-center text-red-400 my-4">Messaging unavailable — ' + (data.error || 'server error') + '</div>';
           return;
         }
-        
+
         chatSessionId = data.session.id;
+        chatMode = LIVE_REASONS.includes(selectedReason) ? 'live' : 'async';
 
-        // Update UI
+        // Update header
         document.getElementById('chat-registration').innerText = '@' + STICKER_CODE;
-        document.getElementById('chat-header-title').innerText = 'Visitor ' + visitorToken.substring(0,4).toUpperCase();
-        
-        // 2. Connect WebSocket
-        setChatStatus('Connecting to owner…', '#15803D');
-        const wsUrl = API_BASE.replace('http', 'ws');
-        chatWs = new WebSocket(`${wsUrl}?session_id=${chatSessionId}&role=visitor&token=${visitorToken}`);
+        document.getElementById('chat-header-title').innerText = chatMode === 'live' ? 'Live Chat' : 'Leave a Message';
+        document.getElementById('chat-input').placeholder = chatMode === 'live' ? 'Type here…' : 'Add more details for the owner…';
 
-        chatWs.onopen = () => {
-          chatWs.send(JSON.stringify({ type: 'auth' }));
-          setChatStatus('Connected — owner has been notified', '#15803D');
-          setTimeout(() => hideChatStatus(), 3000);
-        };
+        if (chatMode === 'live') {
+          // ── LIVE MODE (visitor / delivery): WebSocket ──────────────────
+          setChatStatus('Connecting…', '#15803D');
+          const wsUrl = API_BASE.replace('http', 'ws');
+          chatWs = new WebSocket(`${wsUrl}?session_id=${chatSessionId}&role=visitor&token=${visitorToken}`);
 
-        chatWs.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'message') {
-              appendMessage('owner', data.content, new Date(data.created_at));
+          chatWs.onopen = () => {
+            chatWs.send(JSON.stringify({ type: 'auth' }));
+            setChatStatus('Live — owner can see you're here', '#15803D');
+            setTimeout(() => hideChatStatus(), 4000);
+          };
+          chatWs.onmessage = (event) => {
+            try {
+              const d = JSON.parse(event.data);
+              if (d.type === 'message') appendMessage('owner', d.content, new Date(d.created_at));
+            } catch(e) {}
+          };
+          chatWs.onclose = () => {
+            setChatStatus('Reconnecting…', '#d97706');
+            if (sessionStorage.getItem('linknpark_report_id') === incidentId) {
+              setTimeout(() => initChat(incidentId), 3000);
             }
-          } catch(e) {}
-        };
+          };
+          chatWs.onerror = () => setChatStatus('Connection error — retrying…', '#dc2626');
 
-        chatWs.onclose = () => {
-          setChatStatus('Reconnecting…', '#d97706');
-          if (sessionStorage.getItem('linknpark_report_id') === incidentId) {
-            setTimeout(() => initChat(incidentId), 3000);
-          }
-        };
+        } else {
+          // ── ASYNC MODE (all other reasons): REST + polling ─────────────
+          // Show owner-notified banner briefly then hide
+          setChatStatus('Owner notified · Replies appear here automatically', '#15803D');
+          setTimeout(() => hideChatStatus(), 5000);
 
-        chatWs.onerror = () => {
-          setChatStatus('Connection error — retrying…', '#dc2626');
-        };
+          // Start polling for owner replies every 8 seconds
+          chatMsgCount = 0;
+          clearInterval(chatPollInterval);
+          chatPollInterval = setInterval(async () => {
+            try {
+              const r = await fetch(`${API_BASE}/api/chat/${chatSessionId}/messages`);
+              const d = await r.json();
+              const msgs = d.messages || [];
+              if (msgs.length > chatMsgCount) {
+                // Only render new messages from owner (visitor's own are already shown optimistically)
+                msgs.slice(chatMsgCount).forEach(m => {
+                  if (m.sender_type === 'owner') {
+                    appendMessage('owner', m.content, new Date(m.created_at));
+                  }
+                });
+                chatMsgCount = msgs.length;
+              }
+            } catch(e) {}
+          }, 8000);
+        }
 
       } catch(e) {
         console.error('Chat init failed', e);
-        setChatStatus('Chat unavailable: ' + e.message, '#dc2626');
+        setChatStatus('Messaging unavailable: ' + e.message, '#dc2626');
       }
     }
 
@@ -678,28 +705,43 @@
       box.scrollTop = box.scrollHeight;
     }
 
-    function sendChatMessage() {
-      if (!chatWs || chatWs.readyState !== 1) {
-        setChatStatus('Still connecting — please wait a moment', '#d97706');
-        return;
-      }
+    async function sendChatMessage() {
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
       if (!text) return;
-      
       input.value = '';
-      
-      // Optimistic UI
+
+      // Optimistic UI — show immediately
       appendMessage('visitor', text);
 
-      // Send over WS
-      chatWs.send(JSON.stringify({ type: 'message', content: text }));
+      if (chatMode === 'live') {
+        if (!chatWs || chatWs.readyState !== 1) {
+          setChatStatus('Reconnecting — message will send shortly', '#d97706');
+          return;
+        }
+        chatWs.send(JSON.stringify({ type: 'message', content: text }));
+      } else {
+        // Async mode: POST via REST
+        try {
+          await fetch(`${API_BASE}/api/chat/message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: chatSessionId, content: text, visitor_token: visitorToken })
+          });
+        } catch(e) {
+          setChatStatus('Could not send — will retry', '#dc2626');
+        }
+      }
     }
 
     function resetFlow() {
       sessionStorage.removeItem('linknpark_report_id');
       selectedReason = null;
-      if (chatWs) chatWs.close();
+      clearInterval(chatPollInterval);
+      chatPollInterval = null;
+      if (chatWs) { chatWs.close(); chatWs = null; }
+      chatSessionId = null;
+      chatMsgCount = 0;
       document.getElementById('msg-input').value = '';
       document.getElementById('phone-input').value = '';
       document.getElementById('next-btn-1').disabled = true;
