@@ -10,12 +10,28 @@ import { API_BASE as API_URL } from '../hooks/usePushNotifications';
 import { getToken } from '../hooks/useAuth';
 
 type Guardian = { id: string; name: string; zone: string; active: boolean };
+type KarmaEntry = { id: string; points: number; reason: string; created_at: string };
+
+const KARMA_REASON_LABEL: Record<string, string> = {
+  reported: 'Reported a vehicle',
+  resolved_bonus: 'Alert acknowledged by owner',
+};
+
+function karmaTimeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export default function GuardianNetworkScreen() {
   const insets = useSafeAreaInsets();
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [loading, setLoading] = useState(true);
-  const [networkEnabled, setNetworkEnabled] = useState(true);
+  const [karmaBalance, setKarmaBalance] = useState<number | null>(null);
+  const [karmaLog, setKarmaLog] = useState<KarmaEntry[]>([]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newZoneName, setNewZoneName] = useState('');
@@ -24,7 +40,24 @@ export default function GuardianNetworkScreen() {
 
   useEffect(() => {
     fetchZones();
+    fetchKarma();
   }, []);
+
+  async function fetchKarma() {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/karma`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setKarmaBalance(data.balance ?? 0);
+        setKarmaLog(data.log ?? []);
+      }
+    } catch (e) {
+      console.error('karma fetch error', e);
+    }
+  }
 
   async function handleCreateZone() {
     if (!newZoneName.trim() || !newZoneArea.trim()) return;
@@ -116,10 +149,14 @@ export default function GuardianNetworkScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.karmaTitle}>Karma Balance</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={styles.karmaValue}>450</Text>
+              <Text style={styles.karmaValue}>{karmaBalance ?? '—'}</Text>
               <Text style={styles.karmaPoints}>Pts</Text>
             </View>
-            <Text style={styles.karmaDesc}>50 Pts away from a Free Tag!</Text>
+            <Text style={styles.karmaDesc}>
+              {karmaBalance === null ? 'Loading…'
+                : karmaBalance === 0 ? 'Report a vehicle to start earning!'
+                : `Redeem in the Store for discounts`}
+            </Text>
           </View>
           <View style={styles.karmaIconWrap}>
             <Ionicons name="star" size={32} color={Colors.amber} />
@@ -142,13 +179,29 @@ export default function GuardianNetworkScreen() {
         </Card>
 
         <Text style={[styles.listLabel, { marginTop: 20 }]}>My Good Deeds</Text>
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <DeedRow title="Alerted: Lights On" date="Today, 2:30 PM" points="+50" />
-          <View style={{ height: 1, backgroundColor: Colors.divider }} />
-          <DeedRow title="Alerted: Window Open" date="12 Jun, 9:15 AM" points="+50" />
-          <View style={{ height: 1, backgroundColor: Colors.divider }} />
-          <DeedRow title="Alert Acknowledged" date="12 Jun, 9:20 AM" points="+20" />
-        </Card>
+        {karmaLog.length === 0 ? (
+          <Card>
+            <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
+              <Ionicons name="star-outline" size={32} color={Colors.textMuted} />
+              <Text style={{ fontSize: 14, color: Colors.textSecondary, textAlign: 'center' }}>
+                No karma earned yet.{'\n'}Scan a LinkNPark sticker and report an issue to get started.
+              </Text>
+            </View>
+          </Card>
+        ) : (
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {karmaLog.map((entry, i) => (
+              <View key={entry.id}>
+                {i > 0 && <View style={{ height: 1, backgroundColor: Colors.divider }} />}
+                <DeedRow
+                  title={KARMA_REASON_LABEL[entry.reason] || entry.reason}
+                  date={karmaTimeAgo(entry.created_at)}
+                  points={`+${entry.points}`}
+                />
+              </View>
+            ))}
+          </Card>
+        )}
 
         <Text style={[styles.listLabel, { marginTop: 24 }]}>Your Active Zones</Text>
         {loading ? (

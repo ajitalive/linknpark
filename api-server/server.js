@@ -156,11 +156,12 @@ const { router: authRouter, requireAuth } = require('./routes/auth')({
 
 const { router: stickersRouter } = require('./routes/stickers')({ supabase, requireAuth });
 const { router: incidentsRouter } = require('./routes/incidents')({ supabase, requireAuth });
-const { router: reportRouter } = require('./routes/report')({ supabase, sendExpoPush, pushToClients, upload });
+const { router: reportRouter } = require('./routes/report')({ supabase, sendExpoPush, pushToClients, upload, jwt, jwtSecret: JWT_SECRET_RESOLVED });
 const { router: zonesRouter } = require('./routes/zones')({ supabase, requireAuth });
 const { router: pushRouter } = require('./routes/push')({ supabase, requireAuth });
 const { router: chatRouter } = require('./routes/chat')({ supabase, requireAuth, sendExpoPush, chatRooms });
 const { router: adminRouter } = require('./routes/admin')({ supabase, ADMIN_KEY_RESOLVED, resend });
+const { router: karmaRouter } = require('./routes/karma')({ supabase, requireAuth });
 
 // ============ MOUNT ROUTES ============
 app.use(authRouter);
@@ -171,6 +172,7 @@ app.use(zonesRouter);
 app.use(pushRouter);
 app.use(chatRouter);
 app.use(adminRouter);
+app.use(karmaRouter);
 
 // ── Health + root redirect ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));

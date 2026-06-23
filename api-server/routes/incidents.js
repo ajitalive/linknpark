@@ -10,6 +10,15 @@
 module.exports = function createIncidentsRouter({ supabase, requireAuth }) {
   const router = require('express').Router();
 
+  async function creditKarma(reporterEmail, incidentId, points, reason) {
+    if (!supabase || !reporterEmail) return;
+    try {
+      await supabase.from('karma_log').insert({ user_email: reporterEmail, incident_id: incidentId, points, reason });
+    } catch (e) {
+      console.warn('[KARMA] Could not credit bonus karma:', e.message);
+    }
+  }
+
   // GET /api/incidents — list incidents for all stickers owned by the user
   router.get('/api/incidents', requireAuth, async (req, res) => {
     const { data: stickers, error: stickersError } = await supabase
@@ -53,6 +62,13 @@ module.exports = function createIncidentsRouter({ supabase, requireAuth }) {
     const { data, error } = await supabase
       .from('incidents').update(update).eq('id', req.params.id).select().single();
     if (error) return res.status(500).json({ error: error.message });
+
+    // Credit +20 karma bonus to the app-user reporter when owner resolves
+    if (status === 'resolved' && data?.reporter_email) {
+      await creditKarma(data.reporter_email, data.id, 20, 'resolved_bonus');
+      console.log(`[KARMA] +20 bonus → ${data.reporter_email} for resolved incident ${data.id}`);
+    }
+
     res.json({ incident: data });
   });
 

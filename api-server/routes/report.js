@@ -13,8 +13,33 @@
  *   pushToClients  – function(stickerCode, payload) for WS broadcast from server.js
  *   upload         – multer instance (for photo upload)
  */
-module.exports = function createReportRouter({ supabase, sendExpoPush, pushToClients, upload }) {
+module.exports = function createReportRouter({ supabase, sendExpoPush, pushToClients, upload, jwt, jwtSecret }) {
   const router = require('express').Router();
+
+  // Optionally identify a logged-in app user from Authorization header
+  function tryGetReporterEmail(req) {
+    try {
+      const h = req.headers.authorization || '';
+      const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+      if (!token || !jwt || !jwtSecret) return null;
+      const payload = jwt.verify(token, jwtSecret);
+      return payload.email || null;
+    } catch { return null; }
+  }
+
+  async function creditKarma(reporterEmail, incidentId, points, reason) {
+    if (!supabase || !reporterEmail) return;
+    try {
+      await supabase.from('karma_log').insert({
+        user_email: reporterEmail,
+        incident_id: incidentId,
+        points,
+        reason,
+      });
+    } catch (e) {
+      console.warn('[KARMA] Could not credit karma:', e.message);
+    }
+  }
 
   const REASON_LABELS = {
     blocking:      'Blocking driveway',
@@ -120,6 +145,7 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
     const { stickerCode, reason, message, reporterPhone } = req.body;
     if (!stickerCode || !reason) return res.status(400).json({ error: 'stickerCode and reason required' });
     const code = stickerCode.toUpperCase();
+    const reporterEmail = tryGetReporterEmail(req);
 
     let sticker = null;
     try {
@@ -148,6 +174,7 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
           reason_label: reasonLabel,
           message: message || null,
           reporter_phone: reporterPhone || null,
+          reporter_email: reporterEmail || null,
           status: 'open',
         })
         .select()
@@ -173,6 +200,12 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
     }
 
     if (insertError) return res.status(500).json({ error: insertError.message || 'Insert failed' });
+
+    // Credit karma to the app-user reporter (+50 pts)
+    if (reporterEmail && incident?.id) {
+      await creditKarma(reporterEmail, incident.id, 50, 'reported');
+      console.log(`[KARMA] +50 pts → ${reporterEmail} for incident ${incident.id}`);
+    }
 
     // Bump scan count (best-effort)
     try {

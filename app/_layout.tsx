@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 import { warmupServer } from '../hooks/useApi';
 
 // Ping Render immediately so it's warm by the time auth requests go out
@@ -20,16 +21,37 @@ Notifications.setNotificationHandler({
   }),
 });
 
+function handleDeepLink(url: string) {
+  // linknpark://report?plate=KA01AB1234&code=STKCODE
+  const parsed = Linking.parse(url);
+  if (parsed.path === 'report' || parsed.hostname === 'report') {
+    const plate = parsed.queryParams?.plate as string | undefined;
+    const code = parsed.queryParams?.code as string | undefined;
+    if (plate || code) {
+      router.push({ pathname: '/report/[plate]', params: { plate: plate || '', code: code || '' } } as any);
+    }
+  }
+}
+
 export default function RootLayout() {
   useEffect(() => {
+    // Handle deep links when app is already open
+    const linkSub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+
+    // Handle deep link that cold-started the app
+    Linking.getInitialURL().then(url => { if (url) handleDeepLink(url); });
+
     // When user taps a push notification, navigate to the incident
-    const sub = Notifications.addNotificationResponseReceivedListener(response => {
+    const notifSub = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data as any;
       if (data?.reportId) {
         router.push(`/incident/${data.reportId}` as any);
       }
     });
-    return () => sub.remove();
+    return () => {
+      linkSub.remove();
+      notifSub.remove();
+    };
   }, []);
 
   return (
@@ -56,6 +78,7 @@ export default function RootLayout() {
           <Stack.Screen name="guardian-network" options={{ presentation: 'card' }} />
           <Stack.Screen name="parking-timer" options={{ presentation: 'card' }} />
           <Stack.Screen name="notification-preferences" options={{ presentation: 'card' }} />
+          <Stack.Screen name="report/[plate]" options={{ presentation: 'modal' }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

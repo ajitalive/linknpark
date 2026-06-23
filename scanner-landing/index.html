@@ -123,7 +123,7 @@
         <p data-i18n="not_active_desc" class="text-sm text-gray-400">The owner hasn't registered this sticker in the LinkNPark app yet.</p>
       </div>
 
-      <button id="report-btn" onclick="goTo(1)" class="w-full py-3.5 rounded-xl font-semibold text-black text-base btn-spring hidden" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
+      <button id="report-btn" onclick="tryDeepLinkOrReport()" class="w-full py-3.5 rounded-xl font-semibold text-black text-base btn-spring hidden" style="background:linear-gradient(135deg,#2CFF05,#45FF22)">
         <span data-i18n="report_btn">Report Something →</span>
       </button>
       <p id="report-hint" data-i18n="report_hint" class="text-center text-xs text-gray-400 mt-3 hidden">Takes less than 30 seconds. No sign-up needed.</p>
@@ -721,6 +721,22 @@
       document.getElementById('add-photo-btn').classList.remove('hidden');
     }
 
+    function tryDeepLinkOrReport() {
+      // Try to open the native app for authenticated reporting (karma-earning)
+      // Falls back to the web flow after 1.2s if app is not installed
+      const code = window._stickerCode || STICKER_CODE || '';
+      const plate = window._vehiclePlate || PLATE_QUERY || '';
+      const deepLink = 'linknpark://report?plate=' + encodeURIComponent(plate) + '&code=' + encodeURIComponent(code);
+
+      // Attempt deep link
+      window.location.href = deepLink;
+
+      // After 1.2s, if we're still here (app not installed), use web flow
+      setTimeout(() => {
+        goTo(1);
+      }, 1200);
+    }
+
     function showETagNotRegistered(plate) {
       // Replace step-0 content with a friendly "not on LinkNPark yet" page
       // that drives app installs rather than showing an error.
@@ -891,6 +907,10 @@
         document.getElementById('vehicle-card').classList.remove('hidden');
         document.getElementById('report-btn').classList.remove('hidden');
         document.getElementById('report-hint').classList.remove('hidden');
+
+        // Stash sticker code for deep link
+        window._stickerCode = STICKER_CODE;
+        window._vehiclePlate = data.platePartial || '';
       } catch {
         document.getElementById('loading-card').classList.add('hidden');
         document.getElementById('vehicle-card').classList.add('hidden');
