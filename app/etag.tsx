@@ -66,8 +66,13 @@ export default function ETagScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
-          onPress={() => step === 'preview' ? setStep('form') : router.back()}
+          onPress={() => {
+            if (step === 'preview') { setStep('form'); return; }
+            if (router.canGoBack()) router.back();
+            else router.replace('/(tabs)');
+          }}
           style={styles.backBtn}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
