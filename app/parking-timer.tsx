@@ -11,28 +11,31 @@ const PRESETS = [15, 30, 60, 90, 120];
 const NOTIF_ID_KEY = 'parking_timer_notif';
 const WARN_NOTIF_ID_KEY = 'parking_timer_warn_notif';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 async function requestNotifPermission() {
+  if (Platform.OS === 'web') return true;
   const { status } = await Notifications.requestPermissionsAsync();
   return status === 'granted';
 }
 
 async function scheduleAlerts(endMs: number, totalMinutes: number) {
-  // Cancel any previous timer notifications
+  if (Platform.OS === 'web') return;
+
   await Notifications.cancelScheduledNotificationAsync(NOTIF_ID_KEY).catch(() => {});
   await Notifications.cancelScheduledNotificationAsync(WARN_NOTIF_ID_KEY).catch(() => {});
 
   const nowMs = Date.now();
   const secondsUntilEnd = Math.round((endMs - nowMs) / 1000);
 
-  // 5-minute warning (only if timer is longer than 6 minutes)
   if (totalMinutes > 6) {
     const warnSeconds = secondsUntilEnd - 300;
     if (warnSeconds > 5) {
@@ -48,7 +51,6 @@ async function scheduleAlerts(endMs: number, totalMinutes: number) {
     }
   }
 
-  // Final alert
   if (secondsUntilEnd > 0) {
     await Notifications.scheduleNotificationAsync({
       identifier: NOTIF_ID_KEY,
@@ -63,6 +65,7 @@ async function scheduleAlerts(endMs: number, totalMinutes: number) {
 }
 
 async function cancelAlerts() {
+  if (Platform.OS === 'web') return;
   await Notifications.cancelScheduledNotificationAsync(NOTIF_ID_KEY).catch(() => {});
   await Notifications.cancelScheduledNotificationAsync(WARN_NOTIF_ID_KEY).catch(() => {});
 }
