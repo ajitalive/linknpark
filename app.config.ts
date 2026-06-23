@@ -82,6 +82,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     [
+      'expo-location',
+      {
+        locationWhenInUsePermission: 'LinkNPark uses your location to find community watch zones near you.',
+      },
+    ],
+    [
       'expo-truecaller',
       {
         androidClientId: 'ut7yqtyuuc6dwiyfjk1u_4hnlhuspwbhr-4qr0sp0pe'

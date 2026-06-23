@@ -10,25 +10,71 @@
 module.exports = function createZonesRouter({ supabase, requireAuth }) {
   const router = require('express').Router();
 
-  // GET /api/guardians/zones — list all zones with user membership status
+  // Haversine distance in km between two lat/lng points
+  function distanceKm(lat1, lon1, lat2, lon2) {
+    const toRad = d => (d * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // GET /api/guardians/zones — the zones the user has JOINED (their active zones)
   router.get('/api/guardians/zones', requireAuth, async (req, res) => {
     const email = req.user.email;
-
-    const { data: zonesData, error: zonesErr } = await supabase.from('zones').select('*');
-    if (zonesErr) return res.status(500).json({ error: zonesErr.message });
 
     const { data: memData, error: memErr } = await supabase
       .from('zone_members').select('zone_id').eq('user_email', email);
     if (memErr) return res.status(500).json({ error: memErr.message });
 
-    const joinedIds = new Set((memData || []).map(m => m.zone_id));
+    const joinedIds = (memData || []).map(m => m.zone_id);
+    if (joinedIds.length === 0) return res.json({ zones: [] });
+
+    const { data: zonesData, error: zonesErr } = await supabase
+      .from('zones').select('*').in('id', joinedIds);
+    if (zonesErr) return res.status(500).json({ error: zonesErr.message });
 
     const zones = (zonesData || []).map(z => ({
-      id: z.id,
-      name: z.name,
-      zone: z.area,
-      active: joinedIds.has(z.id),
+      id: z.id, name: z.name, zone: z.area, active: true,
     }));
+    res.json({ zones });
+  });
+
+  // GET /api/guardians/zones/nearby?lat=&lng= — admin-seeded zones near the user
+  router.get('/api/guardians/zones/nearby', requireAuth, async (req, res) => {
+    const email = req.user.email;
+    const lat = parseFloat(req.query.lat);
+    const lng = parseFloat(req.query.lng);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return res.status(400).json({ error: 'lat and lng are required' });
+    }
+
+    const { data: zonesData, error: zonesErr } = await supabase.from('zones').select('*');
+    if (zonesErr) return res.status(500).json({ error: zonesErr.message });
+
+    const { data: memData } = await supabase
+      .from('zone_members').select('zone_id').eq('user_email', email);
+    const joinedIds = new Set((memData || []).map(m => m.zone_id));
+
+    const SEARCH_RADIUS_KM = 25; // show zones within 25km, sorted by distance
+    const zones = (zonesData || [])
+      .filter(z => z.lat != null && z.lng != null)
+      .map(z => {
+        const distance_km = distanceKm(lat, lng, z.lat, z.lng);
+        return {
+          id: z.id,
+          name: z.name,
+          zone: z.area,
+          distance_km: Math.round(distance_km * 10) / 10,
+          inside: distance_km <= (z.radius_km || 2),
+          active: joinedIds.has(z.id),
+        };
+      })
+      .filter(z => z.distance_km <= SEARCH_RADIUS_KM)
+      .sort((a, b) => a.distance_km - b.distance_km);
+
     res.json({ zones });
   });
 
@@ -46,26 +92,6 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
       if (error) return res.status(500).json({ error: error.message });
     }
     res.json({ ok: true, active });
-  });
-
-  // POST /api/guardians/zones — create a new zone (auto-joins creator)
-  router.post('/api/guardians/zones', requireAuth, async (req, res) => {
-    const { name, zone } = req.body;
-    if (!name || !zone) {
-      return res.status(400).json({ error: 'Name and zone area are required' });
-    }
-
-    const { data: newZone, error: zErr } = await supabase.from('zones').insert({
-      name: name.trim(),
-      area: zone.trim(),
-      created_by: email,
-    }).select().single();
-    if (zErr) return res.status(500).json({ error: zErr.message });
-
-    const email = req.user.email;
-    await supabase.from('zone_members').insert({ zone_id: newZone.id, user_email: email });
-
-    res.json({ ok: true, zone: { id: newZone.id, name: newZone.name, zone: newZone.area, active: true } });
   });
 
   // GET /api/guard/vehicle — Guard mode: search vehicle by code or plate

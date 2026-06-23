@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
 import { API_BASE as API_URL } from '../hooks/usePushNotifications';
 import { getToken } from '../hooks/useAuth';
 
 type Guardian = { id: string; name: string; zone: string; active: boolean };
+type NearbyZone = { id: string; name: string; zone: string; distance_km: number; inside: boolean; active: boolean };
 type KarmaEntry = { id: string; points: number; reason: string; created_at: string };
 
 const KARMA_REASON_LABEL: Record<string, string> = {
@@ -34,9 +36,9 @@ export default function GuardianNetworkScreen() {
   const [karmaLog, setKarmaLog] = useState<KarmaEntry[]>([]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneArea, setNewZoneArea] = useState('');
-  const [creatingZone, setCreatingZone] = useState(false);
+  const [nearbyZones, setNearbyZones] = useState<NearbyZone[]>([]);
+  const [findingZones, setFindingZones] = useState(false);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchZones();
@@ -59,43 +61,65 @@ export default function GuardianNetworkScreen() {
     }
   }
 
-  async function handleCreateZone() {
-    if (!newZoneName.trim()) {
-      Alert.alert('Missing field', 'Please enter a Community / Zone Name.');
-      return;
-    }
-    if (!newZoneArea.trim()) {
-      Alert.alert('Missing field', 'Please enter an Area / Location.');
-      return;
-    }
-    setCreatingZone(true);
+  async function findZonesNearby() {
+    setFindingZones(true);
+    setNearbyZones([]);
+    setIsModalVisible(true);
     try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/api/guardians/zones`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: newZoneName,
-          zone: newZoneArea
-        })
-      });
-      const data = await res.json();
-      if (data.ok && data.zone) {
-        setGuardians(prev => [...prev, data.zone]);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location needed',
+          'Guardian Network finds community watch zones near you. Please allow location access to continue.'
+        );
         setIsModalVisible(false);
-        setNewZoneName('');
-        setNewZoneArea('');
+        return;
+      }
+
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = pos.coords;
+
+      const token = await getToken();
+      const res = await fetch(
+        `${API_URL}/api/guardians/zones/nearby?lat=${latitude}&lng=${longitude}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setNearbyZones(data.zones || []);
       } else {
-        Alert.alert('Error', data.error || 'Failed to create new zone');
+        Alert.alert('Error', data.error || 'Could not load nearby zones.');
       }
     } catch (e) {
       console.error(e);
+      Alert.alert('Error', 'Could not get your location. Please try again.');
+    } finally {
+      setFindingZones(false);
+    }
+  }
+
+  async function joinZone(zone: NearbyZone) {
+    setJoiningId(zone.id);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/guardians/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ zoneId: zone.id, active: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setGuardians(prev => prev.some(g => g.id === zone.id)
+          ? prev
+          : [...prev, { id: zone.id, name: zone.name, zone: zone.zone, active: true }]);
+        setNearbyZones(prev => prev.map(z => z.id === zone.id ? { ...z, active: true } : z));
+      } else {
+        Alert.alert('Error', data.error || 'Could not join this zone.');
+      }
+    } catch (e) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
-      setCreatingZone(false);
+      setJoiningId(null);
     }
   }
 
@@ -213,6 +237,15 @@ export default function GuardianNetworkScreen() {
         <Text style={[styles.listLabel, { marginTop: 24 }]}>Your Active Zones</Text>
         {loading ? (
           <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 20 }} />
+        ) : guardians.length === 0 ? (
+          <Card>
+            <View style={{ alignItems: 'center', paddingVertical: 16, gap: 8 }}>
+              <Ionicons name="location-outline" size={32} color={Colors.textMuted} />
+              <Text style={{ fontSize: 14, color: Colors.textSecondary, textAlign: 'center' }}>
+                You haven't joined any zones yet.{'\n'}Find a community watch zone near you to get started.
+              </Text>
+            </View>
+          </Card>
         ) : (
           guardians.map(g => (
             <Card key={g.id}>
@@ -236,9 +269,9 @@ export default function GuardianNetworkScreen() {
         )}
 
         <Button
-          label="Join a New Zone"
-          onPress={() => setIsModalVisible(true)}
-          icon={<Ionicons name="add" size={18} color="#fff" />}
+          label="Find Zones Near Me"
+          onPress={findZonesNearby}
+          icon={<Ionicons name="navigate" size={18} color="#fff" />}
           size="lg"
           style={{ marginTop: 12 }}
         />
@@ -254,40 +287,57 @@ export default function GuardianNetworkScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Join a New Zone</Text>
+              <Text style={styles.modalTitle}>Zones Near You</Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalForm}>
-              <Text style={styles.inputLabel}>Community / Zone Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newZoneName}
-                onChangeText={setNewZoneName}
-                placeholder="e.g. Sector 7 Residents, Whitefield Watch"
-                placeholderTextColor={Colors.textMuted}
-              />
-
-              <Text style={styles.inputLabel}>Area / Location</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newZoneArea}
-                onChangeText={setNewZoneArea}
-                placeholder="e.g. Koramangala, Bengaluru"
-                placeholderTextColor={Colors.textMuted}
-              />
-
-              <Button
-                label="Create & Join Zone"
-                onPress={handleCreateZone}
-                loading={creatingZone}
-
-                size="lg"
-                style={{ marginTop: 16 }}
-              />
-            </ScrollView>
+            {findingZones ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={{ fontSize: 14, color: Colors.textSecondary }}>Finding zones near you…</Text>
+              </View>
+            ) : nearbyZones.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 8 }}>
+                <Ionicons name="map-outline" size={36} color={Colors.textMuted} />
+                <Text style={{ fontSize: 14, color: Colors.textSecondary, textAlign: 'center' }}>
+                  No community watch zones near you yet.{'\n'}We're expanding — check back soon!
+                </Text>
+              </View>
+            ) : (
+              <ScrollView contentContainerStyle={{ paddingBottom: 24, gap: 10 }}>
+                {nearbyZones.map(z => (
+                  <View key={z.id} style={styles.nearbyRow}>
+                    <View style={[styles.zoneIcon, { backgroundColor: Colors.primaryBg }]}>
+                      <Ionicons name="location" size={20} color={Colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.zoneName}>{z.name}</Text>
+                      <Text style={styles.zoneArea}>
+                        {z.zone} · {z.distance_km} km away{z.inside ? ' · You\'re here' : ''}
+                      </Text>
+                    </View>
+                    {z.active ? (
+                      <View style={styles.joinedBadge}>
+                        <Ionicons name="checkmark" size={14} color={Colors.success} />
+                        <Text style={styles.joinedText}>Joined</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.joinBtn}
+                        onPress={() => joinZone(z)}
+                        disabled={joiningId === z.id}
+                      >
+                        {joiningId === z.id
+                          ? <ActivityIndicator size="small" color={Colors.primary} />
+                          : <Text style={styles.joinBtnText}>Join</Text>}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -369,28 +419,28 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.text,
   },
-  modalForm: {
-    gap: 16,
-    paddingBottom: 24,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  textInput: {
+  nearbyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: Colors.surface,
-    borderColor: Colors.divider,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-    color: Colors.text,
-    fontSize: 15,
-    fontWeight: '500',
+    borderColor: Colors.divider,
+    borderRadius: 14,
+    padding: 14,
   },
+  joinBtn: {
+    paddingHorizontal: 18,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 64,
+  },
+  joinBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  joinedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  joinedText: { fontSize: 13, fontWeight: '600', color: Colors.success },
   karmaCard: {
     borderRadius: 16,
     padding: 20,
