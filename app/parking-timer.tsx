@@ -1,46 +1,134 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, AppState, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+import * as Notifications from 'expo-notifications';
 
 const PRESETS = [15, 30, 60, 90, 120];
+const NOTIF_ID_KEY = 'parking_timer_notif';
+const WARN_NOTIF_ID_KEY = 'parking_timer_warn_notif';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+async function requestNotifPermission() {
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === 'granted';
+}
+
+async function scheduleAlerts(endMs: number, totalMinutes: number) {
+  // Cancel any previous timer notifications
+  await Notifications.cancelScheduledNotificationAsync(NOTIF_ID_KEY).catch(() => {});
+  await Notifications.cancelScheduledNotificationAsync(WARN_NOTIF_ID_KEY).catch(() => {});
+
+  const nowMs = Date.now();
+  const secondsUntilEnd = Math.round((endMs - nowMs) / 1000);
+
+  // 5-minute warning (only if timer is longer than 6 minutes)
+  if (totalMinutes > 6) {
+    const warnSeconds = secondsUntilEnd - 300;
+    if (warnSeconds > 5) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: WARN_NOTIF_ID_KEY,
+        content: {
+          title: '⏰ Parking Timer — 5 min left',
+          body: 'Move your vehicle soon to avoid a fine.',
+          sound: true,
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: warnSeconds },
+      });
+    }
+  }
+
+  // Final alert
+  if (secondsUntilEnd > 0) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: NOTIF_ID_KEY,
+      content: {
+        title: '🚗 Parking Time Up!',
+        body: 'Your parking time has expired. Time to move your vehicle.',
+        sound: true,
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: secondsUntilEnd },
+    });
+  }
+}
+
+async function cancelAlerts() {
+  await Notifications.cancelScheduledNotificationAsync(NOTIF_ID_KEY).catch(() => {});
+  await Notifications.cancelScheduledNotificationAsync(WARN_NOTIF_ID_KEY).catch(() => {});
+}
 
 export default function ParkingTimerScreen() {
   const insets = useSafeAreaInsets();
   const [selectedMinutes, setSelectedMinutes] = useState(30);
-  const [running, setRunning] = useState(false);
+  const [endTime, setEndTime] = useState<number | null>(null); // wall-clock deadline ms
   const [remaining, setRemaining] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appState = useRef(AppState.currentState);
+
+  const running = endTime !== null && remaining > 0;
+
+  // Recalculate remaining from wall clock — works correctly after app resume
+  function tick(deadline: number) {
+    const secs = Math.round((deadline - Date.now()) / 1000);
+    if (secs <= 0) {
+      stopTimer();
+    } else {
+      setRemaining(secs);
+    }
+  }
+
+  function startInterval(deadline: number) {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => tick(deadline), 1000);
+  }
+
+  // When app comes back to foreground, resync remaining from wall clock
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && appState.current !== 'active' && endTime) {
+        tick(endTime);
+        startInterval(endTime);
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+  }, [endTime]);
 
   useEffect(() => {
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
-  function startTimer() {
-    const seconds = selectedMinutes * 60;
-    setRemaining(seconds);
-    setRunning(true);
-    intervalRef.current = setInterval(() => {
-      setRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!);
-          setRunning(false);
-          Alert.alert('Parking Timer', 'Your parking time is up! Time to move your vehicle.');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  async function startTimer() {
+    const granted = await requestNotifPermission();
+    if (!granted && Platform.OS !== 'web') {
+      // Proceed anyway — on-screen display still works; just warn
+    }
+
+    const deadline = Date.now() + selectedMinutes * 60 * 1000;
+    setEndTime(deadline);
+    setRemaining(selectedMinutes * 60);
+    startInterval(deadline);
+    await scheduleAlerts(deadline, selectedMinutes);
   }
 
   function stopTimer() {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    setRunning(false);
+    intervalRef.current = null;
+    setEndTime(null);
     setRemaining(0);
+    cancelAlerts();
   }
 
   function formatTime(secs: number) {
@@ -51,7 +139,7 @@ export default function ParkingTimerScreen() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
-  const progress = running ? remaining / (selectedMinutes * 60) : 1;
+  const totalSecs = selectedMinutes * 60;
   const isLow = running && remaining < 300;
   const timerColor = isLow ? Colors.critical : Colors.primary;
 
@@ -109,16 +197,16 @@ export default function ParkingTimerScreen() {
 
         <Card>
           <Text style={styles.sectionLabel}>Alert Settings</Text>
-          <InfoRow icon="notifications" color={Colors.amber} label="5-minute warning" desc="Alert when 5 minutes remain" />
-          <InfoRow icon="notifications" color={Colors.critical} label="Time's up alert" desc="Notification + sound when timer ends" />
-          <InfoRow icon="vibrate" color={Colors.primary} label="Vibration" desc="Vibrate on all alerts" />
+          <InfoRow icon="notifications" color={Colors.amber} label="5-minute warning" desc="System notification when 5 minutes remain" />
+          <InfoRow icon="notifications" color={Colors.critical} label="Time's up alert" desc="System notification + sound when timer ends" />
+          <InfoRow icon="vibrate" color={Colors.primary} label="Works in background" desc="Notifications fire even if app is minimized" />
         </Card>
 
         <Card>
           <Text style={styles.sectionLabel}>Tips</Text>
           <Text style={styles.tipText}>• Paid parking zones in India typically allow 1-2 hour slots</Text>
           <Text style={styles.tipText}>• Set the timer 5 minutes shorter than actual limit to avoid fines</Text>
-          <Text style={styles.tipText}>• Timer runs in background — you'll receive a push notification</Text>
+          <Text style={styles.tipText}>• Notifications work even if the app is closed or minimized</Text>
         </Card>
       </ScrollView>
     </View>
