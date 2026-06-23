@@ -146,12 +146,14 @@ function initChatWebSocket(wss, supabase, jwt, JWT_SECRET) {
           const content    = data.content;
           const targetRole = role === 'visitor' ? 'owner' : 'visitor';
 
-          // 1. Persist to database
+          // 1. Persist to database (best-effort — table may not exist yet)
           if (supabase) {
             await supabase.from('chat_messages').insert({
               session_id:  sessionId,
               sender_type: role,
               content
+            }).then(({ error }) => {
+              if (error) console.warn('[Chat] Could not persist message:', error.message);
             });
           }
 

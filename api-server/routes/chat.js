@@ -59,6 +59,18 @@ module.exports = function createChatRouter({ supabase, requireAuth, sendExpoPush
 
   // ── Supabase-backed chat sessions ─────────────────────────────────────────
 
+  // In-memory session fallback (used when chat_sessions table doesn't exist yet)
+  const memSessions = new Map(); // sessionId -> session object
+
+  function memSession(incident_id, visitor_token) {
+    for (const s of memSessions.values()) {
+      if (s.incident_id === incident_id && s.visitor_token === visitor_token && s.status === 'active') return s;
+    }
+    const s = { id: crypto.randomUUID(), incident_id, visitor_token, status: 'active', created_at: new Date().toISOString() };
+    memSessions.set(s.id, s);
+    return s;
+  }
+
   // POST /api/chat/init — scanner creates or resumes a chat session
   router.post('/api/chat/init', async (req, res) => {
     const { incident_id, visitor_token } = req.body;
@@ -66,62 +78,84 @@ module.exports = function createChatRouter({ supabase, requireAuth, sendExpoPush
       return res.status(400).json({ error: 'Missing incident_id or visitor_token' });
     }
 
-    let { data: session } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .eq('incident_id', incident_id)
-      .eq('visitor_token', visitor_token)
-      .eq('status', 'active')
-      .single();
-
-    if (!session) {
-      const { data: newSession, error } = await supabase
+    // Try Supabase first; fall back to in-memory if table doesn't exist yet
+    try {
+      let { data: session } = await supabase
         .from('chat_sessions')
-        .insert({ incident_id, visitor_token })
-        .select()
+        .select('*')
+        .eq('incident_id', incident_id)
+        .eq('visitor_token', visitor_token)
+        .eq('status', 'active')
         .single();
-      if (error) return res.status(500).json({ error: error.message });
-      session = newSession;
-    }
 
-    res.json({ session });
+      if (!session) {
+        const { data: newSession, error } = await supabase
+          .from('chat_sessions')
+          .insert({ incident_id, visitor_token })
+          .select()
+          .single();
+        if (error) throw error;
+        session = newSession;
+      }
+
+      return res.json({ session });
+    } catch (err) {
+      console.warn('[Chat] Supabase unavailable, using in-memory session:', err.message);
+      return res.json({ session: memSession(incident_id, visitor_token) });
+    }
   });
 
   // GET /api/chat/:sessionId/messages — fetch messages for a session
   router.get('/api/chat/:sessionId/messages', async (req, res) => {
-    const { data: messages, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('session_id', req.params.sessionId)
-      .order('created_at', { ascending: true });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ messages });
+    try {
+      const { data: messages, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', req.params.sessionId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      res.json({ messages });
+    } catch {
+      res.json({ messages: [] }); // in-memory mode: no history
+    }
   });
 
   // GET /api/incidents/:id/chat — mobile app (owner) fetches active chat session
   router.get('/api/incidents/:id/chat', requireAuth, async (req, res) => {
-    let { data: session, error } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .eq('incident_id', req.params.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) return res.status(500).json({ error: error.message });
-
-    if (!session) {
-      const visitor_token = crypto.randomBytes(16).toString('hex');
-      const { data: newSession, error: createError } = await supabase
+    try {
+      let { data: session, error } = await supabase
         .from('chat_sessions')
-        .insert({ incident_id: req.params.id, visitor_token })
-        .select()
-        .single();
-      if (createError) return res.status(500).json({ error: createError.message });
-      session = newSession;
-    }
+        .select('*')
+        .eq('incident_id', req.params.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
 
-    res.json({ session });
+      if (!session) {
+        const visitor_token = crypto.randomBytes(16).toString('hex');
+        const { data: newSession, error: createError } = await supabase
+          .from('chat_sessions')
+          .insert({ incident_id: req.params.id, visitor_token })
+          .select()
+          .single();
+        if (createError) throw createError;
+        session = newSession;
+      }
+
+      return res.json({ session });
+    } catch (err) {
+      console.warn('[Chat] Supabase unavailable for owner chat:', err.message);
+      // Find or create in-memory session for this incident
+      for (const s of memSessions.values()) {
+        if (s.incident_id === req.params.id && s.status === 'active') {
+          return res.json({ session: s });
+        }
+      }
+      const s = memSession(req.params.id, crypto.randomBytes(8).toString('hex'));
+      return res.json({ session: s });
+    }
   });
 
   return { router };
