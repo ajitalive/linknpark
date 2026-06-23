@@ -60,7 +60,14 @@ export default function GuardianNetworkScreen() {
   }
 
   async function handleCreateZone() {
-    if (!newZoneName.trim() || !newZoneArea.trim()) return;
+    if (!newZoneName.trim()) {
+      Alert.alert('Missing field', 'Please enter a Community / Zone Name.');
+      return;
+    }
+    if (!newZoneArea.trim()) {
+      Alert.alert('Missing field', 'Please enter an Area / Location.');
+      return;
+    }
     setCreatingZone(true);
     try {
       const token = await getToken();
@@ -276,7 +283,7 @@ export default function GuardianNetworkScreen() {
                 label="Create & Join Zone"
                 onPress={handleCreateZone}
                 loading={creatingZone}
-                disabled={!newZoneName.trim() || !newZoneArea.trim()}
+
                 size="lg"
                 style={{ marginTop: 16 }}
               />
