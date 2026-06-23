@@ -270,8 +270,9 @@ module.exports = function createAuthRouter({
       const { error } = await supabase
         .from('users')
         .update({ name: trimmedName })
-        .eq('id', req.user.id);
-      if (error) return res.status(500).json({ error: 'Failed to save name' });
+        .eq('email', req.user.email);
+      // Log but don't block — users table may not exist yet; name persists in JWT anyway
+      if (error) console.warn('[AUTH] Could not persist name to DB:', error.message);
     }
 
     const updatedUser = { ...req.user, name: trimmedName };
