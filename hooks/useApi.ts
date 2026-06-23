@@ -64,9 +64,6 @@ async function authFetch(path: string, init?: RequestInit) {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
       ...(cache.token ? { Authorization: `Bearer ${cache.token}` } : {}),
       ...init?.headers,
     },
