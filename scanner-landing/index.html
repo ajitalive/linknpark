@@ -721,6 +721,56 @@
       document.getElementById('add-photo-btn').classList.remove('hidden');
     }
 
+    function showETagNotRegistered(plate) {
+      // Replace step-0 content with a friendly "not on LinkNPark yet" page
+      // that drives app installs rather than showing an error.
+      document.getElementById('step-0').innerHTML = `
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm fade-in">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:#EEF2FF">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="8" height="8" rx="1.5" fill="#2CFF05"/>
+                <rect x="13" y="3" width="8" height="8" rx="1.5" fill="#2CFF05" opacity="0.4"/>
+                <rect x="3" y="13" width="8" height="8" rx="1.5" fill="#2CFF05" opacity="0.4"/>
+                <rect x="14" y="14" width="6" height="6" rx="1" fill="#2CFF05"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-bold text-gray-900 text-base">${plate}</p>
+              <p class="text-xs text-gray-400">This vehicle uses a LinkNPark digital tag</p>
+            </div>
+          </div>
+
+          <div class="rounded-xl p-4 mb-5" style="background:#F0FFF0;border:1px solid #BBF7D0">
+            <p class="text-sm font-semibold text-green-800 mb-1">Good news — the owner is reachable</p>
+            <p class="text-xs text-green-700 leading-relaxed">
+              This vehicle owner has registered their plate on LinkNPark.
+              Download the app to send them a free anonymous message — your number stays private.
+            </p>
+          </div>
+
+          <a href="https://play.google.com/store/apps/details?id=com.linknpark.app"
+             class="flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold text-base mb-3 btn-spring"
+             style="background:linear-gradient(135deg,#2CFF05,#45FF22);color:#111">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.18 23.76a2 2 0 0 0 2.07-.22l12.67-7.32-2.83-2.83-11.91 10.37zM.27 1.07A2 2 0 0 0 0 2v20a2 2 0 0 0 .27.93L12.42 10.8.27 1.07zM14.54 12l2.83-2.83-12.67-7.33a2 2 0 0 0-2.07-.22L14.54 12zM23.18 10.32l-3.24-1.87-3.17 3.17 3.17 3.17 3.27-1.89a2 2 0 0 0 0-2.58z"/></svg>
+            Download LinkNPark — Free
+          </a>
+
+          <div class="text-center">
+            <p class="text-xs text-gray-400">Takes 30 seconds · Anonymous · No spam</p>
+          </div>
+
+          <div class="mt-5 pt-5 border-t border-gray-100">
+            <p class="text-xs text-gray-400 text-center mb-3">Already have the app?</p>
+            <button onclick="window.location.href='linknpark://report?plate=${plate}'"
+              class="w-full py-3 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 bg-gray-50">
+              Open in LinkNPark App →
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     async function searchPlate() {
       const input = document.getElementById('plate-search-input');
       const err = document.getElementById('plate-search-error');
@@ -742,8 +792,8 @@
         btn.textContent = "Search";
         
         if (!res.ok || !data.found) {
-          err.textContent = "This vehicle is not registered on LinkNPark yet.";
-          err.classList.remove('hidden');
+          err.classList.add('hidden');
+          showETagNotRegistered(plate);
           return;
         }
         
@@ -802,7 +852,11 @@
 
       try {
         const res = await fetch(`${API_BASE}/api/sticker/${STICKER_CODE}`);
-        if (!res.ok) throw new Error('not found');
+        if (!res.ok) {
+          document.getElementById('loading-card').classList.add('hidden');
+          showETagNotRegistered(STICKER_CODE);
+          return;
+        }
         const data = await res.json();
         document.getElementById('loading-card').classList.add('hidden');
         

@@ -93,8 +93,8 @@ export default function ETagScreen() {
               </View>
               <Text style={styles.heroTitle}>Your Free Digital{'\n'}Vehicle Identity</Text>
               <Text style={styles.heroSub}>
-                Generate a QR code for your vehicle — free forever. Save it as your wallpaper, print it, or share it.
-                Anyone who scans it can contact you without knowing your number.
+                Generate a QR code linked to your plate number — free forever.
+                Share it in your society WhatsApp group or print it for your dashboard.
               </Text>
               <View style={styles.heroBadgeRow}>
                 <View style={styles.heroBadge}>
@@ -105,10 +105,23 @@ export default function ETagScreen() {
                   <Ionicons name="shield-checkmark" size={13} color={Colors.primary} />
                   <Text style={styles.heroBadgeText}>Privacy protected</Text>
                 </View>
-                <View style={styles.heroBadge}>
-                  <Ionicons name="flash" size={13} color={Colors.primary} />
-                  <Text style={styles.heroBadgeText}>Instant alerts</Text>
-                </View>
+              </View>
+              {/* Honest limits card */}
+              <View style={{ backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginTop: 16, width: '100%', borderWidth: 1, borderColor: Colors.divider }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>What you get vs paid sticker</Text>
+                {[
+                  { label: 'QR code linked to your plate', free: true },
+                  { label: 'Reporter sees a "contact owner" page', free: true },
+                  { label: 'Push notification when someone scans', free: false },
+                  { label: 'Real-time chat with reporter', free: false },
+                  { label: 'Incident history & logs', free: false },
+                  { label: 'Visible neon sticker on windshield', free: false },
+                ].map((row, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <Ionicons name={row.free ? 'checkmark-circle' : 'close-circle'} size={16} color={row.free ? Colors.primary : Colors.textMuted} />
+                    <Text style={{ fontSize: 13, color: row.free ? Colors.text : Colors.textMuted, flex: 1 }}>{row.label}</Text>
+                  </View>
+                ))}
               </View>
             </LinearGradient>
 
