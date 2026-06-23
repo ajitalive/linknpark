@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Linking, Image
@@ -35,7 +35,7 @@ interface VehicleInfo {
 
 export default function ReportVehicleScreen() {
   const insets = useSafeAreaInsets();
-  const { plate: initialPlate } = useLocalSearchParams<{ plate?: string }>();
+  const { plate: initialPlate, code: initialCode } = useLocalSearchParams<{ plate?: string; code?: string }>();
 
   const [step, setStep] = useState<Step>('plate');
   const [plate, setPlate] = useState(initialPlate?.toUpperCase() || '');
@@ -84,6 +84,34 @@ export default function ReportVehicleScreen() {
       setLoading(false);
     }
   }
+
+  async function lookupByCode(code: string) {
+    const clean = code.trim().toUpperCase();
+    if (!clean) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/sticker/${encodeURIComponent(clean)}`);
+      const data = await res.json();
+      if (res.ok && data.found) {
+        setVehicleInfo({ ...data, sticker_code: clean });
+        setPlate(data.platePartial || clean);
+        setStep('found');
+      } else {
+        setStep('not_found');
+      }
+    } catch {
+      setError('Could not reach server. Check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // If we arrived from the QR scanner with a sticker code, look it up directly
+  useEffect(() => {
+    if (initialCode) lookupByCode(initialCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
 
   async function handleSubmitReport() {
     if (!selectedIncident) return;
@@ -196,6 +224,22 @@ export default function ReportVehicleScreen() {
             </View>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>OR</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.scanBtn}
+              onPress={() => router.push('/scan?returnTo=/report-vehicle' as any)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="qr-code-outline" size={22} color={Colors.primary} />
+              <Text style={styles.scanBtnText}>Scan the LinkNPark QR</Text>
+            </TouchableOpacity>
+            <Text style={styles.scanHint}>Fastest way — points straight to the right vehicle</Text>
 
             <View style={styles.privacyNote}>
               <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
@@ -466,6 +510,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12, marginTop: 8,
   },
   privacyText: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
+
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', marginVertical: 16 },
+  orLine: { flex: 1, height: 1, backgroundColor: Colors.divider },
+  orText: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, letterSpacing: 1 },
+  scanBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', backgroundColor: Colors.surface,
+    borderRadius: 20, paddingVertical: 18,
+    borderWidth: 1.5, borderColor: Colors.primary,
+  },
+  scanBtnText: { fontSize: 16, fontWeight: '800', color: Colors.primary },
+  scanHint: { fontSize: 12, color: Colors.textMuted, fontWeight: '500', marginTop: 8, marginBottom: 8, textAlign: 'center' },
 
   foundCard: { width: '100%', marginBottom: 28, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: Colors.divider },
   foundGradient: { padding: 24, alignItems: 'center' },
