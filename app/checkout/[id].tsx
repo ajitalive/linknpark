@@ -1,369 +1,216 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { PRODUCTS } from '../../constants/Products';
+import { Button } from '../../components/ui';
+import { sendOTP, truecallerLogin, warmUpServer } from '../../hooks/useAuth';
+import { API_BASE } from '../../hooks/usePushNotifications';
+import { initializeAsync, verifyUserAsync, TruecallerErrorCodes } from "expo-truecaller";
 
-export default function CheckoutScreen() {
-  const { id, variant } = useLocalSearchParams();
+export default function EmailScreen() {
   const insets = useSafeAreaInsets();
-  
-  const product = PRODUCTS.find(p => p.id === id) || PRODUCTS[0];
-  
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: ''
-  });
+  const [truecallerUsable, setTruecallerUsable] = useState(false);
+  const [truecallerLoading, setTruecallerLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
 
-  const updateForm = (key: string, value: string) => {
-    setForm(prev => ({ ...prev, [key]: value }));
-  };
+  React.useEffect(() => {
+    // Pre-warm the Render server so it's ready when user taps login
+    warmUpServer();
 
-  const handlePlaceOrder = () => {
-    Alert.alert(
-      'Online Payments Coming Soon',
-      'Our payment system is being set up. To order now, please contact us on WhatsApp and we will process your order manually.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'WhatsApp Us',
-          onPress: () => {
-            const msg = encodeURIComponent(`Hi! I'd like to order: ${product.name} (₹${product.price})`);
-            require('react-native').Linking.openURL(`https://wa.me/919999999999?text=${msg}`);
-          },
-        },
-      ]
-    );
-  };
+    (async () => {
+      try {
+        const { isUsable } = await initializeAsync({
+          consentMode: "bottomsheet",
+          heading: "logInTo",
+          theme: "dark",
+        });
+        setTruecallerUsable(isUsable);
+      } catch (e) {
+        console.log('Truecaller init error:', e);
+      }
+    })();
+  }, []);
+
+  async function handleTruecaller() {
+    try {
+      setTruecallerLoading(true);
+      const { authorizationCode, codeVerifier } = await verifyUserAsync();
+      
+      const result = await truecallerLogin(authorizationCode, codeVerifier);
+      setTruecallerLoading(false);
+      
+      if (!result.ok) {
+        Alert.alert('Truecaller Error', `${result.error}\n\nEndpoint: ${API_BASE}`);
+        return;
+      }
+      
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      setTruecallerLoading(false);
+      if (e.code !== TruecallerErrorCodes.USER_CANCELLED) {
+        Alert.alert('Error', `${e.message || 'Truecaller login failed'}\n\nEndpoint: ${API_BASE}`);
+      }
+    }
+  }
+
+  async function handleSendOTP() {
+    if (!email || !email.includes('@')) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+    try {
+      setOtpLoading(true);
+      const result = await sendOTP(email);
+      setOtpLoading(false);
+      if (!result.ok) {
+        Alert.alert('Error', result.error || 'Failed to send OTP');
+        return;
+      }
+      if (result.devCode) {
+        Alert.alert('Dev Mode', `Use verification code: ${result.devCode}`);
+      }
+      router.push({ pathname: '/(auth)/otp', params: { email } });
+    } catch (e: any) {
+      setOtpLoading(false);
+      Alert.alert('Error', e.message || 'Network error');
+    }
+  }
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: Colors.bg }} 
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Payment coming soon banner */}
-        <View style={[styles.reminderBanner, { borderColor: Colors.primary, backgroundColor: Colors.primaryBg }]}>
-          <Ionicons name="construct" size={20} color={Colors.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.reminderTitle, { color: Colors.primary }]}>Online Payments Coming Soon</Text>
-            <Text style={styles.reminderText}>Tap "Place Order" to reach us on WhatsApp and we'll process your order personally.</Text>
-          </View>
-        </View>
-
-        {/* Order Summary */}
-        <Text style={styles.sectionTitle}>Order Summary</Text>
-        <View style={styles.summaryCard}>
-          <Image source={{ uri: product.image }} style={styles.productImage} />
-          <View style={styles.productInfo}>
-            <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-            {variant && <Text style={styles.productVariant}>Variant: {variant}</Text>}
-            <Text style={styles.productPrice}>₹{product.price}</Text>
-          </View>
-        </View>
-
-        {/* Shipping Form */}
-        <Text style={styles.sectionTitle}>Shipping Details</Text>
-        <View style={styles.formCard}>
-          
-          <Text style={styles.label}>Full Name *</Text>
-          <TextInput 
-            style={styles.input} 
-            placeholder="Rahul Kumar" 
-            value={form.name}
-            onChangeText={(t) => updateForm('name', t)}
-          />
-
-          <Text style={styles.label}>Phone Number *</Text>
-          <TextInput 
-            style={styles.input} 
-            placeholder="+91 98765 43210" 
-            keyboardType="phone-pad"
-            value={form.phone}
-            onChangeText={(t) => updateForm('phone', t)}
-          />
-
-          <Text style={styles.label}>Email Address</Text>
-          <TextInput 
-            style={styles.input} 
-            placeholder="rahul@example.com" 
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={form.email}
-            onChangeText={(t) => updateForm('email', t)}
-          />
-
-          <Text style={styles.label}>Delivery Address (Flat, Street) *</Text>
-          <TextInput 
-            style={[styles.input, styles.textArea]} 
-            placeholder="A-101, Green Park Society..." 
-            multiline
-            numberOfLines={3}
-            value={form.address}
-            onChangeText={(t) => updateForm('address', t)}
-          />
-
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>City *</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Mumbai"
-                value={form.city}
-                onChangeText={(t) => updateForm('city', t)}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Pincode *</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="400001" 
-                keyboardType="number-pad"
-                maxLength={6}
-                value={form.pincode}
-                onChangeText={(t) => updateForm('pincode', t)}
-              />
-            </View>
-          </View>
-
-        </View>
-
-        {/* Price Breakdown */}
-        <Text style={styles.sectionTitle}>Payment Details</Text>
-        <View style={styles.breakdownCard}>
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Subtotal</Text>
-            <Text style={styles.breakdownValue}>₹{product.price}</Text>
-          </View>
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Shipping</Text>
-            <Text style={[styles.breakdownValue, { color: Colors.success }]}>FREE</Text>
-          </View>
-          <View style={[styles.breakdownRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{product.price}</Text>
-          </View>
-        </View>
-
-      </ScrollView>
-
-      {/* Place Order Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <TouchableOpacity 
-          style={styles.placeOrderBtn}
-          onPress={handlePlaceOrder}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: Colors.bg }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <LinearGradient
+          colors={[Colors.primary, Colors.primaryLight]}
+          style={[styles.header, { paddingTop: insets.top + 16 }]}
         >
-          <Text style={styles.placeOrderText}>Order via WhatsApp</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.logoWrap}>
+            <Ionicons name="qr-code" size={36} color="#fff" />
+          </View>
+          <Text style={styles.headerTitle}>LinkNPark</Text>
+          <Text style={styles.headerSub}>Smart Vehicle Identity</Text>
+        </LinearGradient>
+
+        <View style={styles.form}>
+          {truecallerUsable && !showEmailLogin ? (
+            <View style={styles.truecallerContainer}>
+              <Text style={styles.formTitle}>Welcome to LinkNPark</Text>
+              <Text style={styles.formSub}>Fast, secure 1-Tap Login</Text>
+              <Button
+                label="1-Tap Login with Truecaller"
+                onPress={handleTruecaller}
+                loading={truecallerLoading}
+                size="lg"
+                style={{ backgroundColor: '#0087FF', marginTop: 12 }}
+              />
+              <TouchableOpacity
+                onPress={() => setShowEmailLogin(true)}
+                style={{ marginTop: 24, alignItems: 'center' }}
+              >
+                <Text style={{ color: Colors.primary, fontWeight: '600', fontSize: 15 }}>
+                  Or sign in with Email OTP
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.terms}>
+                By continuing you agree to our{' '}
+                <Text style={styles.link}>Terms of Service</Text>
+                {' '}and{' '}
+                <Text style={styles.link}>Privacy Policy</Text>
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.truecallerContainer}>
+              <Text style={styles.formTitle}>Sign In</Text>
+              <Text style={styles.formSub}>Enter your email to receive an OTP code</Text>
+              
+              <View style={styles.emailRow}>
+                <TextInput
+                  style={styles.emailInput}
+                  placeholder="Enter your email"
+                  placeholderTextColor={Colors.textSecondary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <Button
+                label="Send Verification Code"
+                onPress={handleSendOTP}
+                loading={otpLoading}
+                size="lg"
+                style={{ marginTop: 20 }}
+              />
+
+              {truecallerUsable && (
+                <TouchableOpacity
+                  onPress={() => setShowEmailLogin(false)}
+                  style={{ marginTop: 24, alignItems: 'center' }}
+                >
+                  <Text style={{ color: Colors.textSecondary, fontWeight: '600', fontSize: 15 }}>
+                    Back to Truecaller Login
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: Colors.bg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  headerBtn: {
-    padding: 8,
-    marginLeft: -8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  reminderBanner: {
-    flexDirection: 'row',
-    backgroundColor: Colors.amberBg,
-    borderWidth: 1,
-    borderColor: Colors.amberLight,
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  reminderTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.amber,
-    marginBottom: 2,
-  },
-  reminderText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
+  header: { paddingHorizontal: 24, paddingBottom: 40, alignItems: 'center' },
+  backBtn: { alignSelf: 'flex-start', marginBottom: 24 },
+  logoWrap: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
   },
-  summaryCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    padding: 12,
-    gap: 12,
-    marginBottom: 24,
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+  form: { flex: 1, padding: 28 },
+  truecallerContainer: {
+    width: '100%',
   },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: Colors.surfaceSecondary,
+  formTitle: { fontSize: 24, fontWeight: '700', color: Colors.text, marginBottom: 8 },
+  formSub: { fontSize: 14, color: Colors.textSecondary, marginBottom: 28 },
+  emailRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: Colors.divider,
+    paddingHorizontal: 16, height: 56,
   },
-  productInfo: {
-    flex: 1,
-    justifyContent: 'center',
+  emailInput: {
+    flex: 1, height: '100%',
+    fontSize: 16, fontWeight: '500', color: Colors.text,
   },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 4,
+  terms: {
+    fontSize: 12, color: Colors.textMuted,
+    textAlign: 'center', marginTop: 16, lineHeight: 18,
   },
-  productVariant: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  formCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    padding: 16,
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    height: 48,
-    fontSize: 15,
-    color: Colors.text,
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 80,
-    paddingTop: 12,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  breakdownCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.divider,
-    padding: 16,
-    marginBottom: 24,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  breakdownLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  breakdownValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    paddingTop: 12,
-    marginTop: 4,
-    marginBottom: 0,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  placeOrderBtn: {
-    backgroundColor: Colors.primary,
-    height: 52,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeOrderText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  }
+  link: { color: Colors.primary, fontWeight: '600' },
+  hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24 },
+  hintText: { fontSize: 12, color: Colors.textMuted },
 });

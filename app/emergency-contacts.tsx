@@ -76,7 +76,7 @@ export default function EmergencyContactsScreen() {
         colors={[Colors.critical, '#FF6B6B']}
         style={[styles.header, { paddingTop: insets.top }]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>

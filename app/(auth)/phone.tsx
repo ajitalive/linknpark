@@ -98,7 +98,7 @@ export default function EmailScreen() {
           colors={[Colors.primary, Colors.primaryLight]}
           style={[styles.header, { paddingTop: insets.top + 16 }]}
         >
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.logoWrap}>

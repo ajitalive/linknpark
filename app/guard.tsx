@@ -137,7 +137,7 @@ export default function GuardScreen() {
         colors={[GuardColors.bg, 'transparent']}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={GuardColors.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
