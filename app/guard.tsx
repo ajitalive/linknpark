@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Animated, Easing
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Animated, Easing, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
@@ -42,8 +42,23 @@ const INCIDENT_TYPES = [
 
 type GuardMode = 'home' | 'scan' | 'vehicle' | 'incident' | 'done';
 
+function formatTime(totalSec: number): string {
+  const s = Math.max(0, Math.floor(totalSec));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function formatDuration(totalSec: number): string {
+  const s = Math.max(0, Math.floor(totalSec));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+}
+
 export default function GuardScreen() {
   const insets = useSafeAreaInsets();
+  const { code: scannedCode } = useLocalSearchParams<{ code?: string }>();
   const [mode, setMode] = useState<GuardMode>('home');
   const [plate, setPlate] = useState('');
   const [found, setFound] = useState<any>(null);
@@ -51,6 +66,20 @@ export default function GuardScreen() {
   const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const incidentStartRef = useRef<number | null>(null);
+
+  // Count the response timer down once per second while an incident is active
+  useEffect(() => {
+    if (!timerActive) return;
+    const id = setInterval(() => {
+      setTimer(prev => (prev > 0 ? prev - 1 : 0));
+      if (incidentStartRef.current) {
+        setElapsedSec(Math.floor((Date.now() - incidentStartRef.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timerActive]);
 
   // Fade animation for mode transitions
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -70,12 +99,13 @@ export default function GuardScreen() {
     });
   };
 
-  async function searchVehicle() {
-    if (plate.trim().length < 4) return;
+  async function runSearch(query: string) {
+    const q = query.trim().toUpperCase();
+    if (q.length < 4) return;
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(`${API_URL}/api/guard/vehicle?query=${encodeURIComponent(plate)}`, {
+      const res = await fetch(`${API_URL}/api/guard/vehicle?query=${encodeURIComponent(q)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -83,19 +113,34 @@ export default function GuardScreen() {
         setFound(data.vehicle);
         animateTransition('vehicle');
       } else {
-        alert(data.error || 'Vehicle not found');
+        Alert.alert('Not found', data.error || 'No registered vehicle matches that plate or code.');
       }
     } catch (e) {
-      alert('Failed to connect to server');
+      Alert.alert('Connection error', 'Could not reach the server. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
   }
 
+  function searchVehicle() {
+    runSearch(plate);
+  }
+
+  // If we returned from the QR scanner with a sticker code, look it up directly
+  useEffect(() => {
+    if (scannedCode) {
+      setPlate(scannedCode.toUpperCase());
+      runSearch(scannedCode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedCode]);
+
   async function startContact(incType: string) {
     setSelectedIncident(incType);
     animateTransition('incident');
     setTimer(300); // 5 min countdown
+    setElapsedSec(0);
+    incidentStartRef.current = Date.now();
     setTimerActive(true);
 
     if (found?.code) {
@@ -117,9 +162,42 @@ export default function GuardScreen() {
     }
   }
 
+  function escalateIncident() {
+    if (!found?.code) return;
+    Alert.alert(
+      'Escalate alert?',
+      'This re-sends a high-priority notification to the owner.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Escalate',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getToken();
+              await fetch(`${API_URL}/api/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                  stickerCode: found.code,
+                  reason: selectedIncident || 'security_concern',
+                  reasonLabel: 'URGENT — Guard escalation',
+                  message: 'URGENT: The security guard has escalated this alert. Please respond immediately.'
+                })
+              });
+              Alert.alert('Escalated', 'A high-priority alert was sent to the owner.');
+            } catch (e) {
+              Alert.alert('Error', 'Could not escalate. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  }
+
   function resolveIncident() {
-    animateTransition('done');
     setTimerActive(false);
+    animateTransition('done');
   }
 
   function reset() {
@@ -128,6 +206,8 @@ export default function GuardScreen() {
     setFound(null);
     setSelectedIncident('');
     setTimer(0);
+    setElapsedSec(0);
+    incidentStartRef.current = null;
   }
 
   return (
@@ -166,6 +246,7 @@ export default function GuardScreen() {
             plate={plate}
             onPlate={setPlate}
             onSearch={searchVehicle}
+            onOpenScanner={() => router.push('/scan?returnTo=/guard' as any)}
             onBack={() => animateTransition('home')}
             loading={loading}
           />
@@ -185,13 +266,13 @@ export default function GuardScreen() {
             incidentType={selectedIncident}
             timer={timer}
             onResolve={resolveIncident}
-            onEscalate={() => {}}
-            onBack={() => animateTransition('vehicle')}
+            onEscalate={escalateIncident}
+            onBack={() => { setTimerActive(false); animateTransition('vehicle'); }}
           />
         )}
 
         {mode === 'done' && (
-          <GuardDone vehicle={found} onReset={reset} />
+          <GuardDone vehicle={found} elapsedSec={elapsedSec} onReset={reset} />
         )}
       </Animated.ScrollView>
     </View>
@@ -252,7 +333,7 @@ function GuardHome({ onScan }: { onScan: () => void }) {
   );
 }
 
-function GuardScan({ plate, onPlate, onSearch, onBack, loading }: any) {
+function GuardScan({ plate, onPlate, onSearch, onOpenScanner, onBack, loading }: any) {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -279,11 +360,11 @@ function GuardScan({ plate, onPlate, onSearch, onBack, loading }: any) {
       <Text style={styles.modeTitle}>Vehicle Query</Text>
 
       {/* Animated Camera Box */}
-      <View style={styles.cameraScanBox}>
+      <TouchableOpacity style={styles.cameraScanBox} onPress={onOpenScanner} activeOpacity={0.8}>
         <Ionicons name="qr-code-outline" size={48} color={GuardColors.textSecondary} />
         <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineTranslateY }] }]} />
         <Text style={styles.cameraScanTitle}>Tap to open Scanner</Text>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
@@ -339,9 +420,11 @@ function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
           )}
         </View>
         <View style={styles.foundDetails}>
-          <FoundDetail icon="home-outline" label="Unit" value={`${vehicle.flat}, ${vehicle.tower}`} />
+          {vehicle.flat && vehicle.flat !== 'N/A' && (
+            <FoundDetail icon="home-outline" label="Unit" value={`${vehicle.flat}, ${vehicle.tower}`} />
+          )}
           <FoundDetail icon="person-outline" label="Resident" value={vehicle.resident} />
-          <FoundDetail icon="alert-circle-outline" label="History" value={`${vehicle.incidents} Incidents`} />
+          <FoundDetail icon="alert-circle-outline" label="History" value={`${vehicle.incidents} ${vehicle.incidents === 1 ? 'Incident' : 'Incidents'}`} />
         </View>
       </View>
 
@@ -395,10 +478,10 @@ function GuardIncidentActive({ vehicle, timer, onResolve, onEscalate, onBack }: 
           style={styles.timerGradient}
         >
           <Text style={styles.timerLabel}>AWAITING OWNER RESPONSE</Text>
-          <Text style={styles.timerValue}>{timer > 0 ? '4:52' : '0:00'}</Text>
+          <Text style={styles.timerValue}>{formatTime(timer)}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Ionicons name="warning" size={14} color={GuardColors.critical} />
-            <Text style={styles.timerSub}>Auto-escalate pending</Text>
+            <Text style={styles.timerSub}>{timer > 0 ? 'Tap Escalate if no response' : 'No response — escalate now'}</Text>
           </View>
         </LinearGradient>
       </Animated.View>
@@ -406,20 +489,16 @@ function GuardIncidentActive({ vehicle, timer, onResolve, onEscalate, onBack }: 
       <View style={styles.glassCard}>
         <View style={styles.statusItem}>
           <Ionicons name="checkmark-done" size={22} color={GuardColors.success} />
-          <Text style={styles.statusText}>Secure notification dispatched</Text>
+          <Text style={styles.statusText}>Push notification sent to owner</Text>
         </View>
         <View style={styles.statusItem}>
-          <Ionicons name="cellular-outline" size={22} color={GuardColors.success} />
-          <Text style={styles.statusText}>SMS Fallback active</Text>
+          <Ionicons name="notifications-outline" size={22} color={GuardColors.success} />
+          <Text style={styles.statusText}>Owner alerted on their phone</Text>
         </View>
       </View>
 
       {/* Actions */}
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="call" size={20} color={GuardColors.primary} />
-          <Text style={[styles.actionLabel, { color: GuardColors.primary }]}>Proxy Call</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={onEscalate}>
           <Ionicons name="flame" size={20} color={GuardColors.critical} />
           <Text style={[styles.actionLabel, { color: GuardColors.critical }]}>Escalate</Text>
@@ -433,7 +512,7 @@ function GuardIncidentActive({ vehicle, timer, onResolve, onEscalate, onBack }: 
   );
 }
 
-function GuardDone({ vehicle, onReset }: any) {
+function GuardDone({ vehicle, elapsedSec, onReset }: any) {
   return (
     <View style={{ alignItems: 'center', paddingTop: 40 }}>
       <View style={styles.doneIconWrap}>
@@ -446,12 +525,12 @@ function GuardDone({ vehicle, onReset }: any) {
 
       <View style={[styles.glassCard, { width: '100%', marginTop: 30 }]}>
         <View style={styles.logRow}>
-          <Text style={styles.logLabel}>TIMESTAP</Text>
+          <Text style={styles.logLabel}>TIMESTAMP</Text>
           <Text style={styles.logValue}>{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
         </View>
         <View style={styles.logRow}>
           <Text style={styles.logLabel}>RESOLUTION</Text>
-          <Text style={styles.logValue}>4m 52s</Text>
+          <Text style={styles.logValue}>{formatDuration(elapsedSec || 0)}</Text>
         </View>
         <View style={[styles.logRow, { borderTopWidth: 1, borderTopColor: GuardColors.border, paddingTop: 16, marginTop: 8 }]}>
           <Text style={styles.logLabel}>KARMA</Text>
