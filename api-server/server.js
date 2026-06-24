@@ -89,7 +89,12 @@ app.use(cors({
     if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       return callback(null, true);
     }
-    
+
+    // Allow Cloudflare-hosted admin/scanner pages (Workers & Pages)
+    if (/\.workers\.dev$/.test(origin) || /\.pages\.dev$/.test(origin)) {
+      return callback(null, true);
+    }
+
     // Check against allowed production origins
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     
