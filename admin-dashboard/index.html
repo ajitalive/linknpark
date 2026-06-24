@@ -73,6 +73,15 @@
         <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Karma Events</div><div class="stat" id="c-karma">—</div></div>
       </div>
 
+      <!-- Stock by product -->
+      <div class="card p-4 mb-6">
+        <h3 class="font-bold mb-3">Stock by Product</h3>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>Product</th><th>Active</th><th>Unclaimed (stock)</th><th>Total</th></tr></thead>
+          <tbody id="by-product"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+
       <!-- Two columns: recent activations + incidents -->
       <div class="grid md:grid-cols-2 gap-4 mb-6">
         <div class="card p-4">
@@ -175,6 +184,14 @@
         document.getElementById('c-karma').textContent = num(d.community.karma_events);
 
         document.getElementById('updated').textContent = 'Updated ' + new Date(d.generated_at).toLocaleTimeString();
+
+        const PRODUCT_LABELS = { vehicle: 'Car Tag', bike: 'Bike Tag', pet: 'Pet Tag', keychain: 'Keychain / Lost & Found', luggage: 'Luggage Tag', doorbell: 'Doorbell Tag', other: 'Other' };
+        const bp = d.by_product || {};
+        const bpRows = Object.keys(PRODUCT_LABELS)
+          .filter(t => bp[t] && bp[t].total > 0)
+          .map(t => `<tr><td>${PRODUCT_LABELS[t]}</td><td style="color:#22c55e">${num(bp[t].active)}</td><td>${num(bp[t].unclaimed)}</td><td>${num(bp[t].total)}</td></tr>`)
+          .join('') || '<tr><td colspan="4" class="muted">No stock yet</td></tr>';
+        document.getElementById('by-product').innerHTML = bpRows;
 
         const rs = d.recent_activations.map(s =>
           `<tr><td class="font-mono">${s.code}</td><td>${s.registration||'—'}</td><td>${s.tag_type||s.vehicle_type||'—'}</td><td>${s.parking_slot||'—'}</td></tr>`

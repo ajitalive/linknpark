@@ -99,18 +99,28 @@ module.exports = function createAdminRouter({ supabase, ADMIN_KEY_RESOLVED, rese
   });
 
   // ── POST /api/admin/stickers/pre-register — batch pre-register codes ──────
+  // Body: { codes: [], tag_type?, vehicle_type? }
+  // tag_type stamps the product category so stock is generated as the right
+  // product: vehicle (car), bike, pet, keychain, luggage, doorbell, other.
+  const VALID_TAG_TYPES = ['vehicle', 'bike', 'pet', 'keychain', 'luggage', 'doorbell', 'other'];
   router.post('/api/admin/stickers/pre-register', requireAdmin, async (req, res) => {
-    const { codes } = req.body;
+    const { codes, tag_type, vehicle_type } = req.body;
     if (!codes || !Array.isArray(codes) || codes.length === 0) {
       return res.status(400).json({ error: 'Array of codes required' });
     }
+
+    const tagType = tag_type && VALID_TAG_TYPES.includes(tag_type) ? tag_type : 'vehicle';
+    // For vehicle/bike, vehicle_type defaults to 'pending' (owner sets it);
+    // for non-vehicle products it's not applicable.
+    const vehType = vehicle_type || (tagType === 'vehicle' || tagType === 'bike' ? 'pending' : 'other');
 
     const rows = codes.map(c => ({
       code: String(c).toUpperCase(),
       status: 'unclaimed',
       owner_email: 'unclaimed@linknpark.in',
-      vehicle_type: 'pending',
+      vehicle_type: vehType,
       registration: 'PENDING',
+      tag_type: tagType,
     }));
 
     const { data, error } = await supabase
@@ -120,8 +130,8 @@ module.exports = function createAdminRouter({ supabase, ADMIN_KEY_RESOLVED, rese
 
     if (error) return res.status(500).json({ error: error.message });
 
-    console.log(`[ADMIN] Pre-registered ${data.length} new code(s) out of ${codes.length}`);
-    res.json({ ok: true, registered: data.length, total_submitted: codes.length });
+    console.log(`[ADMIN] Pre-registered ${data.length} ${tagType} code(s) out of ${codes.length}`);
+    res.json({ ok: true, registered: data.length, total_submitted: codes.length, tag_type: tagType });
   });
 
   // ── GET /api/admin/debug-db — verify DB connectivity (dev only) ───────────
@@ -195,6 +205,18 @@ module.exports = function createAdminRouter({ supabase, ADMIN_KEY_RESOLVED, rese
       const qrTotal = totalStickers - etagTotal;
       const qrActive = active - etagActive;
 
+      // Breakdown by product/tag type (total + active stock per category)
+      const productTypes = ['vehicle', 'bike', 'pet', 'keychain', 'luggage', 'doorbell', 'other'];
+      const byProduct = {};
+      await Promise.all(productTypes.map(async (t) => {
+        const [tot, act, stock] = await Promise.all([
+          count(q => q.eq('tag_type', t)),
+          count(q => q.eq('tag_type', t).eq('status', 'active')),
+          count(q => q.eq('tag_type', t).eq('status', 'unclaimed')),
+        ]);
+        byProduct[t] = { total: tot, active: act, unclaimed: stock };
+      }));
+
       // Recent activity
       const { data: recentStickers } = await supabase
         .from('stickers')
@@ -227,6 +249,7 @@ module.exports = function createAdminRouter({ supabase, ADMIN_KEY_RESOLVED, rese
           etag_total: etagTotal,
           etag_active: etagActive,
         },
+        by_product: byProduct,
         incidents: {
           total: incidentsTotal,
           open: incidentsOpen,
