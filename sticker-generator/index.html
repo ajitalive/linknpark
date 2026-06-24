@@ -241,6 +241,19 @@
       </div>
     </div>
 
+    <div class="mb-4">
+      <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Type <span class="text-gray-400 font-normal">(applies when you Sync to DB)</span></label>
+      <select id="product-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+        <option value="vehicle">Car Parking Tag</option>
+        <option value="bike">Bike Tag (Bike / Helmet)</option>
+        <option value="pet">Pet Tag</option>
+        <option value="keychain">Lost &amp; Found / Keychain</option>
+        <option value="luggage">Luggage Tag</option>
+        <option value="doorbell">Doorbell Tag</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
     <div class="grid grid-cols-3 gap-3 mb-4">
       <div>
         <label class="text-xs font-semibold text-gray-600 block mb-1.5">Sticker Size</label>
@@ -678,20 +691,21 @@
     if (!getAdminKey()) { alert('Please enter Admin API Key in the Sticker Management panel below first.'); return; }
     
     const uniqueCodes = [...new Set(codes)];
+    const tagType = (document.getElementById('product-type') || {}).value || 'vehicle';
     const status = document.getElementById('gen-status');
-    status.textContent = `Syncing ${uniqueCodes.length} codes to database...`;
+    status.textContent = `Syncing ${uniqueCodes.length} ${tagType} codes to database...`;
     status.classList.remove('hidden');
 
     try {
       const res = await fetch(`${ADMIN_API}/api/admin/stickers/pre-register`, {
         method: 'POST',
         headers: adminHeaders(),
-        body: JSON.stringify({ codes: uniqueCodes })
+        body: JSON.stringify({ codes: uniqueCodes, tag_type: tagType })
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Failed to sync');
-      
-      status.textContent = `✓ Successfully pre-registered ${d.registered} new code(s). (Total: ${d.total_submitted})`;
+
+      status.textContent = `✓ Pre-registered ${d.registered} new ${d.tag_type || tagType} code(s). (Total: ${d.total_submitted})`;
       status.style.color = '#16A34A';
     } catch (e) {
       status.textContent = `✗ Sync failed: ${e.message}`;
