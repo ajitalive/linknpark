@@ -91,18 +91,6 @@
         </div>
       </div>
 
-      <!-- Sticker generation -->
-      <div class="card p-4 mb-6">
-        <h3 class="font-bold mb-1">Generate Stickers (pre-register codes)</h3>
-        <p class="muted text-sm mb-3">Paste codes (one per line, or comma-separated). They become "unclaimed" stock, ready to activate.</p>
-        <textarea id="genCodes" rows="4" placeholder="STK-2026-AA0001&#10;STK-2026-AA0002"
-          class="w-full bg-[#0B0F19] border border-white/10 rounded-lg px-4 py-3 mb-3 outline-none font-mono text-sm"></textarea>
-        <div class="flex items-center gap-3">
-          <button class="btn" id="genBtn" onclick="generate()">Pre-register</button>
-          <span id="genMsg" class="text-sm muted"></span>
-        </div>
-      </div>
-
       <!-- Lookup / status -->
       <div class="card p-4">
         <h3 class="font-bold mb-1">Lookup / Change Status</h3>
@@ -202,21 +190,6 @@
         const err = document.getElementById('gateErr');
         err.textContent = e.message; err.classList.remove('hidden');
       }
-    }
-
-    async function generate() {
-      const raw = document.getElementById('genCodes').value;
-      const codes = raw.split(/[\s,]+/).map(c => c.trim()).filter(Boolean);
-      if (!codes.length) return;
-      const btn = document.getElementById('genBtn'); btn.disabled = true;
-      document.getElementById('genMsg').textContent = 'Working…';
-      try {
-        const d = await api('/api/admin/stickers/pre-register', { method: 'POST', body: JSON.stringify({ codes }) });
-        document.getElementById('genMsg').textContent =
-          d.error ? ('Error: ' + d.error) : `Registered ${d.registered} new of ${d.total_submitted} submitted`;
-        loadStats();
-      } catch (e) { document.getElementById('genMsg').textContent = 'Error: ' + e.message; }
-      btn.disabled = false;
     }
 
     async function lookup() {
