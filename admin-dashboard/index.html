@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkNPark — Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0B0F19; color: #E5E7EB; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .card { background: #141a28; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; }
+    .stat { font-size: 2rem; font-weight: 800; }
+    .muted { color: #94A3B8; }
+    input, button, select { font-family: inherit; }
+    .btn { background: #15803D; color: #fff; border-radius: 10px; padding: 8px 16px; font-weight: 600; }
+    .btn:disabled { opacity: .5; }
+    .ghost { background: #1f2937; color: #E5E7EB; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    th { color: #94A3B8; font-weight: 600; }
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-6xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-extrabold" style="color:#22c55e">LinkNPark</h1>
+        <p class="muted text-sm">Business Admin Dashboard</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="updated" class="muted text-xs"></span>
+        <button class="btn ghost" onclick="loadStats()">Refresh</button>
+        <button class="btn ghost" onclick="logout()">Lock</button>
+      </div>
+    </div>
+
+    <!-- Auth gate -->
+    <div id="gate" class="card p-6 max-w-md mx-auto hidden">
+      <h2 class="font-bold text-lg mb-1">Admin access</h2>
+      <p class="muted text-sm mb-4">Enter your admin key to view the dashboard.</p>
+      <input id="keyInput" type="password" placeholder="Admin key"
+        class="w-full bg-[#0B0F19] border border-white/10 rounded-lg px-4 py-3 mb-3 outline-none" />
+      <button class="btn w-full" onclick="saveKey()">Unlock</button>
+      <p id="gateErr" class="text-red-400 text-sm mt-3 hidden"></p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dash" class="hidden">
+
+      <!-- Top stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Total Stickers</div><div class="stat" id="s-total">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Active</div><div class="stat" style="color:#22c55e" id="s-active">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Unclaimed (stock)</div><div class="stat" id="s-unclaimed">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">New this week</div><div class="stat" style="color:#38bdf8" id="s-new">—</div></div>
+      </div>
+
+      <!-- Type split + incidents -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">QR Stickers (active)</div><div class="stat" id="t-qr">—</div><div class="muted text-xs" id="t-qr-total"></div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">eTags / Plate (active)</div><div class="stat" id="t-etag">—</div><div class="muted text-xs" id="t-etag-total"></div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Open Incidents</div><div class="stat" style="color:#f59e0b" id="i-open">—</div><div class="muted text-xs" id="i-total"></div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Incidents Today</div><div class="stat" id="i-today">—</div></div>
+      </div>
+
+      <!-- Community -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Claimed (owners)</div><div class="stat" id="s-claimed">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Guardian Zones</div><div class="stat" id="c-zones">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Zone Members</div><div class="stat" id="c-members">—</div></div>
+        <div class="card p-4"><div class="muted text-xs uppercase tracking-wide">Karma Events</div><div class="stat" id="c-karma">—</div></div>
+      </div>
+
+      <!-- Two columns: recent activations + incidents -->
+      <div class="grid md:grid-cols-2 gap-4 mb-6">
+        <div class="card p-4">
+          <h3 class="font-bold mb-3">Recent Activations</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>Code</th><th>Plate</th><th>Type</th><th>Slot</th></tr></thead>
+            <tbody id="recent-stickers"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-bold mb-3">Recent Incidents</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>Vehicle</th><th>Reason</th><th>Status</th><th>When</th></tr></thead>
+            <tbody id="recent-incidents"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- Sticker generation -->
+      <div class="card p-4 mb-6">
+        <h3 class="font-bold mb-1">Generate Stickers (pre-register codes)</h3>
+        <p class="muted text-sm mb-3">Paste codes (one per line, or comma-separated). They become "unclaimed" stock, ready to activate.</p>
+        <textarea id="genCodes" rows="4" placeholder="STK-2026-AA0001&#10;STK-2026-AA0002"
+          class="w-full bg-[#0B0F19] border border-white/10 rounded-lg px-4 py-3 mb-3 outline-none font-mono text-sm"></textarea>
+        <div class="flex items-center gap-3">
+          <button class="btn" id="genBtn" onclick="generate()">Pre-register</button>
+          <span id="genMsg" class="text-sm muted"></span>
+        </div>
+      </div>
+
+      <!-- Lookup / status -->
+      <div class="card p-4">
+        <h3 class="font-bold mb-1">Lookup / Change Status</h3>
+        <div class="flex flex-wrap gap-2 items-center mb-3">
+          <input id="lookupCode" placeholder="Sticker code" class="bg-[#0B0F19] border border-white/10 rounded-lg px-3 py-2 outline-none" />
+          <button class="btn ghost" onclick="lookup()">Look up</button>
+          <select id="statusSel" class="bg-[#0B0F19] border border-white/10 rounded-lg px-3 py-2">
+            <option value="active">active</option>
+            <option value="paused">paused</option>
+            <option value="inactive">inactive</option>
+            <option value="lost">lost</option>
+          </select>
+          <button class="btn" onclick="setStatus()">Set status</button>
+        </div>
+        <pre id="lookupOut" class="text-xs bg-[#0B0F19] rounded-lg p-3 overflow-x-auto muted">—</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://localhost:3001' : 'https://linknpark.onrender.com';
+
+    function getKey() { return localStorage.getItem('lnp_admin_key') || ''; }
+    function setKey(k) { localStorage.setItem('lnp_admin_key', k); }
+    function logout() { localStorage.removeItem('lnp_admin_key'); show(false); }
+
+    function show(authed) {
+      document.getElementById('gate').classList.toggle('hidden', authed);
+      document.getElementById('dash').classList.toggle('hidden', !authed);
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(`${API_BASE}${path}`, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey(), ...(opts.headers || {}) },
+      });
+      if (res.status === 403) throw new Error('Invalid admin key');
+      return res.json();
+    }
+
+    function saveKey() {
+      const k = document.getElementById('keyInput').value.trim();
+      if (!k) return;
+      setKey(k);
+      loadStats();
+    }
+
+    function num(n) { return (n ?? 0).toLocaleString('en-IN'); }
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const d = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (d < 60) return 'now'; if (d < 3600) return Math.floor(d/60)+'m';
+      if (d < 86400) return Math.floor(d/3600)+'h'; return Math.floor(d/86400)+'d';
+    }
+
+    async function loadStats() {
+      try {
+        const d = await api('/api/admin/stats');
+        if (d.error) throw new Error(d.error);
+        show(true);
+        document.getElementById('gateErr').classList.add('hidden');
+
+        document.getElementById('s-total').textContent = num(d.stickers.total);
+        document.getElementById('s-active').textContent = num(d.stickers.active);
+        document.getElementById('s-unclaimed').textContent = num(d.stickers.unclaimed);
+        document.getElementById('s-new').textContent = num(d.stickers.new_this_week);
+        document.getElementById('s-claimed').textContent = num(d.stickers.claimed);
+
+        document.getElementById('t-qr').textContent = num(d.by_type.qr_active);
+        document.getElementById('t-qr-total').textContent = num(d.by_type.qr_total) + ' total';
+        document.getElementById('t-etag').textContent = num(d.by_type.etag_active);
+        document.getElementById('t-etag-total').textContent = num(d.by_type.etag_total) + ' total';
+
+        document.getElementById('i-open').textContent = num(d.incidents.open);
+        document.getElementById('i-total').textContent = num(d.incidents.total) + ' all-time';
+        document.getElementById('i-today').textContent = num(d.incidents.today);
+
+        document.getElementById('c-zones').textContent = num(d.community.zones);
+        document.getElementById('c-members').textContent = num(d.community.zone_members);
+        document.getElementById('c-karma').textContent = num(d.community.karma_events);
+
+        document.getElementById('updated').textContent = 'Updated ' + new Date(d.generated_at).toLocaleTimeString();
+
+        const rs = d.recent_activations.map(s =>
+          `<tr><td class="font-mono">${s.code}</td><td>${s.registration||'—'}</td><td>${s.tag_type||s.vehicle_type||'—'}</td><td>${s.parking_slot||'—'}</td></tr>`
+        ).join('') || '<tr><td colspan="4" class="muted">None yet</td></tr>';
+        document.getElementById('recent-stickers').innerHTML = rs;
+
+        const ri = d.recent_incidents.map(i =>
+          `<tr><td class="font-mono">${i.sticker_code||'—'}</td><td>${(i.reason||'').replace(/_/g,' ')}</td><td>${i.status||'open'}</td><td>${timeAgo(i.created_at)}</td></tr>`
+        ).join('') || '<tr><td colspan="4" class="muted">None yet</td></tr>';
+        document.getElementById('recent-incidents').innerHTML = ri;
+      } catch (e) {
+        show(false);
+        const err = document.getElementById('gateErr');
+        err.textContent = e.message; err.classList.remove('hidden');
+      }
+    }
+
+    async function generate() {
+      const raw = document.getElementById('genCodes').value;
+      const codes = raw.split(/[\s,]+/).map(c => c.trim()).filter(Boolean);
+      if (!codes.length) return;
+      const btn = document.getElementById('genBtn'); btn.disabled = true;
+      document.getElementById('genMsg').textContent = 'Working…';
+      try {
+        const d = await api('/api/admin/stickers/pre-register', { method: 'POST', body: JSON.stringify({ codes }) });
+        document.getElementById('genMsg').textContent =
+          d.error ? ('Error: ' + d.error) : `Registered ${d.registered} new of ${d.total_submitted} submitted`;
+        loadStats();
+      } catch (e) { document.getElementById('genMsg').textContent = 'Error: ' + e.message; }
+      btn.disabled = false;
+    }
+
+    async function lookup() {
+      const code = document.getElementById('lookupCode').value.trim().toUpperCase();
+      if (!code) return;
+      const d = await api(`/api/admin/stickers?code=${encodeURIComponent(code)}`);
+      document.getElementById('lookupOut').textContent = JSON.stringify(d.stickers?.[0] || d, null, 2);
+    }
+
+    async function setStatus() {
+      const code = document.getElementById('lookupCode').value.trim().toUpperCase();
+      const status = document.getElementById('statusSel').value;
+      if (!code) return;
+      const d = await api(`/api/admin/stickers/${encodeURIComponent(code)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      document.getElementById('lookupOut').textContent = JSON.stringify(d.sticker || d, null, 2);
+      loadStats();
+    }
+
+    // Boot
+    if (getKey()) loadStats(); else show(false);
+  </script>
+</body>
+</html>

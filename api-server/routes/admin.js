@@ -147,5 +147,104 @@ module.exports = function createAdminRouter({ supabase, ADMIN_KEY_RESOLVED, rese
     }
   });
 
+  // ── GET /api/admin/stats — business dashboard aggregates ──────────────────
+  router.get('/api/admin/stats', requireAdmin, async (req, res) => {
+    try {
+      const count = async (build) => {
+        const { count, error } = await build(
+          supabase.from('stickers').select('*', { count: 'exact', head: true })
+        );
+        if (error) throw error;
+        return count || 0;
+      };
+      const countOn = async (table, build) => {
+        const q = build ? build(supabase.from(table).select('*', { count: 'exact', head: true }))
+                        : supabase.from(table).select('*', { count: 'exact', head: true });
+        const { count, error } = await q;
+        if (error) return 0; // table may not exist
+        return count || 0;
+      };
+
+      const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+
+      const [
+        totalStickers, unclaimed, active, paused, lost,
+        etagTotal, etagActive, claimed,
+        incidentsTotal, incidentsOpen, incidentsToday,
+        zonesTotal, zoneMembers, karmaRows, usersTotal,
+      ] = await Promise.all([
+        count(q => q),
+        count(q => q.eq('status', 'unclaimed')),
+        count(q => q.eq('status', 'active')),
+        count(q => q.eq('status', 'paused')),
+        count(q => q.eq('status', 'lost')),
+        count(q => q.like('code', 'ETAG-%')),
+        count(q => q.like('code', 'ETAG-%').eq('status', 'active')),
+        count(q => q.neq('status', 'unclaimed').not('owner_email', 'is', null)),
+        countOn('incidents'),
+        countOn('incidents', q => q.neq('status', 'resolved')),
+        countOn('incidents', q => q.gte('created_at', startOfDay.toISOString())),
+        countOn('zones'),
+        countOn('zone_members'),
+        countOn('karma_log'),
+        countOn('users'),
+      ]);
+
+      // Physical QR stickers = everything that isn't an eTag
+      const qrTotal = totalStickers - etagTotal;
+      const qrActive = active - etagActive;
+
+      // Recent activity
+      const { data: recentStickers } = await supabase
+        .from('stickers')
+        .select('code, registration, vehicle_type, tag_type, status, owner_email, parking_slot, created_at')
+        .neq('status', 'unclaimed')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const { data: recentIncidents } = await supabase
+        .from('incidents')
+        .select('id, reason, status, created_at, sticker_code')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // New activations in last 7 days
+      const newThisWeek = await count(q => q.neq('status', 'unclaimed').gte('created_at', weekAgo));
+
+      res.json({
+        generated_at: new Date().toISOString(),
+        stickers: {
+          total: totalStickers,
+          unclaimed,
+          claimed,
+          active, paused, lost,
+          new_this_week: newThisWeek,
+        },
+        by_type: {
+          qr_total: qrTotal,
+          qr_active: qrActive,
+          etag_total: etagTotal,
+          etag_active: etagActive,
+        },
+        incidents: {
+          total: incidentsTotal,
+          open: incidentsOpen,
+          today: incidentsToday,
+        },
+        community: {
+          zones: zonesTotal,
+          zone_members: zoneMembers,
+          karma_events: karmaRows,
+          users: usersTotal,
+        },
+        recent_activations: recentStickers || [],
+        recent_incidents: recentIncidents || [],
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return { router };
 };
