@@ -26,14 +26,14 @@
     .sticker {
       width: 85mm;
       height: 54mm;
-      background: #2CFF05;
-      border: 2px solid #111;
-      border-radius: 3mm;
+      background: linear-gradient(135deg, #16A34A 0%, #128A3E 55%, #0E7A37 100%);
+      border: 1.5px solid #0B5C2A;
+      border-radius: 4mm;
       overflow: hidden;
       position: relative;
       display: flex;
       flex-direction: row;
-      font-family: -apple-system, BlinkMacSystemFont, 'Arial Black', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -49,32 +49,33 @@
     }
 
     .sticker-brand {
-      font-size: 14pt;
-      font-weight: 900;
-      color: #000;
-      letter-spacing: -0.5px;
+      font-size: 15pt;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.4px;
       line-height: 1;
     }
 
     .sticker-brand-sub {
       font-size: 6.5pt;
       font-weight: 600;
-      color: #222;
-      letter-spacing: 0.2px;
-      margin-top: 1mm;
+      color: rgba(255,255,255,0.82);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 1.2mm;
     }
 
     .sticker-instruction {
-      font-size: 12pt;
-      font-weight: 900;
-      color: #000;
-      line-height: 1.15;
+      font-size: 12.5pt;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.12;
       text-transform: uppercase;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.2px;
     }
 
     .sticker-instruction u {
-      text-decoration-thickness: 1.5px;
+      text-decoration: none; /* cleaner look — drop underlines */
     }
 
     .sticker-bottom {
@@ -86,8 +87,8 @@
 
     .sticker-code {
       font-size: 6.5pt;
-      font-weight: 800;
-      color: #111;
+      font-weight: 700;
+      color: rgba(255,255,255,0.9);
       letter-spacing: 0.8px;
       font-family: 'Courier New', monospace;
       white-space: nowrap;
@@ -101,8 +102,8 @@
 
     .sticker-icon {
       width: 5.5mm; height: 5.5mm;
-      background: rgba(0,0,0,0.12);
-      border-radius: 1mm;
+      background: rgba(255,255,255,0.18);
+      border-radius: 1.2mm;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -118,7 +119,7 @@
       align-items: center;
       justify-content: center;
       padding: 2mm 2.5mm;
-      border-left: 2px solid #111;
+      border-left: 1px dashed rgba(0,0,0,0.18);
       gap: 1.5mm;
       flex-shrink: 0;
     }
@@ -133,11 +134,11 @@
     .sticker-scan-hint {
       font-size: 5.5pt;
       font-weight: 700;
-      color: #333;
+      color: #6B7280;
       text-align: center;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
-      line-height: 1.3;
+      letter-spacing: 0.8px;
+      line-height: 1.4;
     }
 
     /* ── Per-product size variants ── */
@@ -147,17 +148,27 @@
     .sticker.sz-round   { width: 45mm;  height: 45mm; border-radius: 50%; } /* Pet */
 
     /* Localised text helpers */
-    .sticker-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 11pt; font-weight: 800; color: #000; line-height: 1.2; margin-bottom: 1mm; }
-    .sticker-privacy { font-size: 7pt; font-weight: 700; color: #0a5; margin-top: 1mm; }
-    .sticker.compact .c-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 6pt; font-weight: 800; text-align: center; color: #000; }
+    .sticker-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 11pt; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 1.5mm; }
+    .sticker-privacy {
+      display: inline-block;
+      font-size: 6.5pt;
+      font-weight: 700;
+      color: #0E7A37;
+      background: rgba(255,255,255,0.95);
+      padding: 0.8mm 2mm;
+      border-radius: 4mm;
+      margin-top: 2mm;
+      letter-spacing: 0.2px;
+    }
+    .sticker.compact .c-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 6pt; font-weight: 700; text-align: center; color: #fff; }
 
     /* Compact (vertical) template for small tags */
     .sticker.compact { flex-direction: column; align-items: center; justify-content: space-between; padding: 2.5mm; }
-    .sticker.compact .c-brand { font-size: 9pt; font-weight: 900; color: #000; line-height: 1; text-align: center; }
-    .sticker.compact .c-instr { font-size: 6pt; font-weight: 800; text-transform: uppercase; text-align: center; line-height: 1.15; color: #000; }
-    .sticker.compact .c-qr { background: #fff; padding: 1.2mm; border-radius: 1.5mm; }
+    .sticker.compact .c-brand { font-size: 9pt; font-weight: 800; color: #fff; line-height: 1; text-align: center; }
+    .sticker.compact .c-instr { font-size: 6pt; font-weight: 700; text-transform: uppercase; text-align: center; line-height: 1.15; color: #fff; }
+    .sticker.compact .c-qr { background: #fff; padding: 1.5mm; border-radius: 2mm; }
     .sticker.compact .c-qr canvas, .sticker.compact .c-qr img { width: 22mm !important; height: 22mm !important; display: block; }
-    .sticker.compact .c-code { font-size: 5pt; font-weight: 800; font-family: 'Courier New', monospace; letter-spacing: 0.5px; color: #111; }
+    .sticker.compact .c-code { font-size: 5pt; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 0.5px; color: rgba(255,255,255,0.9); }
     .sticker.sz-round.compact .c-qr { padding: 1.5mm; }
 
     /* Grid layout for print — flex-wrap tiles any sticker size */
