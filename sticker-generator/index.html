@@ -5,6 +5,8 @@
   <title>LinkNPark — Sticker Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F9FB; }
 
@@ -139,10 +141,15 @@
     }
 
     /* ── Per-product size variants ── */
-    .sticker.sz-card    { width: 85mm; height: 54mm; }            /* Car */
-    .sticker.sz-card-sm { width: 65mm; height: 42mm; }            /* Bike */
-    .sticker.sz-square  { width: 45mm; height: 45mm; }            /* Keychain / Luggage / Doorbell */
-    .sticker.sz-round   { width: 42mm; height: 42mm; border-radius: 50%; } /* Pet */
+    .sticker.sz-card    { width: 100mm; height: 70mm; }           /* Car — 10×7 cm */
+    .sticker.sz-card-sm { width: 80mm;  height: 55mm; }           /* Bike */
+    .sticker.sz-square  { width: 50mm;  height: 50mm; }           /* Keychain / Luggage / Doorbell */
+    .sticker.sz-round   { width: 45mm;  height: 45mm; border-radius: 50%; } /* Pet */
+
+    /* Localised text helpers */
+    .sticker-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 11pt; font-weight: 800; color: #000; line-height: 1.2; margin-bottom: 1mm; }
+    .sticker-privacy { font-size: 7pt; font-weight: 700; color: #0a5; margin-top: 1mm; }
+    .sticker.compact .c-hindi { font-family: 'Noto Sans Devanagari', sans-serif; font-size: 6pt; font-weight: 800; text-align: center; color: #000; }
 
     /* Compact (vertical) template for small tags */
     .sticker.compact { flex-direction: column; align-items: center; justify-content: space-between; padding: 2.5mm; }
@@ -257,17 +264,27 @@
       </div>
     </div>
 
-    <div class="mb-4">
-      <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Type <span class="text-gray-400 font-normal">(applies when you Sync to DB)</span></label>
-      <select id="product-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" onchange="generateSheet()">
-        <option value="vehicle">Car Parking Tag</option>
-        <option value="bike">Bike Tag (Bike / Helmet)</option>
-        <option value="pet">Pet Tag</option>
-        <option value="keychain">Lost &amp; Found / Keychain</option>
-        <option value="luggage">Luggage Tag</option>
-        <option value="doorbell">Doorbell Tag</option>
-        <option value="other">Other</option>
-      </select>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div>
+        <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Type <span class="text-gray-400 font-normal">(used for size, design & DB)</span></label>
+        <select id="product-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" onchange="generateSheet()">
+          <option value="vehicle">Car Parking Tag</option>
+          <option value="bike">Bike Tag (Bike / Helmet)</option>
+          <option value="pet">Pet Tag</option>
+          <option value="keychain">Lost &amp; Found / Keychain</option>
+          <option value="luggage">Luggage Tag</option>
+          <option value="doorbell">Doorbell Tag</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-600 block mb-1.5">Language</label>
+        <select id="lang-select" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" onchange="generateSheet()">
+          <option value="en">English</option>
+          <option value="hi">हिंदी (Hindi)</option>
+          <option value="both">Bilingual (Hindi + English)</option>
+        </select>
+      </div>
     </div>
 
     <div class="grid grid-cols-3 gap-3 mb-4">
@@ -673,23 +690,30 @@
     status.textContent = `Generating ${allCodes.length} sticker(s)…`;
     status.classList.remove('hidden');
 
-    // Per-product print format: size class, template, and instruction text
-    const PRODUCT_FORMAT = {
-      vehicle:  { size: 'sz-card',    compact: false, instr: 'Scan to<br><u>contact the</u><br><u>vehicle owner</u>' },
-      bike:     { size: 'sz-card-sm', compact: false, instr: 'Scan to<br><u>contact the</u><br><u>owner</u>' },
-      pet:      { size: 'sz-round',   compact: true,  instr: 'If found, scan<br>to contact owner' },
-      keychain: { size: 'sz-square',  compact: true,  instr: 'Scan to return<br>contact owner' },
-      luggage:  { size: 'sz-square',  compact: true,  instr: 'Scan to return<br>contact owner' },
-      doorbell: { size: 'sz-square',  compact: true,  instr: 'Scan to<br>contact resident' },
-      other:    { size: 'sz-card',    compact: false, instr: 'Scan to<br><u>contact the</u><br><u>owner</u>' },
+    // Per-product content: size, template, and EN/HI text lines
+    const CONTENT = {
+      vehicle:  { size: 'sz-card',    en: ['SCAN TO', 'CONTACT THE', 'VEHICLE OWNER'], hi: ['स्कैन करें', 'वाहन मालिक से', 'संपर्क करें'] },
+      bike:     { size: 'sz-card-sm', en: ['SCAN TO', 'CONTACT THE', 'OWNER'],         hi: ['स्कैन करें', 'मालिक से', 'संपर्क करें'] },
+      pet:      { size: 'sz-round',   en: ['IF FOUND,', 'SCAN TO CONTACT OWNER'],      hi: ['मिलने पर', 'मालिक से संपर्क करें'] },
+      keychain: { size: 'sz-square',  en: ['SCAN TO RETURN', 'CONTACT OWNER'],         hi: ['लौटाने हेतु', 'संपर्क करें'] },
+      luggage:  { size: 'sz-square',  en: ['SCAN TO RETURN', 'CONTACT OWNER'],         hi: ['लौटाने हेतु', 'संपर्क करें'] },
+      doorbell: { size: 'sz-square',  en: ['SCAN TO', 'CONTACT RESIDENT'],             hi: ['निवासी से', 'संपर्क करें'] },
+      other:    { size: 'sz-card',    en: ['SCAN TO', 'CONTACT OWNER'],                hi: ['स्कैन करें', 'संपर्क करें'] },
     };
+    const PRIVACY = { en: 'Your number stays private', hi: 'आपका नंबर निजी रहता है' };
+
     const productType = (document.getElementById('product-type') || {}).value || 'vehicle';
     const sizeOverride = (document.getElementById('size-select') || {}).value || 'auto';
-    const fmt = PRODUCT_FORMAT[productType] || PRODUCT_FORMAT.vehicle;
-    // Size: explicit override wins; otherwise the product's natural size.
-    const sizeClass = sizeOverride === 'auto' ? fmt.size : sizeOverride;
-    // Compact template for small square/round tags; card template otherwise.
+    const lang = (document.getElementById('lang-select') || {}).value || 'en';
+    const c = CONTENT[productType] || CONTENT.vehicle;
+    const sizeClass = sizeOverride === 'auto' ? c.size : sizeOverride;
     const useCompact = sizeClass === 'sz-square' || sizeClass === 'sz-round';
+
+    const showHi = lang === 'hi' || lang === 'both';
+    const showEn = lang === 'en' || lang === 'both';
+    const hiText = c.hi.join('<br>');
+    const enText = c.en.join('<br>');
+    const privacy = lang === 'hi' ? PRIVACY.hi : PRIVACY.en;
 
     for (const code of allCodes) {
       const url = stickerUrl(code);
@@ -699,7 +723,8 @@
         sticker.innerHTML = `
           <div class="c-brand">LinkNPark</div>
           <div class="c-qr" id="qr-${code}"></div>
-          <div class="c-instr">${fmt.instr.replace(/<u>|<\/u>/g, '')}</div>
+          ${showHi ? `<div class="c-hindi">${hiText}</div>` : ''}
+          ${showEn ? `<div class="c-instr">${enText}</div>` : ''}
           <div class="c-code">${code}</div>
         `;
       } else {
@@ -709,7 +734,11 @@
               <div class="sticker-brand">LinkNPark</div>
               <div class="sticker-brand-sub">linknpark.in</div>
             </div>
-            <div class="sticker-instruction">${fmt.instr}</div>
+            <div>
+              ${showHi ? `<div class="sticker-hindi">${hiText}</div>` : ''}
+              ${showEn ? `<div class="sticker-instruction">${enText}</div>` : ''}
+              <div class="sticker-privacy">${privacy}</div>
+            </div>
             <div class="sticker-bottom">
               <div class="sticker-code">${code}</div>
               <div class="sticker-icons-row">
