@@ -95,6 +95,11 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow our own domain and any subdomain (tools., scan., admin., …)
+    if (/^https?:\/\/([a-z0-9-]+\.)*linknpark\.in$/i.test(origin)) {
+      return callback(null, true);
+    }
+
     // Check against allowed production origins
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     

@@ -138,12 +138,28 @@
       line-height: 1.3;
     }
 
-    /* Grid layout for print */
+    /* ── Per-product size variants ── */
+    .sticker.sz-card    { width: 85mm; height: 54mm; }            /* Car */
+    .sticker.sz-card-sm { width: 65mm; height: 42mm; }            /* Bike */
+    .sticker.sz-square  { width: 45mm; height: 45mm; }            /* Keychain / Luggage / Doorbell */
+    .sticker.sz-round   { width: 42mm; height: 42mm; border-radius: 50%; } /* Pet */
+
+    /* Compact (vertical) template for small tags */
+    .sticker.compact { flex-direction: column; align-items: center; justify-content: space-between; padding: 2.5mm; }
+    .sticker.compact .c-brand { font-size: 9pt; font-weight: 900; color: #000; line-height: 1; text-align: center; }
+    .sticker.compact .c-instr { font-size: 6pt; font-weight: 800; text-transform: uppercase; text-align: center; line-height: 1.15; color: #000; }
+    .sticker.compact .c-qr { background: #fff; padding: 1.2mm; border-radius: 1.5mm; }
+    .sticker.compact .c-qr canvas, .sticker.compact .c-qr img { width: 22mm !important; height: 22mm !important; display: block; }
+    .sticker.compact .c-code { font-size: 5pt; font-weight: 800; font-family: 'Courier New', monospace; letter-spacing: 0.5px; color: #111; }
+    .sticker.sz-round.compact .c-qr { padding: 1.5mm; }
+
+    /* Grid layout for print — flex-wrap tiles any sticker size */
     .sticker-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 85mm);
+      display: flex;
+      flex-wrap: wrap;
       gap: 6mm;
       justify-content: center;
+      align-content: flex-start;
     }
 
     /* A4 page container */
@@ -243,7 +259,7 @@
 
     <div class="mb-4">
       <label class="text-xs font-semibold text-gray-600 block mb-1.5">Product Type <span class="text-gray-400 font-normal">(applies when you Sync to DB)</span></label>
-      <select id="product-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+      <select id="product-type" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" onchange="generateSheet()">
         <option value="vehicle">Car Parking Tag</option>
         <option value="bike">Bike Tag (Bike / Helmet)</option>
         <option value="pet">Pet Tag</option>
@@ -257,9 +273,12 @@
     <div class="grid grid-cols-3 gap-3 mb-4">
       <div>
         <label class="text-xs font-semibold text-gray-600 block mb-1.5">Sticker Size</label>
-        <select id="size-select" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-          <option value="cr80">CR80 Card (85×54mm)</option>
-          <option value="square">Square (60×60mm)</option>
+        <select id="size-select" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none" onchange="generateSheet()">
+          <option value="auto">Auto — match product</option>
+          <option value="sz-card">Car Card (85×54mm)</option>
+          <option value="sz-card-sm">Bike Card (65×42mm)</option>
+          <option value="sz-square">Square (45×45mm)</option>
+          <option value="sz-round">Round (42mm)</option>
         </select>
       </div>
       <div>
@@ -654,31 +673,58 @@
     status.textContent = `Generating ${allCodes.length} sticker(s)…`;
     status.classList.remove('hidden');
 
+    // Per-product print format: size class, template, and instruction text
+    const PRODUCT_FORMAT = {
+      vehicle:  { size: 'sz-card',    compact: false, instr: 'Scan to<br><u>contact the</u><br><u>vehicle owner</u>' },
+      bike:     { size: 'sz-card-sm', compact: false, instr: 'Scan to<br><u>contact the</u><br><u>owner</u>' },
+      pet:      { size: 'sz-round',   compact: true,  instr: 'If found, scan<br>to contact owner' },
+      keychain: { size: 'sz-square',  compact: true,  instr: 'Scan to return<br>contact owner' },
+      luggage:  { size: 'sz-square',  compact: true,  instr: 'Scan to return<br>contact owner' },
+      doorbell: { size: 'sz-square',  compact: true,  instr: 'Scan to<br>contact resident' },
+      other:    { size: 'sz-card',    compact: false, instr: 'Scan to<br><u>contact the</u><br><u>owner</u>' },
+    };
+    const productType = (document.getElementById('product-type') || {}).value || 'vehicle';
+    const sizeOverride = (document.getElementById('size-select') || {}).value || 'auto';
+    const fmt = PRODUCT_FORMAT[productType] || PRODUCT_FORMAT.vehicle;
+    // Size: explicit override wins; otherwise the product's natural size.
+    const sizeClass = sizeOverride === 'auto' ? fmt.size : sizeOverride;
+    // Compact template for small square/round tags; card template otherwise.
+    const useCompact = sizeClass === 'sz-square' || sizeClass === 'sz-round';
+
     for (const code of allCodes) {
       const url = stickerUrl(code);
       const sticker = document.createElement('div');
-      sticker.className = 'sticker';
-      sticker.innerHTML = `
-        <div class="sticker-left">
-          <div>
-            <div class="sticker-brand">LinkNPark</div>
-            <div class="sticker-brand-sub">linknpark.in</div>
-          </div>
-          <div class="sticker-instruction">Scan to<br><u>contact the</u><br><u>vehicle owner</u></div>
-          <div class="sticker-bottom">
-            <div class="sticker-code">${code}</div>
-            <div class="sticker-icons-row">
-              <div class="sticker-icon" title="Wrong Parking">🚫</div>
-              <div class="sticker-icon" title="Accident">⚠️</div>
-              <div class="sticker-icon" title="Emergency">🆘</div>
+      sticker.className = `sticker ${sizeClass}${useCompact ? ' compact' : ''}`;
+      if (useCompact) {
+        sticker.innerHTML = `
+          <div class="c-brand">LinkNPark</div>
+          <div class="c-qr" id="qr-${code}"></div>
+          <div class="c-instr">${fmt.instr.replace(/<u>|<\/u>/g, '')}</div>
+          <div class="c-code">${code}</div>
+        `;
+      } else {
+        sticker.innerHTML = `
+          <div class="sticker-left">
+            <div>
+              <div class="sticker-brand">LinkNPark</div>
+              <div class="sticker-brand-sub">linknpark.in</div>
+            </div>
+            <div class="sticker-instruction">${fmt.instr}</div>
+            <div class="sticker-bottom">
+              <div class="sticker-code">${code}</div>
+              <div class="sticker-icons-row">
+                <div class="sticker-icon" title="Wrong Parking">🚫</div>
+                <div class="sticker-icon" title="Accident">⚠️</div>
+                <div class="sticker-icon" title="Emergency">🆘</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="sticker-right">
-          <div class="sticker-qr" id="qr-${code}"></div>
-          <div class="sticker-scan-hint">Scan using<br>phone camera</div>
-        </div>
-      `;
+          <div class="sticker-right">
+            <div class="sticker-qr" id="qr-${code}"></div>
+            <div class="sticker-scan-hint">Scan using<br>phone camera</div>
+          </div>
+        `;
+      }
       grid.appendChild(sticker);
       await renderQR(document.getElementById(`qr-${code}`), url);
     }
