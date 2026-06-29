@@ -172,6 +172,8 @@ const { router: pushRouter } = require('./routes/push')({ supabase, requireAuth 
 const { router: chatRouter } = require('./routes/chat')({ supabase, requireAuth, sendExpoPush, chatRooms });
 const { router: adminRouter } = require('./routes/admin')({ supabase, ADMIN_KEY_RESOLVED, resend });
 const { router: karmaRouter } = require('./routes/karma')({ supabase, requireAuth });
+const { router: vaultRouter } = require('./routes/vault')({ upload });
+const { router: parkingRouter } = require('./routes/parking')({ supabase, requireAuth, upload, ADMIN_KEY_RESOLVED });
 
 // ============ MOUNT ROUTES ============
 app.use(authRouter);
@@ -183,6 +185,8 @@ app.use(pushRouter);
 app.use(chatRouter);
 app.use(adminRouter);
 app.use(karmaRouter);
+app.use(vaultRouter);
+app.use(parkingRouter);
 
 // ── Health + root redirect ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));

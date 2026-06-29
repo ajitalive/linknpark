@@ -15,6 +15,7 @@ const MENU_SECTIONS = [
     title: 'Safety',
     items: [
       { icon: 'map', label: 'Safety Radar', color: Colors.primary, badge: 'New', route: '/safety-radar' },
+      { icon: 'location', label: 'Find Parking', color: Colors.primary, badge: 'New', route: '/find-parking' },
       { icon: 'people', label: 'Emergency Contacts', color: Colors.critical, badge: 'Manage', route: '/emergency-contacts' },
       { icon: 'shield', label: 'Guardian Network', color: Colors.primary, badge: null, route: '/guardian-network' },
       { icon: 'medical', label: 'SOS Settings', color: Colors.critical, badge: null, route: '/sos-settings' },
@@ -26,6 +27,8 @@ const MENU_SECTIONS = [
       { icon: 'qr-code', label: 'My Free eTag', color: Colors.primary, badge: 'Free', route: '/etag' },
       { icon: 'shield-half', label: 'Guard Mode', color: Colors.amber, badge: 'B2B', route: '/guard' },
       { icon: 'time', label: 'Parking Timer', color: Colors.primary, badge: null, route: '/parking-timer' },
+      { icon: 'car-sport', label: 'Find My Car', color: Colors.primary, badge: 'New', route: '/parked' },
+      { icon: 'speedometer', label: 'Fuel & Costs', color: Colors.primary, badge: 'New', route: '/fuel-log' },
       { icon: 'lock-closed', label: 'Secure Vault', color: Colors.primaryDark, badge: null, route: '/(tabs)/vault' },
     ],
   },

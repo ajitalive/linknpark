@@ -79,6 +79,7 @@ export default function RootLayout() {
           <Stack.Screen name="parking-timer" options={{ presentation: 'card' }} />
           <Stack.Screen name="notification-preferences" options={{ presentation: 'card' }} />
           <Stack.Screen name="report/[plate]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="find-parking" options={{ presentation: 'card' }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
