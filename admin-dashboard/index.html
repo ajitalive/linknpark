@@ -117,6 +117,15 @@
         <pre id="lookupOut" class="text-xs bg-[#0B0F19] rounded-lg p-3 overflow-x-auto muted">—</pre>
       </div>
 
+      <!-- Parking review -->
+      <div class="card p-4 mt-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold">Parking Spots — Pending Review</h3>
+          <button class="btn ghost" onclick="loadParking()">Refresh</button>
+        </div>
+        <div id="parking-pending"><div class="muted text-sm">Loading…</div></div>
+      </div>
+
     </div>
   </div>
 
@@ -184,6 +193,7 @@
         document.getElementById('c-karma').textContent = num(d.community.karma_events);
 
         document.getElementById('updated').textContent = 'Updated ' + new Date(d.generated_at).toLocaleTimeString();
+        loadParking();
 
         const PRODUCT_LABELS = { vehicle: 'Car Tag', bike: 'Bike Tag', pet: 'Pet Tag', keychain: 'Keychain / Lost & Found', luggage: 'Luggage Tag', doorbell: 'Doorbell Tag', other: 'Other' };
         const bp = d.by_product || {};
@@ -207,6 +217,38 @@
         const err = document.getElementById('gateErr');
         err.textContent = e.message; err.classList.remove('hidden');
       }
+    }
+
+    async function loadParking() {
+      const box = document.getElementById('parking-pending');
+      try {
+        const d = await api('/api/admin/parking/pending');
+        const spots = d.spots || [];
+        if (!spots.length) { box.innerHTML = '<div class="muted text-sm">No spots awaiting review.</div>'; return; }
+        box.innerHTML = spots.map(s => `
+          <div class="card p-3 mb-2" style="background:#0B0F19">
+            <div class="flex items-start gap-3">
+              ${s.photo_url ? `<img src="${s.photo_url}" style="width:72px;height:54px;object-fit:cover;border-radius:8px" />` : ''}
+              <div style="flex:1">
+                <div class="font-bold">${s.poi_name}</div>
+                <div class="muted text-xs">${s.label || '—'}</div>
+                <div class="muted text-xs">${s.type} · ${s.vehicle_types} · by ${s.submitted_by}</div>
+                <a class="text-xs" style="color:#38bdf8" target="_blank" href="https://www.google.com/maps?q=${s.lat},${s.lng}">View on map (${s.lat.toFixed(4)}, ${s.lng.toFixed(4)})</a>
+              </div>
+              <div class="flex flex-col gap-2">
+                <button class="btn" onclick="reviewParking('${s.id}','approve')">Approve</button>
+                <button class="btn" style="background:#b91c1c" onclick="reviewParking('${s.id}','reject')">Reject</button>
+              </div>
+            </div>
+          </div>`).join('');
+      } catch (e) { box.innerHTML = `<div class="text-red-400 text-sm">${e.message}</div>`; }
+    }
+
+    async function reviewParking(id, action) {
+      try {
+        await api(`/api/admin/parking/${id}/review`, { method: 'POST', body: JSON.stringify({ action }) });
+        loadParking();
+      } catch (e) { alert('Failed: ' + e.message); }
     }
 
     async function lookup() {
