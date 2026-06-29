@@ -7,6 +7,7 @@ const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const path = require('path');
 
 // ============ CONFIG ============
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -187,6 +188,13 @@ app.use(adminRouter);
 app.use(karmaRouter);
 app.use(vaultRouter);
 app.use(parkingRouter);
+
+// ── Admin dashboard (served from the repo so it auto-updates on deploy) ────────
+// Visit https://<host>/admin — the page itself is a shell; all data still
+// requires the admin key entered in the UI (sent as x-admin-key).
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'admin-dashboard', 'index.html'));
+});
 
 // ── Health + root redirect ────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', supabase: !!supabase, resend: !!resend }));
