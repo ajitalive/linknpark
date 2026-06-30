@@ -235,7 +235,7 @@
             <div class="flex items-start gap-3">
               ${s.photo_url ? `<img src="${s.photo_url}" style="width:72px;height:54px;object-fit:cover;border-radius:8px" />` : ''}
               <div style="flex:1">
-                <div class="font-bold">${s.poi_name}</div>
+                <div class="font-bold">${s.poi_name} ${s.status === 'flagged' ? `<span style="background:#b45309;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:6px">⚠ Flagged · ${s.report_count || 0} reports</span>` : ''}</div>
                 <div class="muted text-xs">${s.label || '—'}</div>
                 <div class="muted text-xs">${s.type} · ${s.vehicle_types} · by ${s.submitted_by}</div>
                 <a class="text-xs" style="color:#38bdf8" target="_blank" href="https://www.google.com/maps?q=${s.lat},${s.lng}">View on map (${s.lat.toFixed(4)}, ${s.lng.toFixed(4)})</a>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
-  Alert, Modal, TextInput, Image, RefreshControl,
+  Alert, Modal, TextInput, Image, RefreshControl, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -95,6 +95,48 @@ export default function FindParkingScreen() {
     }
   }
 
+  function openMaps(spot: Spot) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+    Linking.openURL(url).catch(() => Alert.alert('Could not open Maps'));
+  }
+
+  function reportSpot(spot: Spot) {
+    Alert.alert(
+      'Report this spot',
+      `What's wrong with "${spot.poi_name}"?`,
+      [
+        { text: 'Not there anymore', onPress: () => sendReport(spot, 'gone') },
+        { text: 'Wrong location', onPress: () => sendReport(spot, 'wrong_location') },
+        { text: 'Fake / spam', onPress: () => sendReport(spot, 'fake') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }
+
+  async function sendReport(spot: Spot, reason: string) {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/api/parking/spots/${spot.id}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.flagged) {
+          setSpots(prev => prev.filter(s => s.id !== spot.id));
+          Alert.alert('Thanks', 'Enough people flagged this spot — it has been hidden and sent for review.');
+        } else {
+          Alert.alert('Thanks', 'Your report was recorded. We hide spots that get reported by several people.');
+        }
+      } else {
+        Alert.alert('Could not report', data.error || 'Please try again.');
+      }
+    } catch {
+      Alert.alert('Error', 'Could not reach the server.');
+    }
+  }
+
   async function pickPhoto() {
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5 });
     if (!result.canceled) setPhoto(result.assets[0]);
@@ -169,7 +211,7 @@ export default function FindParkingScreen() {
           </View>
         ) : (
           spots.map(s => (
-            <View key={s.id} style={styles.card}>
+            <TouchableOpacity key={s.id} style={styles.card} activeOpacity={0.85} onPress={() => openMaps(s)}>
               {s.photo_url ? <Image source={{ uri: s.photo_url }} style={styles.photo} /> : null}
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
                 <View style={{ flex: 1 }}>
@@ -180,7 +222,13 @@ export default function FindParkingScreen() {
                     )}
                   </View>
                   {s.label ? <Text style={styles.label}>{s.label}</Text> : null}
-                  <Text style={styles.meta}>{s.distance_km} km · {s.type} · {s.vehicle_types}</Text>
+                  <View style={styles.chipRow}>
+                    <View style={styles.chip}><Ionicons name="navigate-outline" size={11} color={Colors.textSecondary} /><Text style={styles.chipTxt}>{s.distance_km} km</Text></View>
+                    <View style={[styles.chip, s.type === 'paid' ? styles.chipPaid : styles.chipFree]}>
+                      <Text style={[styles.chipTxt, { color: s.type === 'paid' ? Colors.amber : Colors.success, textTransform: 'capitalize' }]}>{s.type}</Text>
+                    </View>
+                    <View style={styles.chip}><Text style={[styles.chipTxt, { textTransform: 'capitalize' }]}>{s.vehicle_types.replace(/,/g, ', ')}</Text></View>
+                  </View>
                 </View>
                 <View style={{ alignItems: 'center' }}>
                   <TouchableOpacity
@@ -192,10 +240,21 @@ export default function FindParkingScreen() {
                       ? <ActivityIndicator size="small" color={Colors.primary} />
                       : <Ionicons name={s.you_voted ? 'checkmark' : 'arrow-up'} size={18} color={s.you_voted ? Colors.success : Colors.primary} />}
                   </TouchableOpacity>
-                  <Text style={styles.votes}>{s.upvotes}</Text>
+                  <Text style={styles.votes}>{s.you_voted ? 'Verified' : "I'm here"}</Text>
                 </View>
               </View>
-            </View>
+
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => openMaps(s)}>
+                  <Ionicons name="navigate" size={15} color={Colors.primary} />
+                  <Text style={styles.actionTxt}>Directions</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(s)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="flag-outline" size={14} color={Colors.textMuted} />
+                  <Text style={styles.actionTxtGhost}>Report</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -272,7 +331,17 @@ const styles = StyleSheet.create({
   badgeTxt: { fontSize: 10, fontWeight: '800', color: '#fff' },
   voteBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.primary },
   voteBtnDone: { borderColor: Colors.success, backgroundColor: `${Colors.success}18` },
-  votes: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary, marginTop: 4 },
+  votes: { fontSize: 10, fontWeight: '700', color: Colors.textSecondary, marginTop: 4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: Colors.surfaceSecondary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  chipFree: { backgroundColor: `${Colors.success}18` },
+  chipPaid: { backgroundColor: `${Colors.amber}18` },
+  chipTxt: { fontSize: 11, fontWeight: '700', color: Colors.textSecondary },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.divider },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.primaryBg, borderRadius: 10, paddingVertical: 10 },
+  actionTxt: { fontSize: 13, fontWeight: '800', color: Colors.primary },
+  actionBtnGhost: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 10 },
+  actionTxtGhost: { fontSize: 12, fontWeight: '700', color: Colors.textMuted },
   emptyCard: { alignItems: 'center', gap: 8, padding: 28, backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.divider, marginTop: 8 },
   emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
   fab: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.primary, paddingHorizontal: 22, paddingVertical: 14, borderRadius: 30, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },

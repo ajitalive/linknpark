@@ -16,6 +16,7 @@ const { isR2Configured, uploadToR2 } = require('../r2');
 const COMMUNITY_THRESHOLD = 5;   // distinct upvotes after admin-verify -> community_verified
 const VOTE_RADIUS_KM = 0.25;     // must be within 250 m of the spot to vote
 const SEARCH_RADIUS_KM = 5;      // nearby search radius
+const REPORT_THRESHOLD = 3;      // distinct reports -> flagged (hidden, back to review)
 
 function distanceKm(lat1, lon1, lat2, lon2) {
   const toRad = d => (d * Math.PI) / 180;
@@ -175,10 +176,40 @@ module.exports = function createParkingRouter({ supabase, requireAuth, upload, A
     res.json({ ok: true, upvotes, status: updates.status || spot.status });
   });
 
-  // ── Admin: pending submissions ────────────────────────────────────────────
+  // ── Report a spot (disagree) — GPS not required; one per user ──────────────
+  router.post('/api/parking/spots/:id/report', requireAuth, requireQrUser, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reason = (req.body && req.body.reason) ? String(req.body.reason).slice(0, 80) : null;
+
+      const { data: spot, error: sErr } = await supabase.from('parking_spots').select('id,status').eq('id', id).single();
+      if (sErr || !spot) return res.status(404).json({ error: 'Spot not found' });
+
+      const { error: rErr } = await supabase.from('parking_reports')
+        .insert({ spot_id: id, user_email: req.user.email, reason });
+      if (rErr) {
+        if (rErr.code === '23505') return res.status(409).json({ error: 'You already reported this spot.' });
+        return res.status(500).json({ error: rErr.message });
+      }
+
+      const { count } = await supabase.from('parking_reports').select('*', { count: 'exact', head: true }).eq('spot_id', id);
+      const reports = count || 0;
+      const updates = { report_count: reports };
+      const flagged = reports >= REPORT_THRESHOLD;
+      if (flagged) updates.status = 'flagged'; // hidden from nearby, back to admin review
+      await supabase.from('parking_spots').update(updates).eq('id', id);
+
+      res.json({ ok: true, reports, flagged });
+    } catch (e) {
+      console.error('[PARKING] report failed:', e);
+      res.status(500).json({ error: e.message || 'report failed' });
+    }
+  });
+
+  // ── Admin: pending submissions (new + flagged for re-review) ───────────────
   router.get('/api/admin/parking/pending', requireAdmin, async (req, res) => {
     const { data, error } = await supabase
-      .from('parking_spots').select('*').eq('status', 'pending')
+      .from('parking_spots').select('*').in('status', ['pending', 'flagged'])
       .order('created_at', { ascending: true });
     if (error) return res.status(500).json({ error: error.message });
     res.json({ spots: data || [] });
@@ -192,13 +223,19 @@ module.exports = function createParkingRouter({ supabase, requireAuth, upload, A
       if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
 
       const status = action === 'approve' ? 'verified' : 'rejected';
+      // Re-approving a flagged spot clears its reports so it doesn't re-flag instantly.
+      const patch = { status, verified_at: new Date().toISOString() };
+      if (action === 'approve') patch.report_count = 0;
       const { data, error } = await supabase.from('parking_spots')
-        .update({ status, verified_at: new Date().toISOString() })
+        .update(patch)
         .eq('id', id).select().single();
       if (error) return res.status(500).json({ error: error.message });
       if (!data) return res.status(404).json({ error: 'Spot not found' });
 
-      if (action === 'approve') creditKarma(data.submitted_by, 30, 'parking_submission');
+      if (action === 'approve') {
+        await supabase.from('parking_reports').delete().eq('spot_id', id);
+        creditKarma(data.submitted_by, 30, 'parking_submission');
+      }
       res.json({ ok: true, spot: data });
     } catch (e) {
       console.error('[PARKING] review failed:', e);
