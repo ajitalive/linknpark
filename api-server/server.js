@@ -101,6 +101,12 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow our own Render host (the /admin dashboard is served same-origin;
+    // browsers send Origin on same-origin POSTs, so it must be allowed)
+    if (/\.onrender\.com$/.test(origin)) {
+      return callback(null, true);
+    }
+
     // Check against allowed production origins
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     
