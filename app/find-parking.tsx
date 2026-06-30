@@ -46,6 +46,7 @@ export default function FindParkingScreen() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selected, setSelected] = useState<Spot | null>(null);
   const [reportTarget, setReportTarget] = useState<Spot | null>(null);
+  const [reportedIds, setReportedIds] = useState<string[]>([]);
 
   // add-spot modal
   const [modal, setModal] = useState(false);
@@ -122,6 +123,7 @@ export default function FindParkingScreen() {
       });
       const data = await res.json();
       if (res.ok) {
+        setReportedIds(prev => prev.includes(spot.id) ? prev : [...prev, spot.id]);
         if (data.flagged) {
           setSpots(prev => prev.filter(s => s.id !== spot.id));
           setSelected(prev => prev && prev.id === spot.id ? null : prev);
@@ -129,6 +131,10 @@ export default function FindParkingScreen() {
         } else {
           Alert.alert('Thanks', 'Your report was recorded. We hide spots that get reported by several people.');
         }
+      } else if (res.status === 409) {
+        // already reported — reflect it in the UI so it can't be tapped again
+        setReportedIds(prev => prev.includes(spot.id) ? prev : [...prev, spot.id]);
+        Alert.alert('Already reported', 'You have already reported this spot.');
       } else {
         Alert.alert('Could not report', data.error || 'Please try again.');
       }
@@ -258,8 +264,8 @@ export default function FindParkingScreen() {
                   <Ionicons name={selected.you_voted ? 'checkmark' : 'arrow-up'} size={15} color={selected.you_voted ? Colors.success : Colors.primary} />
                   <Text style={[styles.actionTxt, selected.you_voted && { color: Colors.success }]}>{selected.you_voted ? 'Verified' : "I'm here"}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(selected)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="flag-outline" size={15} color={Colors.textMuted} />
+                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(selected)} disabled={reportedIds.includes(selected.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={reportedIds.includes(selected.id) ? 'flag' : 'flag-outline'} size={15} color={reportedIds.includes(selected.id) ? Colors.critical : Colors.textMuted} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -323,9 +329,9 @@ export default function FindParkingScreen() {
                   <Ionicons name="navigate" size={15} color={Colors.primary} />
                   <Text style={styles.actionTxt}>Directions</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(s)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="flag-outline" size={14} color={Colors.textMuted} />
-                  <Text style={styles.actionTxtGhost}>Report</Text>
+                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(s)} disabled={reportedIds.includes(s.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name={reportedIds.includes(s.id) ? 'flag' : 'flag-outline'} size={14} color={reportedIds.includes(s.id) ? Colors.critical : Colors.textMuted} />
+                  <Text style={[styles.actionTxtGhost, reportedIds.includes(s.id) && { color: Colors.critical }]}>{reportedIds.includes(s.id) ? 'Reported' : 'Report'}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
