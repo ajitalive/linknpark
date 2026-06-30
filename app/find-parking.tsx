@@ -45,6 +45,7 @@ export default function FindParkingScreen() {
   const [view, setView] = useState<'list' | 'map'>('list');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selected, setSelected] = useState<Spot | null>(null);
+  const [reportTarget, setReportTarget] = useState<Spot | null>(null);
 
   // add-spot modal
   const [modal, setModal] = useState(false);
@@ -107,19 +108,11 @@ export default function FindParkingScreen() {
   }
 
   function reportSpot(spot: Spot) {
-    Alert.alert(
-      'Report this spot',
-      `What's wrong with "${spot.poi_name}"?`,
-      [
-        { text: 'Not there anymore', onPress: () => sendReport(spot, 'gone') },
-        { text: 'Wrong location', onPress: () => sendReport(spot, 'wrong_location') },
-        { text: 'Fake / spam', onPress: () => sendReport(spot, 'fake') },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    setReportTarget(spot); // opens the reason modal (works on web + native)
   }
 
   async function sendReport(spot: Spot, reason: string) {
+    setReportTarget(null);
     try {
       const token = await getToken();
       const res = await fetch(`${API_BASE}/api/parking/spots/${spot.id}/report`, {
@@ -347,6 +340,29 @@ export default function FindParkingScreen() {
         <Text style={styles.fabTxt}>Add a spot</Text>
       </TouchableOpacity>
 
+      {/* Report reason modal (cross-platform — Alert buttons don't work on web) */}
+      <Modal visible={!!reportTarget} animationType="fade" transparent onRequestClose={() => setReportTarget(null)}>
+        <TouchableOpacity style={styles.reportOverlay} activeOpacity={1} onPress={() => setReportTarget(null)}>
+          <View style={[styles.reportSheet, { paddingBottom: insets.bottom + 16 }]}>
+            <Text style={styles.reportTitle}>Report this spot</Text>
+            <Text style={styles.reportSub}>What's wrong with "{reportTarget?.poi_name}"?</Text>
+            {[
+              { reason: 'gone', label: 'Not there anymore', icon: 'close-circle-outline' },
+              { reason: 'wrong_location', label: 'Wrong location', icon: 'location-outline' },
+              { reason: 'fake', label: 'Fake / spam', icon: 'warning-outline' },
+            ].map(r => (
+              <TouchableOpacity key={r.reason} style={styles.reportOption} onPress={() => reportTarget && sendReport(reportTarget, r.reason)}>
+                <Ionicons name={r.icon as any} size={18} color={Colors.critical} />
+                <Text style={styles.reportOptionTxt}>{r.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.reportCancel} onPress={() => setReportTarget(null)}>
+              <Text style={styles.reportCancelTxt}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Add spot modal */}
       <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
         <View style={styles.modalOverlay}>
@@ -453,4 +469,12 @@ const styles = StyleSheet.create({
   photoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
   photoRemove: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12 },
   disclaimer: { fontSize: 11, color: Colors.textMuted, textAlign: 'center', marginTop: 4 },
+  reportOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  reportSheet: { backgroundColor: Colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, borderWidth: 1, borderColor: Colors.divider, gap: 10 },
+  reportTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
+  reportSub: { fontSize: 13, color: Colors.textSecondary, marginBottom: 6 },
+  reportOption: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16 },
+  reportOptionTxt: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  reportCancel: { alignItems: 'center', paddingVertical: 14, marginTop: 2 },
+  reportCancelTxt: { fontSize: 15, fontWeight: '700', color: Colors.textMuted },
 });
