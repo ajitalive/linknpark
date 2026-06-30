@@ -19,6 +19,8 @@ if (Platform.OS !== 'web') {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }
@@ -71,7 +73,7 @@ async function scheduleAlerts(endMs: number, totalMinutes: number) {
           body: 'Move your vehicle soon to avoid a fine.',
           sound: true,
         },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: warnSeconds },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: warnSeconds, repeats: false },
       });
     }
   }
@@ -84,7 +86,7 @@ async function scheduleAlerts(endMs: number, totalMinutes: number) {
         body: 'Your parking time has expired. Time to move your vehicle.',
         sound: true,
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: secondsUntilEnd },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: secondsUntilEnd, repeats: false },
     });
   }
 }
