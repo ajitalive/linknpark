@@ -36,7 +36,7 @@ export default function CheckoutScreen() {
           text: 'WhatsApp Us',
           onPress: () => {
             const msg = encodeURIComponent(`Hi! I'd like to order: ${product.name} (₹${product.price})`);
-            require('react-native').Linking.openURL(`https://wa.me/919999999999?text=${msg}`);
+            require('react-native').Linking.openURL(`https://wa.me/919136989455?text=${msg}`);
           },
         },
       ]
