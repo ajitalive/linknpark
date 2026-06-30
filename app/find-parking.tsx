@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
-  Alert, Modal, TextInput, Image, RefreshControl, Linking,
+  Alert, Modal, TextInput, Image, RefreshControl, Linking, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,6 +12,7 @@ import { Colors } from '../constants/Colors';
 import { Button } from '../components/ui';
 import { getToken } from '../hooks/useAuth';
 import { API_BASE } from '../hooks/usePushNotifications';
+import MapView, { Marker, PROVIDER_GOOGLE } from '../components/ParkingMap';
 
 type Spot = {
   id: string; poi_name: string; label: string | null; type: string;
@@ -41,6 +42,9 @@ export default function FindParkingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [votingId, setVotingId] = useState<string | null>(null);
+  const [view, setView] = useState<'list' | 'map'>('list');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [selected, setSelected] = useState<Spot | null>(null);
 
   // add-spot modal
   const [modal, setModal] = useState(false);
@@ -57,6 +61,7 @@ export default function FindParkingScreen() {
     try {
       const coords = await getCoords();
       if (!coords) { setError('Location permission is needed to find parking near you.'); setLoading(false); setRefreshing(false); return; }
+      setUserCoords(coords);
       const token = await getToken();
       const res = await fetch(`${API_BASE}/api/parking/nearby?lat=${coords.lat}&lng=${coords.lng}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -85,6 +90,7 @@ export default function FindParkingScreen() {
       const data = await res.json();
       if (res.ok) {
         setSpots(prev => prev.map(s => s.id === spot.id ? { ...s, upvotes: data.upvotes, you_voted: true, status: data.status } : s));
+        setSelected(prev => prev && prev.id === spot.id ? { ...prev, upvotes: data.upvotes, you_voted: true, status: data.status } : prev);
       } else {
         Alert.alert('Could not verify', data.error || 'Please try again.');
       }
@@ -125,6 +131,7 @@ export default function FindParkingScreen() {
       if (res.ok) {
         if (data.flagged) {
           setSpots(prev => prev.filter(s => s.id !== spot.id));
+          setSelected(prev => prev && prev.id === spot.id ? null : prev);
           Alert.alert('Thanks', 'Enough people flagged this spot — it has been hidden and sent for review.');
         } else {
           Alert.alert('Thanks', 'Your report was recorded. We hide spots that get reported by several people.');
@@ -190,12 +197,86 @@ export default function FindParkingScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      <View style={styles.bodyTop}>
+        <Text style={styles.sub}>Verified parking spots near you, backed by the LinkNPark community.</Text>
+        {!loading && !error && spots.length > 0 && (
+          <View style={styles.toggle}>
+            <TouchableOpacity style={[styles.toggleBtn, view === 'list' && styles.toggleBtnActive]} onPress={() => setView('list')}>
+              <Ionicons name="list" size={15} color={view === 'list' ? Colors.primary : Colors.textMuted} />
+              <Text style={[styles.toggleTxt, view === 'list' && styles.toggleTxtActive]}>List</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.toggleBtn, view === 'map' && styles.toggleBtnActive]} onPress={() => setView('map')}>
+              <Ionicons name="map" size={15} color={view === 'map' ? Colors.primary : Colors.textMuted} />
+              <Text style={[styles.toggleTxt, view === 'map' && styles.toggleTxtActive]}>Map</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {view === 'map' && !loading && !error && spots.length > 0 ? (
+        <View style={{ flex: 1 }}>
+          <MapView
+            style={{ flex: 1 }}
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+            showsUserLocation
+            initialRegion={{
+              latitude: userCoords?.lat ?? spots[0].lat,
+              longitude: userCoords?.lng ?? spots[0].lng,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {spots.map(s => (
+              <Marker key={s.id} coordinate={{ latitude: s.lat, longitude: s.lng }} onPress={() => setSelected(s)}>
+                <View style={[styles.pin, { backgroundColor: s.type === 'paid' ? Colors.amber : Colors.success }]}>
+                  <Ionicons name="car" size={13} color="#fff" />
+                </View>
+              </Marker>
+            ))}
+          </MapView>
+
+          {selected && (
+            <View style={[styles.mapCard, { bottom: insets.bottom + 96 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.poi}>{selected.poi_name}</Text>
+                  {selected.label ? <Text style={styles.label}>{selected.label}</Text> : null}
+                  <View style={styles.chipRow}>
+                    <View style={styles.chip}><Ionicons name="navigate-outline" size={11} color={Colors.textSecondary} /><Text style={styles.chipTxt}>{selected.distance_km} km</Text></View>
+                    <View style={[styles.chip, selected.type === 'paid' ? styles.chipPaid : styles.chipFree]}>
+                      <Text style={[styles.chipTxt, { color: selected.type === 'paid' ? Colors.amber : Colors.success, textTransform: 'capitalize' }]}>{selected.type}</Text>
+                    </View>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => setSelected(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={20} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => openMaps(selected)}>
+                  <Ionicons name="navigate" size={15} color={Colors.primary} />
+                  <Text style={styles.actionTxt}>Directions</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, selected.you_voted && { backgroundColor: `${Colors.success}18` }]}
+                  disabled={selected.you_voted || votingId === selected.id}
+                  onPress={() => vote(selected)}
+                >
+                  <Ionicons name={selected.you_voted ? 'checkmark' : 'arrow-up'} size={15} color={selected.you_voted ? Colors.success : Colors.primary} />
+                  <Text style={[styles.actionTxt, selected.you_voted && { color: Colors.success }]}>{selected.you_voted ? 'Verified' : "I'm here"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtnGhost} onPress={() => reportSpot(selected)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="flag-outline" size={15} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      ) : (
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Colors.primary} />}
       >
-        <Text style={styles.sub}>Verified parking spots near you, backed by the LinkNPark community.</Text>
-
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
         ) : error ? (
@@ -258,6 +339,7 @@ export default function FindParkingScreen() {
           ))
         )}
       </ScrollView>
+      )}
 
       {/* Add spot FAB */}
       <TouchableOpacity style={[styles.fab, { bottom: insets.bottom + 20 }]} onPress={() => setModal(true)} activeOpacity={0.9}>
@@ -321,7 +403,15 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.divider },
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '800', color: Colors.text },
-  sub: { fontSize: 13, color: Colors.textSecondary, marginBottom: 16 },
+  sub: { fontSize: 13, color: Colors.textSecondary },
+  bodyTop: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, gap: 12 },
+  toggle: { flexDirection: 'row', backgroundColor: Colors.surfaceSecondary, borderRadius: 12, padding: 4, gap: 4 },
+  toggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: 9 },
+  toggleBtnActive: { backgroundColor: Colors.surface, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  toggleTxt: { fontSize: 13, fontWeight: '700', color: Colors.textMuted },
+  toggleTxtActive: { color: Colors.primary },
+  pin: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 3 },
+  mapCard: { position: 'absolute', left: 16, right: 16, backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.divider, padding: 14, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   card: { backgroundColor: Colors.surface, borderRadius: 16, borderWidth: 1, borderColor: Colors.divider, padding: 14, marginBottom: 12 },
   photo: { width: '100%', height: 120, borderRadius: 10, marginBottom: 10, resizeMode: 'cover' },
   poi: { fontSize: 15, fontWeight: '800', color: Colors.text },
