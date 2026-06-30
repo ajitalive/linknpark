@@ -148,7 +148,12 @@
         headers: { 'Content-Type': 'application/json', 'x-admin-key': getKey(), ...(opts.headers || {}) },
       });
       if (res.status === 403) throw new Error('Invalid admin key');
-      return res.json();
+      const text = await res.text();
+      let body;
+      try { body = JSON.parse(text); }
+      catch { throw new Error(`HTTP ${res.status} (non-JSON): ${text.slice(0, 160)}`); }
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      return body;
     }
 
     function saveKey() {

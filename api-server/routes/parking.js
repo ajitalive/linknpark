@@ -186,19 +186,24 @@ module.exports = function createParkingRouter({ supabase, requireAuth, upload, A
 
   // ── Admin: approve / reject ───────────────────────────────────────────────
   router.post('/api/admin/parking/:id/review', requireAdmin, async (req, res) => {
-    const { action } = req.body; // 'approve' | 'reject'
-    const { id } = req.params;
-    if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
+    try {
+      const { action } = req.body || {}; // 'approve' | 'reject'
+      const { id } = req.params;
+      if (!['approve', 'reject'].includes(action)) return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
 
-    const status = action === 'approve' ? 'verified' : 'rejected';
-    const { data, error } = await supabase.from('parking_spots')
-      .update({ status, verified_at: new Date().toISOString() })
-      .eq('id', id).select().single();
-    if (error) return res.status(500).json({ error: error.message });
-    if (!data) return res.status(404).json({ error: 'Spot not found' });
+      const status = action === 'approve' ? 'verified' : 'rejected';
+      const { data, error } = await supabase.from('parking_spots')
+        .update({ status, verified_at: new Date().toISOString() })
+        .eq('id', id).select().single();
+      if (error) return res.status(500).json({ error: error.message });
+      if (!data) return res.status(404).json({ error: 'Spot not found' });
 
-    if (action === 'approve') creditKarma(data.submitted_by, 30, 'parking_submission');
-    res.json({ ok: true, spot: data });
+      if (action === 'approve') creditKarma(data.submitted_by, 30, 'parking_submission');
+      res.json({ ok: true, spot: data });
+    } catch (e) {
+      console.error('[PARKING] review failed:', e);
+      res.status(500).json({ error: e.message || 'review failed' });
+    }
   });
 
   return { router };
