@@ -179,7 +179,7 @@ const { router: pushRouter } = require('./routes/push')({ supabase, requireAuth 
 const { router: chatRouter } = require('./routes/chat')({ supabase, requireAuth, sendExpoPush, chatRooms });
 const { router: adminRouter } = require('./routes/admin')({ supabase, ADMIN_KEY_RESOLVED, resend });
 const { router: karmaRouter } = require('./routes/karma')({ supabase, requireAuth });
-const { router: vaultRouter } = require('./routes/vault')({ upload });
+const { router: vaultRouter } = require('./routes/vault')({ upload, requireAuth });
 const { router: parkingRouter } = require('./routes/parking')({ supabase, requireAuth, upload, ADMIN_KEY_RESOLVED });
 
 // ============ MOUNT ROUTES ============
