@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, Alert,
+  TextInput, Modal, Alert, Platform, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../constants/Colors';
 import { Card, Button } from '../../components/ui';
+import { API_BASE } from '../../hooks/usePushNotifications';
+import { getToken } from '../../hooks/useAuth';
 
 const STORE_KEY = 'vault_documents_v1';
 
@@ -47,10 +50,61 @@ export default function VaultScreen() {
   const [showAdd, setShowAdd] = useState(false);
   const [selectedType, setSelectedType] = useState(DOC_TYPES[0]);
   const [form, setForm] = useState({ vehicleName: '', docNumber: '', expiry: '', notes: '' });
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     loadDocs().then(setDocs);
   }, []);
+
+  async function scanDocument() {
+    setScanError('');
+    let result: ImagePicker.ImagePickerResult;
+    if (Platform.OS === 'web') {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6 });
+    } else {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      result = perm.granted
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6, allowsEditing: true })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.6 });
+    }
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+
+    setScanning(true);
+    try {
+      const fd = new FormData();
+      if (Platform.OS === 'web') {
+        const blob = await (await fetch(asset.uri)).blob();
+        fd.append('image', blob, 'document.jpg');
+      } else {
+        fd.append('image', { uri: asset.uri, name: 'document.jpg', type: asset.mimeType || 'image/jpeg' } as any);
+      }
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/api/vault/extract`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { setScanError(data.error || 'Could not read the document. Enter it manually.'); return; }
+
+      const t = DOC_TYPES.find(x => x.id === data.docType) || DOC_TYPES[4];
+      setSelectedType(t);
+      setForm(f => ({
+        vehicleName: data.vehicleName || f.vehicleName,
+        docNumber: data.docNumber || f.docNumber,
+        expiry: data.expiry || f.expiry,
+        notes: data.notes || f.notes,
+      }));
+      setScanned(true);
+    } catch {
+      setScanError('Network error during scan. Check your connection and try again.');
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function handleAdd() {
     if (!form.vehicleName.trim() || !form.docNumber.trim()) {
@@ -72,6 +126,8 @@ export default function VaultScreen() {
     await saveDocs(updated);
     setForm({ vehicleName: '', docNumber: '', expiry: '', notes: '' });
     setSelectedType(DOC_TYPES[0]);
+    setScanned(false);
+    setScanError('');
     setShowAdd(false);
   }
 
@@ -115,8 +171,8 @@ export default function VaultScreen() {
               <Ionicons name="lock-closed" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.secTitle}>Encrypted on Device</Text>
-              <Text style={styles.secSub}>Documents are saved in your device's secure enclave. They never leave your phone.</Text>
+              <Text style={styles.secTitle}>Stored on Your Device</Text>
+              <Text style={styles.secSub}>Documents are saved in your device's secure storage. Scanning sends the photo securely for a one-time read, then discards it — nothing is stored on our servers.</Text>
             </View>
           </View>
         </Card>
@@ -174,6 +230,35 @@ export default function VaultScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            <TouchableOpacity style={styles.scanBtn} onPress={scanDocument} disabled={scanning} activeOpacity={0.85}>
+              {scanning ? (
+                <>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text style={styles.scanBtnText}>Reading document…</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="scan" size={20} color="#fff" />
+                  <Text style={styles.scanBtnText}>Scan &amp; auto-fill</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {scanned && !scanError ? (
+              <View style={styles.scanNote}>
+                <Ionicons name="sparkles" size={14} color={Colors.primary} />
+                <Text style={styles.scanNoteText}>Auto-filled from your document — please review before saving.</Text>
+              </View>
+            ) : null}
+            {scanError ? (
+              <View style={[styles.scanNote, { backgroundColor: Colors.criticalBg }]}>
+                <Ionicons name="alert-circle" size={14} color={Colors.critical} />
+                <Text style={[styles.scanNoteText, { color: Colors.critical }]}>{scanError}</Text>
+              </View>
+            ) : null}
+            <View style={styles.orRow}>
+              <View style={styles.orLine} /><Text style={styles.orText}>or enter manually</Text><View style={styles.orLine} />
+            </View>
+
             <Text style={styles.fieldLabel}>Document Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -265,4 +350,11 @@ const styles = StyleSheet.create({
   input: { backgroundColor: Colors.surface, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.divider, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: Colors.text, marginBottom: 16 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surfaceSecondary, borderWidth: 1.5, borderColor: Colors.divider },
   typeChipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  scanBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16, marginBottom: 12 },
+  scanBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  scanNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primaryBg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8 },
+  scanNoteText: { flex: 1, fontSize: 12, fontWeight: '600', color: Colors.primary },
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
+  orLine: { flex: 1, height: 1, backgroundColor: Colors.divider },
+  orText: { fontSize: 12, color: Colors.textMuted, fontWeight: '600' },
 });
