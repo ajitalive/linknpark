@@ -253,6 +253,47 @@ module.exports = function createReportRouter({ supabase, sendExpoPush, pushToCli
       }
     }
 
+    // Guardian Network fan-out: alert members of the zones the vehicle's
+    // owner has joined. Fire-and-forget — must never delay or fail the report.
+    (async () => {
+      try {
+        const owner = ownerRow?.owner_email;
+        if (!owner) return;
+
+        const { data: ownerZones } = await supabase
+          .from('zone_members').select('zone_id').eq('user_email', owner);
+        const zoneIds = (ownerZones || []).map(z => z.zone_id);
+        if (!zoneIds.length) return;
+
+        const [{ data: zones }, { data: members }] = await Promise.all([
+          supabase.from('zones').select('id, name').in('id', zoneIds),
+          supabase.from('zone_members').select('user_email').in('zone_id', zoneIds),
+        ]);
+        const zoneName = zones?.[0]?.name || 'your zone';
+
+        // distinct members, excluding the owner (already notified) and the reporter
+        const emails = [...new Set((members || []).map(m => m.user_email))]
+          .filter(e => e && e !== owner && e !== (reporterEmail || ''));
+        if (!emails.length) return;
+
+        const { data: tokenRows } = await supabase
+          .from('user_push_tokens').select('email, token').in('email', emails);
+        let sent = 0;
+        for (const row of tokenRows || []) {
+          if (!row.token) continue;
+          const ok = await sendExpoPush(row.token, {
+            title: `🛡️ Guardian alert — ${zoneName}`,
+            body: `${reasonLabel} reported on a member's vehicle. Keep an eye out.`,
+            data: { reportId: incident.id, guardian: true },
+          });
+          if (ok) sent++;
+        }
+        console.log(`[GUARDIAN] ${incident.id} fan-out → ${sent}/${emails.length} zone member(s)`);
+      } catch (e) {
+        console.warn('[GUARDIAN] fan-out failed:', e.message);
+      }
+    })();
+
     res.json({ ok: true, reportId: incident.id });
   });
 
