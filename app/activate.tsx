@@ -49,6 +49,7 @@ export default function ActivateScreen() {
   const [regNo, setRegNo] = useState('');
   const [color, setColor] = useState('');
   const [parkingSlot, setParkingSlot] = useState('');
+  const [society, setSociety] = useState('');
   const [backupPhone, setBackupPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +63,10 @@ export default function ActivateScreen() {
       if (tagType === 'vehicle') {
         if (!vehicleType || !regNo) {
           Alert.alert('Missing info', 'Please select a vehicle type and enter registration number.');
+          return;
+        }
+        if (!society.trim() || !parkingSlot.trim()) {
+          Alert.alert('Missing info', 'Please enter your society name and parking number so guards can identify your vehicle.');
           return;
         }
       } else {
@@ -82,6 +87,7 @@ export default function ActivateScreen() {
           registration: tagType === 'vehicle' ? regNo.toUpperCase().replace(/\s+/g, '') : 'N/A',
           color: color || undefined,
           parking_slot: tagType === 'vehicle' && parkingSlot ? parkingSlot.toUpperCase().replace(/\s+/g, '') : undefined,
+          society: tagType === 'vehicle' ? society.trim() : undefined,
           backup_phone: backupPhone || undefined,
           vehicle_name: undefined,
           tag_type: tagType,
@@ -144,6 +150,7 @@ export default function ActivateScreen() {
             regNo={regNo} onReg={setRegNo}
             color={color} onColor={setColor}
             parkingSlot={parkingSlot} onParkingSlot={setParkingSlot}
+            society={society} onSociety={setSociety}
           />
         )}
         {step === 2 && <StepBackup phone={backupPhone} onPhone={setBackupPhone} />}
@@ -209,7 +216,7 @@ function StepScan({ code, onCode }: any) {
   );
 }
 
-function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, onType, regNo, onReg, color, onColor, parkingSlot, onParkingSlot }: any) {
+function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, onType, regNo, onReg, color, onColor, parkingSlot, onParkingSlot, society, onSociety }: any) {
   return (
     <View>
       <Text style={styles.stepTitle}>Tell us about your tag</Text>
@@ -264,7 +271,16 @@ function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, on
             onChangeText={onColor}
           />
 
-          <Text style={styles.fieldLabel}>Parking Slot <Text style={{ fontWeight: '400', color: Colors.textMuted }}>(optional)</Text></Text>
+          <Text style={styles.fieldLabel}>Society / Building Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Casa Bella, Palava"
+            placeholderTextColor={Colors.textMuted}
+            value={society}
+            onChangeText={onSociety}
+          />
+
+          <Text style={styles.fieldLabel}>Parking Number</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. B2-17"
@@ -273,7 +289,7 @@ function StepVehicle({ tagType, onTagType, tagTitle, onTagTitle, vehicleType, on
             onChangeText={onParkingSlot}
             autoCapitalize="characters"
           />
-          <Text style={styles.fieldHint}>Helps your society's guard identify and protect your spot</Text>
+          <Text style={styles.fieldHint}>Guards and your society office use these to identify and protect your vehicle</Text>
         </View>
       ) : (
         <View>
@@ -344,7 +360,7 @@ function StepDone({ sticker, reg }: any) {
             <QRCode
               value={`${SCANNER_BASE}?code=${(sticker || 'STK-2025-AB1234').toUpperCase()}`}
               size={150}
-              color={Colors.primary}
+              color="#000000"
               backgroundColor="#fff"
             />
           </View>

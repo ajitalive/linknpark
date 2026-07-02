@@ -468,6 +468,9 @@ function GuardVehicleResult({ vehicle, onIncident, onBack }: any) {
           )}
         </View>
         <View style={styles.foundDetails}>
+          {vehicle.society && (
+            <FoundDetail icon="business-outline" label="Society" value={vehicle.society} />
+          )}
           {vehicle.parkingSlot && (
             <FoundDetail icon="grid-outline" label="Assigned Slot" value={vehicle.parkingSlot} />
           )}

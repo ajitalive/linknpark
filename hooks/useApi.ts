@@ -92,6 +92,7 @@ export async function createSticker(input: {
   tag_type?: string;
   tag_title?: string;
   parking_slot?: string;
+  society?: string;
 }): Promise<Sticker> {
   // The production backend expects plate_number and vehicle_color
   const payload = {

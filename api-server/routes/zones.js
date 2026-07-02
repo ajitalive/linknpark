@@ -103,7 +103,7 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
 
     const { data, error } = await supabase
       .from('stickers')
-      .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color, tag_type, tag_title, parking_slot')
+      .select('code, vehicle_type, registration, owner_email, status, vehicle_name, color, tag_type, tag_title, parking_slot, society')
       .or(`code.eq."${search}",registration.eq."${search}",parking_slot.eq."${search}"`)
       .not('owner_email', 'is', 'null')
       .neq('status', 'unclaimed')
@@ -139,6 +139,7 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
         type: data.vehicle_type,
         resident: data.vehicle_name || 'Resident',
         parkingSlot: data.parking_slot || null,
+        society: data.society || null,
         incidents: count || 0,
       },
     });

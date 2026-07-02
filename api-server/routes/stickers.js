@@ -67,9 +67,14 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
 
   // POST /api/stickers — claim a pre-registered sticker code
   router.post('/api/stickers', requireAuth, async (req, res) => {
-    const { code, vehicle_name, vehicle_type, color, registration, backup_phone, tag_type, tag_title, parking_slot } = req.body;
+    const { code, vehicle_name, vehicle_type, color, registration, backup_phone, tag_type, tag_title, parking_slot, society } = req.body;
     if (!code || !vehicle_type || !registration) {
       return res.status(400).json({ error: 'code, vehicle_type, registration required' });
+    }
+    // Vehicle registrations must identify where the vehicle lives so guards
+    // and the society office can act on scans. Non-vehicle tags are exempt.
+    if ((tag_type || 'vehicle') === 'vehicle' && (!society || !String(society).trim() || !parking_slot || !String(parking_slot).trim())) {
+      return res.status(400).json({ error: 'Society name and parking number are required for vehicle registrations.' });
     }
 
     const normalizedCode = code.toUpperCase();
@@ -102,6 +107,7 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
       tag_type: tag_type || 'vehicle',
       tag_title: tag_title || null,
       parking_slot: parking_slot ? parking_slot.toUpperCase() : null,
+      society: society ? String(society).trim() : null,
       status: 'active',
     }).eq('code', normalizedCode).select().single();
 
@@ -113,7 +119,7 @@ module.exports = function createStickersRouter({ supabase, requireAuth }) {
   // PATCH /api/stickers/:id — update a sticker (owner only)
   router.patch('/api/stickers/:id', requireAuth, async (req, res) => {
     const updates = {};
-    ['vehicle_name', 'registration', 'color', 'status', 'backup_phone', 'tag_type', 'tag_title', 'parking_slot'].forEach(k => {
+    ['vehicle_name', 'registration', 'color', 'status', 'backup_phone', 'tag_type', 'tag_title', 'parking_slot', 'society'].forEach(k => {
       if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
     const { data, error } = await supabase
