@@ -12,6 +12,7 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE as API_URL } from '../hooks/usePushNotifications';
 import { getToken } from '../hooks/useAuth';
+import { confirmAction } from '../components/confirm';
 
 const { width } = Dimensions.get('window');
 
@@ -183,15 +184,12 @@ export default function GuardScreen() {
 
   function escalateIncident() {
     if (!found?.code) return;
-    Alert.alert(
-      'Escalate alert?',
-      'This re-sends a high-priority notification to the owner.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Escalate',
-          style: 'destructive',
-          onPress: async () => {
+    confirmAction({
+      title: 'Escalate alert?',
+      message: 'This re-sends a high-priority notification to the owner.',
+      confirmLabel: 'Escalate',
+      destructive: true,
+      onConfirm: async () => {
             try {
               const token = await getToken();
               await fetch(`${API_URL}/api/report`, {
@@ -208,10 +206,8 @@ export default function GuardScreen() {
             } catch (e) {
               Alert.alert('Error', 'Could not escalate. Please try again.');
             }
-          }
-        }
-      ]
-    );
+          },
+    });
   }
 
   function resolveIncident() {

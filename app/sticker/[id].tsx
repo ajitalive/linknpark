@@ -13,6 +13,7 @@ import { Card, Button, Divider, Badge } from '../../components/ui';
 import { VehicleIcon } from '../../components/VehicleIcon';
 import { IncidentIcon } from '../../components/IncidentIcon';
 import { useStickers, useIncidents, updateSticker, deleteSticker } from '../../hooks/useApi';
+import { confirmAction } from '../../components/confirm';
 
 const SCANNER_BASE = 'https://scan.linknpark.in';
 
@@ -81,23 +82,20 @@ export default function StickerDetailScreen() {
   }
 
   function handleDelete() {
-    Alert.alert(
-      'Deactivate this sticker?',
-      'Anyone scanning it will see "Sticker not active". You can re-add it later if you keep the physical sticker.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Deactivate', style: 'destructive', onPress: async () => {
-            try {
-              await deleteSticker(sticker!.id);
-              router.replace('/(tabs)/stickers');
-            } catch (e: any) {
-              Alert.alert('Could not deactivate', e?.message || 'Try again');
-            }
-          },
-        },
-      ],
-    );
+    confirmAction({
+      title: 'Deactivate this sticker?',
+      message: 'Anyone scanning it will see "Sticker not active". You can re-add it later if you keep the physical sticker.',
+      confirmLabel: 'Deactivate',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteSticker(sticker!.id);
+          router.replace('/(tabs)/stickers');
+        } catch (e: any) {
+          Alert.alert('Could not deactivate', e?.message || 'Try again');
+        }
+      },
+    });
   }
 
   return (
@@ -140,7 +138,7 @@ export default function StickerDetailScreen() {
                 <QRCode
                   value={`${SCANNER_BASE}?code=${sticker.code}`}
                   size={120}
-                  color={Colors.bg}
+                  color="#000000"
                   backgroundColor="#fff"
                 />
               </View>

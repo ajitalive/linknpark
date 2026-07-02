@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+import { confirmAction } from '../components/confirm';
 
 const FUEL_KEY = 'fuel_log_v1';
 const COST_KEY = 'fuel_costs_v1';
@@ -216,7 +217,7 @@ export default function FuelLogScreen() {
 
   function confirmDelete(msg: string, fn: () => void) {
     if (Platform.OS === 'web') { if (typeof window !== 'undefined' && window.confirm(msg)) fn(); return; }
-    Alert.alert('Delete?', msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: fn }]);
+    confirmAction({ title: 'Delete?', message: msg, confirmLabel: 'Delete', destructive: true, onConfirm: fn });
   }
   function removeFuel(id: string) {
     confirmDelete('Delete this fill-up?', async () => { const n = entries.filter(e => e.id !== id); setEntries(n); await save(FUEL_KEY, n); });

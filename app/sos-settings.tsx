@@ -9,6 +9,7 @@ import * as SMS from 'expo-sms';
 import * as Location from 'expo-location';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+import { confirmAction } from '../components/confirm';
 
 const CONTACTS_KEY = 'emergency_contacts_v1';
 type Contact = { id: string; name: string; phone: string; relation: string };
@@ -21,14 +22,13 @@ export default function SOSSettingsScreen() {
   const [sosWord, setSosWord] = useState('HELP');
 
   async function handleTestSOS() {
-    Alert.alert(
-      'Trigger SOS',
-      'This will prepare an emergency message to send to your contacts. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Proceed', style: 'destructive', onPress: executeSOS },
-      ],
-    );
+    confirmAction({
+      title: 'Trigger SOS',
+      message: 'This will prepare an emergency message to send to your contacts. Continue?',
+      confirmLabel: 'Proceed',
+      destructive: true,
+      onConfirm: executeSOS,
+    });
   }
 
   async function executeSOS() {

@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import { Colors } from '../constants/Colors';
 import { Card, Button } from '../components/ui';
+import { confirmAction } from '../components/confirm';
 
 const CONTACTS_KEY = 'emergency_contacts_v1';
 
@@ -58,16 +59,17 @@ export default function EmergencyContactsScreen() {
   }
 
   function handleDelete(id: string) {
-    Alert.alert('Remove Contact', 'Remove this emergency contact?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove', style: 'destructive', onPress: async () => {
-          const updated = contacts.filter(c => c.id !== id);
-          setContacts(updated);
-          await persistContacts(updated);
-        },
+    confirmAction({
+      title: 'Remove Contact',
+      message: 'Remove this emergency contact?',
+      confirmLabel: 'Remove',
+      destructive: true,
+      onConfirm: async () => {
+        const updated = contacts.filter(c => c.id !== id);
+        setContacts(updated);
+        await persistContacts(updated);
       },
-    ]);
+    });
   }
 
   return (

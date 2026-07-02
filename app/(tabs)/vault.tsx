@@ -11,6 +11,7 @@ import { Colors } from '../../constants/Colors';
 import { Card, Button } from '../../components/ui';
 import { API_BASE } from '../../hooks/usePushNotifications';
 import { getToken } from '../../hooks/useAuth';
+import { confirmAction } from '../../components/confirm';
 
 const STORE_KEY = 'vault_documents_v1';
 
@@ -132,16 +133,17 @@ export default function VaultScreen() {
   }
 
   async function handleDelete(id: string) {
-    Alert.alert('Delete Document', 'Remove this document from vault?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          const updated = docs.filter(d => d.id !== id);
-          setDocs(updated);
-          await saveDocs(updated);
-        },
+    confirmAction({
+      title: 'Delete Document',
+      message: 'Remove this document from vault?',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const updated = docs.filter(d => d.id !== id);
+        setDocs(updated);
+        await saveDocs(updated);
       },
-    ]);
+    });
   }
 
   const grouped = docs.reduce<Record<string, Doc[]>>((acc, d) => {

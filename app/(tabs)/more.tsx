@@ -7,8 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../hooks/useAuth';
 import { useStickers, useIncidents } from '../../hooks/useApi';
-import { Alert } from 'react-native';
 import * as Updates from 'expo-updates';
+import { confirmAction } from '../../components/confirm';
 
 const MENU_SECTIONS = [
   {
@@ -62,15 +62,16 @@ export default function MoreScreen() {
 
   function handleMenuPress(item: any) {
     if (item.label === 'Log Out') {
-      Alert.alert('Sign out?', 'You will need to verify your email again to sign back in.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign out', style: 'destructive', onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/onboarding');
-          },
+      confirmAction({
+        title: 'Sign out?',
+        message: 'You will need to verify your email again to sign back in.',
+        confirmLabel: 'Sign out',
+        destructive: true,
+        onConfirm: async () => {
+          await signOut();
+          router.replace('/(auth)/onboarding');
         },
-      ]);
+      });
       return;
     }
     if (item.route) router.push(item.route as any);
