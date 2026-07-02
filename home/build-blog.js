@@ -128,6 +128,15 @@ const template = (title, description, content, slug) => {
       </div>
     </div>
   </main>
+<!-- Zoho SalesIQ live chat -->
+<script>
+	window.$zoho = window.$zoho || {};
+	$zoho.salesiq = $zoho.salesiq || {
+		ready: function(){}
+	}
+</script>
+<script id = "zsiqscript" src = "https://salesiq.zoho.in/widget?wc=siqa3f6b4367e337befdd2dcdf316542f4309179b7e47e48b9a7775f5eccd923ff9" defer >
+</script>
 </body>
 </html>`;
 };
@@ -147,14 +156,14 @@ function build() {
     let markdown = fs.readFileSync(filePath, 'utf8');
 
     // Parse Frontmatter
-    const frontmatterMatch = markdown.match(/^---\n([\s\S]*?)\n---/);
+    const frontmatterMatch = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!frontmatterMatch) {
       console.warn(`Skipping ${file} - no YAML frontmatter found.`);
       return;
     }
 
     const frontmatter = yaml.load(frontmatterMatch[1]);
-    markdown = markdown.replace(/^---\n[\s\S]*?\n---\n/, '');
+    markdown = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
 
     // Remove GitHub alerts (NOTE, WARNING, etc.)
     markdown = markdown.replace(/> \[\!(NOTE|WARNING|IMPORTANT|CAUTION|TIP)\]\n(> .*\n?)+/g, (match) => {
