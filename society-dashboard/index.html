@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LinkNPark — Society Parking Management</title>
+<style>
+  :root {
+    --bg: #0B0F19; --card: #121826; --border: rgba(255,255,255,0.08);
+    --text: #E5E7EB; --muted: #8B96A9; --green: #22C55E; --amber: #F59E0B; --red: #EF4444;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 900; }
+  h1 span { color: var(--green); }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .btn { background: #1F2937; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 9px 16px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn:hover { border-color: var(--green); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .stat .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .stat .value { font-size: 30px; font-weight: 900; margin-top: 6px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card h2 { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+  .found { background: rgba(34,197,94,.15); color: var(--green); }
+  .notfound { background: rgba(239,68,68,.15); color: var(--red); }
+  .muted { color: var(--muted); }
+  .keybox { max-width: 420px; margin: 12vh auto; text-align: center; }
+  .keybox input { width: 100%; background: #0F1522; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 14px; margin: 14px 0; }
+  .keybox .btn { background: var(--green); color: #04220F; width: 100%; padding: 12px; }
+  .err { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  code { background: #0F1522; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="keybox">
+    <h1>Society <span>Parking</span> Dashboard</h1>
+    <p class="sub">Enter the access key provided to your society office.</p>
+    <input id="keyInput" type="password" placeholder="Society access key" onkeydown="if(event.key==='Enter')saveKey()"/>
+    <button class="btn" onclick="saveKey()">Open Dashboard</button>
+    <div id="gateErr" class="err"></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header>
+      <div>
+        <h1>Society <span>Parking</span> Management</h1>
+        <div class="sub">Guard Mode activity · <span id="updated">—</span></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="load()">Refresh</button>
+        <button class="btn" onclick="lock()">Lock</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="stat"><div class="label">Scans Today</div><div class="value" id="s-today">–</div></div>
+      <div class="stat"><div class="label">Guards Active Today</div><div class="value" id="s-guards">–</div></div>
+      <div class="stat"><div class="label">Unknown Vehicles Today</div><div class="value" id="s-notfound" style="color:var(--amber)">–</div></div>
+      <div class="stat"><div class="label">Incidents Today</div><div class="value" id="s-inc">–</div></div>
+      <div class="stat"><div class="label">Open Incidents</div><div class="value" id="s-open" style="color:var(--red)">–</div></div>
+      <div class="stat"><div class="label">Scans All-Time</div><div class="value" id="s-total">–</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Recent Guard Scans</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>When</th><th>Guard</th><th>Searched</th><th>Result</th></tr></thead>
+          <tbody id="scan-rows"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = location.origin.includes('onrender.com') || location.hostname === 'localhost'
+    ? '' : 'https://linknpark.onrender.com';
+  const KEY_NAME = 'lnp_society_key';
+  const getKey = () => localStorage.getItem(KEY_NAME) || '';
+  const setKey = k => localStorage.setItem(KEY_NAME, k);
+
+  function timeAgo(iso) {
+    const d = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (d < 60) return `${d}s ago`;
+    if (d < 3600) return `${Math.floor(d/60)}m ago`;
+    if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+    return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function load() {
+    const res = await fetch(`${API_BASE}/api/society/overview`, { headers: { 'x-society-key': getKey() } });
+    const text = await res.text();
+    let body; try { body = JSON.parse(text); } catch { throw new Error(`HTTP ${res.status}: ${text.slice(0,120)}`); }
+    if (res.status === 403 || res.status === 503) throw new Error(body.error || 'Access denied');
+    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+
+    const s = body.stats;
+    document.getElementById('s-today').textContent = s.scansToday;
+    document.getElementById('s-guards').textContent = s.guardsToday;
+    document.getElementById('s-notfound').textContent = s.notFoundToday;
+    document.getElementById('s-inc').textContent = s.incidentsToday;
+    document.getElementById('s-open').textContent = s.openIncidents;
+    document.getElementById('s-total').textContent = s.scansTotal;
+    document.getElementById('updated').textContent = 'updated ' + new Date().toLocaleTimeString('en-IN');
+
+    const rows = (body.scans || []).map(x => `
+      <tr>
+        <td class="muted">${timeAgo(x.created_at)}</td>
+        <td>${x.guard_email}</td>
+        <td><code>${x.query}</code></td>
+        <td>${x.found
+          ? `<span class="pill found">Registered · ${x.matched_code}</span>`
+          : `<span class="pill notfound">Unknown vehicle</span>`}</td>
+      </tr>`).join('');
+    document.getElementById('scan-rows').innerHTML =
+      rows || '<tr><td colspan="4" class="muted">No scans yet. Scans appear here when guards look up vehicles in Guard Mode.</td></tr>';
+  }
+
+  async function saveKey() {
+    const k = document.getElementById('keyInput').value.trim();
+    if (!k) return;
+    setKey(k);
+    try { await open(); } catch (e) { document.getElementById('gateErr').textContent = e.message; }
+  }
+
+  async function open() {
+    await load();
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+
+  function lock() {
+    localStorage.removeItem(KEY_NAME);
+    location.reload();
+  }
+
+  if (getKey()) open().catch(() => { document.getElementById('gate').style.display = 'block'; });
+  setInterval(() => { if (getKey() && document.getElementById('app').style.display === 'block') load().catch(()=>{}); }, 60000);
+</script>
+</body>
+</html>

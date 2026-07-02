@@ -181,6 +181,7 @@ const { router: adminRouter } = require('./routes/admin')({ supabase, ADMIN_KEY_
 const { router: karmaRouter } = require('./routes/karma')({ supabase, requireAuth });
 const { router: vaultRouter } = require('./routes/vault')({ upload, requireAuth });
 const { router: parkingRouter } = require('./routes/parking')({ supabase, requireAuth, upload, ADMIN_KEY_RESOLVED });
+const { router: societyRouter } = require('./routes/society')({ supabase });
 
 // ============ MOUNT ROUTES ============
 app.use(authRouter);
@@ -194,12 +195,18 @@ app.use(adminRouter);
 app.use(karmaRouter);
 app.use(vaultRouter);
 app.use(parkingRouter);
+app.use(societyRouter);
 
 // ── Admin dashboard (served from the repo so it auto-updates on deploy) ────────
 // Visit https://<host>/admin — the page itself is a shell; all data still
 // requires the admin key entered in the UI (sent as x-admin-key).
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'admin-dashboard', 'index.html'));
+});
+
+// ── Society office dashboard — guard-scan activity, gated by SOCIETY_KEY ──────
+app.get('/society', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'society-dashboard', 'index.html'));
 });
 
 // ── Health + root redirect ────────────────────────────────────────────────────

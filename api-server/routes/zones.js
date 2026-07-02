@@ -110,9 +110,21 @@ module.exports = function createZonesRouter({ supabase, requireAuth }) {
       .limit(1)
       .single();
 
+    // Log the lookup for the society office dashboard (best-effort)
+    const logScan = (matchedCode) => {
+      supabase.from('guard_scans').insert({
+        guard_email: req.user.email,
+        query: search,
+        matched_code: matchedCode,
+        found: !!matchedCode,
+      }).then(({ error: e }) => { if (e) console.warn('[GUARD] scan log failed:', e.message); });
+    };
+
     if (error || !data) {
+      logScan(null);
       return res.status(404).json({ error: 'Vehicle not found or not registered' });
     }
+    logScan(data.code);
 
     const { count } = await supabase
       .from('incidents')
