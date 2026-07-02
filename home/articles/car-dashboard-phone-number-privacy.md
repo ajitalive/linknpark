@@ -112,7 +112,7 @@ The answer lies in **Asynchronous, Anonymous Communication**. We must decouple t
 ### Enter the Smart QR Parking Sticker
 Technology companies like **LinkNPark** have developed the ultimate solution to this dilemma: The Smart QR Tag.
 
-Instead of a phone number, you place a highly visible, durable QR code sticker on your windshield. This sticker contains absolutely zero personal information. It is simply a unique cryptographic identifier linking to your vehicle's profile in the cloud.
+Instead of a phone number, you place a highly visible, durable [QR code](https://en.wikipedia.org/wiki/QR_code) sticker on your windshield. This sticker contains absolutely zero personal information. It is simply a unique cryptographic identifier linking to your vehicle's profile in the cloud.
 
 ### How It Works for the Reporter
 When someone is blocked by your car, they do not need to download an app. They simply point their smartphone camera at the QR code. They are taken to a secure web portal (like `scan.linknpark.in`) where they can select a reason for contacting you (e.g., "Blocking Driveway," "Lights On").

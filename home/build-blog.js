@@ -8,7 +8,7 @@ const articlesDir = path.join(homeDir, 'articles');
 const baseUrl = 'https://linknpark.in';
 
 // The HTML template with advanced SEO
-const template = (title, description, content, slug) => {
+const template = (title, description, content, slug, related = '') => {
   const canonicalUrl = `${baseUrl}/articles/${slug}`;
   // Fallback placeholder image for Open Graph if none exists
   const ogImage = `${baseUrl}/logo.png`; 
@@ -126,6 +126,7 @@ const template = (title, description, content, slug) => {
       <div id="content" class="markdown-body">
         ${content}
       </div>
+      ${related}
     </div>
   </main>
 <!-- Zoho SalesIQ live chat -->
@@ -144,6 +145,7 @@ const template = (title, description, content, slug) => {
 function build() {
   const files = fs.readdirSync(articlesDir);
   const sitemapUrls = [];
+  const parsed = [];
 
   // Core pages for sitemap
   sitemapUrls.push(`${baseUrl}/`);
@@ -185,15 +187,28 @@ function build() {
       return `href="${urlBase}${path}${separator}${utmString}"`;
     });
 
-    const finalHtml = template(frontmatter.title, frontmatter.description, htmlContent, slug);
-
-    // Write to HTML file
-    const outputFilename = `${slug}.html`;
-    fs.writeFileSync(path.join(articlesDir, outputFilename), finalHtml);
-    console.log(`Built ${outputFilename}`);
+    parsed.push({ slug, title: frontmatter.title, description: frontmatter.description, htmlContent });
 
     // Add to sitemap (clean URL without .html)
     sitemapUrls.push(`${baseUrl}/articles/${slug}`);
+  });
+
+  // Second pass: render each article with internal links to the others
+  parsed.forEach(article => {
+    const others = parsed.filter(a => a.slug !== article.slug);
+    const related = `
+      <aside class="mt-16 pt-8" style="border-top: 1px solid var(--border);">
+        <h2 class="text-xl font-extrabold text-white mb-4">Continue reading</h2>
+        <ul class="space-y-3">
+          ${others.map(o => `<li><a href="/articles/${o.slug}" class="text-[var(--primary)] hover:underline font-semibold">${o.title}</a></li>`).join('\n          ')}
+          <li><a href="/" class="text-gray-400 hover:text-white">← Back to LinkNPark home</a></li>
+        </ul>
+      </aside>`;
+
+    const finalHtml = template(article.title, article.description, article.htmlContent, article.slug, related);
+    const outputFilename = `${article.slug}.html`;
+    fs.writeFileSync(path.join(articlesDir, outputFilename), finalHtml);
+    console.log(`Built ${outputFilename}`);
   });
 
   // Generate XML Sitemap
