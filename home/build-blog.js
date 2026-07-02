@@ -117,6 +117,7 @@ const template = (title, description, content, slug, related = '') => {
       <div class="flex items-center gap-6 font-medium">
         <a href="/" class="text-sm text-gray-400 hover:text-white transition-colors">Home</a>
         <a href="/blog.html" class="text-sm text-[var(--primary)] font-bold transition-colors">Blog</a>
+        <a href="/store.html" class="text-sm text-gray-400 hover:text-white transition-colors">Store</a>
       </div>
     </div>
   </nav>
@@ -150,6 +151,7 @@ function build() {
   // Core pages for sitemap
   sitemapUrls.push(`${baseUrl}/`);
   sitemapUrls.push(`${baseUrl}/blog.html`);
+  sitemapUrls.push(`${baseUrl}/store.html`);
 
   files.forEach(file => {
     if (path.extname(file) !== '.md') return;
